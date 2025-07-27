@@ -12,18 +12,21 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@babel/runtime": "^7.28.2",
     "@react-navigation/native": "^7.1.14",
     "@react-navigation/native-stack": "^7.3.21",
     "expo": "^53.0.20",
     "expo-linear-gradient": "~14.1.5",
+    "expo-modules-core": "^2.5.0",
     "expo-status-bar": "~2.2.3",
-    "nativewind": "latest",
+    "nativewind": "^4.1.19",
     "react": "19.0.0",
     "react-native": "0.79.5",
     "react-native-reanimated": "~3.17.4",
-    "react-native-safe-area-context": "5.4.0",
+    "react-native-safe-area-context": "^5.4.0",
     "react-native-screens": "~4.11.1",
-    "react-native-vector-icons": "^10.2.0"
+    "react-native-vector-icons": "^10.2.0",
+    "expo-camera": "~16.1.11"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
@@ -32,8 +35,8 @@
     "eslint-config-expo": "^9.2.0",
     "eslint-config-prettier": "^10.1.2",
     "prettier": "^3.2.5",
-    "prettier-plugin-tailwindcss": "^0.5.11",
-    "tailwindcss": "^3.4.0",
+    "prettier-plugin-tailwindcss": "^0.5.14",
+    "tailwindcss": "^3.4.17",
     "typescript": "~5.8.3"
   },
   "main": "node_modules/expo/AppEntry.js",

@@ -23,7 +23,12 @@ export default function LoginPage({ navigation }: Props) {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      Alert.alert('Thành công', 'Đăng nhập thành công!');
+      Alert.alert('Thành công', 'Đăng nhập thành công!', [
+        {
+          text: 'OK',
+          onPress: () => navigation.navigate('RegisterFace'),
+        },
+      ]);
     }, 2000);
   };
 
