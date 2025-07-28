@@ -5,6 +5,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import MyInput from '../components/MyInput';
 import MyButton from '../components/MyButton';
 import { RootStackParamList } from '../types/navigation';
+import LoginBackGround from './LoginBackGround';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -23,24 +24,13 @@ export default function LoginPage({ navigation }: Props) {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      Alert.alert('Thành công', 'Đăng nhập thành công!', [
-        {
-          text: 'OK',
-          onPress: () => navigation.navigate('RegisterFace'),
-        },
-      ]);
+      navigation.navigate('FaceRegisterPage'); // Navigate to Face Register Page after login
     }, 2000);
   };
 
   return (
     <>
-      <View className="flex-1 bg-blue-900">
-        {/* Background Pattern */}
-        <View className="absolute inset-0 opacity-10">
-          <View className="absolute -left-24 -top-24 h-48 w-48 rounded-full bg-white sm:-left-36 sm:-top-36 sm:h-72 sm:w-72 md:-left-48 md:-top-48 md:h-96 md:w-96" />
-          <View className="absolute -bottom-16 -right-16 h-32 w-32 rounded-full bg-white sm:-bottom-24 sm:-right-24 sm:h-48 sm:w-48 md:-bottom-32 md:-right-32 md:h-64 md:w-64" />
-        </View>
-
+      <LoginBackGround>
         <View className="flex-1 items-center justify-center px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16">
           {/* Title */}
           <Text className="mb-2 text-center text-2xl font-bold text-white sm:mb-3 sm:text-3xl md:mb-4 md:text-4xl lg:text-5xl">
@@ -103,9 +93,9 @@ export default function LoginPage({ navigation }: Props) {
             © 2025 Trường Đại Học Thủy Lợi
           </Text>
         </View>
-      </View>
 
-      <StatusBar style="light" />
+        <StatusBar style="light" />
+      </LoginBackGround>
     </>
   );
 }
