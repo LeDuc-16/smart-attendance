@@ -55,7 +55,7 @@ public class AuthenticationService {
     if (repository.findByEmail(request.getEmail()).isPresent()) {
       throw new DuplicateResourceException("Email đã tồn tại trong hệ thống");
     }
-    
+
     // Check if account already exists
     if (repository.findByAccount(request.getAccount()).isPresent()) {
       throw new DuplicateResourceException("Mã tài khoản đã tồn tại trong hệ thống");
@@ -84,25 +84,41 @@ public class AuthenticationService {
   }
 
   public AuthenticationResponse login(AuthenticationRequest request) {
-    // Validate input
-    if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
-      throw new RequestValidationException("Email không được để trống");
+    // Validate input - cần có ít nhất email hoặc account
+    if ((request.getEmail() == null || request.getEmail().trim().isEmpty()) &&
+        (request.getAccount() == null || request.getAccount().trim().isEmpty())) {
+      throw new RequestValidationException("Email hoặc mã tài khoản không được để trống");
     }
     if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
       throw new RequestValidationException("Mật khẩu không được để trống");
     }
 
-    try {
-      authenticationManager.authenticate(
-          new UsernamePasswordAuthenticationToken(
-              request.getEmail(),
-              request.getPassword()));
-    } catch (Exception e) {
-      throw new ResourceNotFoundException("Email hoặc mật khẩu không chính xác");
+    // Tìm user theo email hoặc account
+    User user = null;
+    String loginIdentifier = "";
+
+    if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+      loginIdentifier = request.getEmail();
+      user = repository.findByEmail(request.getEmail()).orElse(null);
+    } else if (request.getAccount() != null && !request.getAccount().trim().isEmpty()) {
+      loginIdentifier = request.getAccount();
+      user = repository.findByAccount(request.getAccount()).orElse(null);
     }
 
-    var user = repository.findByEmail(request.getEmail())
-        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với email: " + request.getEmail()));
+    if (user == null) {
+      throw new ResourceNotFoundException("Không tìm thấy người dùng với thông tin đăng nhập: " + loginIdentifier);
+    }
+
+    try {
+      // Sử dụng email của user để authenticate (vì Spring Security dùng email làm
+      // username)
+      authenticationManager.authenticate(
+          new UsernamePasswordAuthenticationToken(
+              user.getEmail(),
+              request.getPassword()));
+    } catch (Exception e) {
+      throw new ResourceNotFoundException("Thông tin đăng nhập không chính xác");
+    }
 
     try {
       var jwtToken = jwtService.generateToken(user);
