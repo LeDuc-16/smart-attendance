@@ -41,7 +41,7 @@ public class EmailService implements EmailDao {
     public void sendComplexNotificationEmail(User user, String subject, String htmlContent) {
         MimeMessagePreparator preparator = mimeMessage -> {
             mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(user.getEmail()));
-            mimeMessage.setFrom(new InternetAddress("no-reply@leduccorp.com"));
+            mimeMessage.setFrom(new InternetAddress("ngnlduc@gmail.com"));
             mimeMessage.setSubject(subject);
             mimeMessage.setContent(htmlContent, "text/html; charset=utf-8");
         };

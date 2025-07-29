@@ -34,7 +34,6 @@ spring:
           writetimeout: 5000
         debug: true
 
-
 application:
   security:
     jwt:
@@ -42,3 +41,14 @@ application:
       expiration: 86400000 # a day
       refresh-token:
         expiration: 604800000 # 7 days
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+  show-actuator: false
