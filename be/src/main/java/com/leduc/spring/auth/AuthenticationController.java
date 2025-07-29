@@ -1,5 +1,6 @@
 package com.leduc.spring.auth;
 
+import com.leduc.spring.exception.RequestValidationException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -20,22 +21,40 @@ public class AuthenticationController {
 
   @PostMapping("/create-account")
   public ResponseEntity<AuthenticationResponse> createAccount(
-      @RequestBody RegisterRequest request
-  ) {
-    return ResponseEntity.ok(service.createAccount(request));
+      @RequestBody RegisterRequest request) {
+    // Basic validation
+    if (request == null) {
+      throw new RequestValidationException("Dữ liệu đăng ký không được để trống");
+    }
+
+    AuthenticationResponse response = service.createAccount(request);
+    return ResponseEntity.ok(response);
   }
+
   @PostMapping("/login")
   public ResponseEntity<AuthenticationResponse> authenticate(
-      @RequestBody AuthenticationRequest request
-  ) {
-    return ResponseEntity.ok(service.login(request));
+      @RequestBody AuthenticationRequest request) {
+    // Basic validation
+    if (request == null) {
+      throw new RequestValidationException("Dữ liệu đăng nhập không được để trống");
+    }
+
+    AuthenticationResponse response = service.login(request);
+    return ResponseEntity.ok(response);
   }
 
   @PostMapping("/refresh-token")
   public void refreshToken(
       HttpServletRequest request,
-      HttpServletResponse response
-  ) throws IOException {
+      HttpServletResponse response) throws IOException {
+    // Basic validation
+    if (request == null) {
+      throw new RequestValidationException("Request không hợp lệ");
+    }
+    if (response == null) {
+      throw new RequestValidationException("Response không hợp lệ");
+    }
+
     service.refreshToken(request, response);
   }
 }

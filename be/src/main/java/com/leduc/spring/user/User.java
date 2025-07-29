@@ -32,6 +32,7 @@ public class User implements UserDetails {
   private String firstname;
   private String lastname;
   private String email;
+  private String account;
   private String password;
 
   @Enumerated(EnumType.STRING)
