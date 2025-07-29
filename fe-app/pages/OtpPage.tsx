@@ -38,7 +38,7 @@ export default function OtpPage({ navigation }: Props) {
             <Text className="mb-1 text-center text-2xl font-bold text-gray-800 sm:text-3xl">
               XÁC NHẬN OTP
             </Text>
-            <Text className="mb-5 text-center text-base text-gray-600 sm:text-lg">
+            <Text className="mb-5 text-center text-base text-gray-600 sm:text-sm">
               Vui lòng nhập mã OTP đã gửi đến email của bạn
             </Text>
 
