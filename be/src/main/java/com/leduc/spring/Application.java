@@ -28,7 +28,7 @@ public class Application {
 					.password("password")
 					.role(ADMIN)
 					.build();
-			System.out.println("Admin token: " + service.register(admin).getAccessToken());
+			System.out.println("Admin token: " + service.createAccount(admin).getAccessToken());
 
 			var teacher = RegisterRequest.builder()
 					.firstname("Teacher")
@@ -37,7 +37,7 @@ public class Application {
 					.password("password")
 					.role(TEACHER)
 					.build();
-			System.out.println("Teacher token: " + service.register(teacher).getAccessToken());
+			System.out.println("Teacher token: " + service.createAccount(teacher).getAccessToken());
 
 			var student = RegisterRequest.builder()
 					.firstname("Student")
@@ -46,7 +46,7 @@ public class Application {
 					.password("password")
 					.role(STUDENT)
 					.build();
-			System.out.println("Student token: " + service.register(student).getAccessToken());
+			System.out.println("Student token: " + service.createAccount(student).getAccessToken());
 		};
 	}
 }
