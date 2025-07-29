@@ -18,11 +18,11 @@ public class AuthenticationController {
 
   private final AuthenticationService service;
 
-  @PostMapping("/register")
-  public ResponseEntity<AuthenticationResponse> register(
+  @PostMapping("/create-account")
+  public ResponseEntity<AuthenticationResponse> createAccount(
       @RequestBody RegisterRequest request
   ) {
-    return ResponseEntity.ok(service.register(request));
+    return ResponseEntity.ok(service.createAccount(request));
   }
   @PostMapping("/login")
   public ResponseEntity<AuthenticationResponse> authenticate(

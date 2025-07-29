@@ -31,7 +31,7 @@ public class AuthenticationService {
   private final AuthenticationManager authenticationManager;
   private final EmailDao emailDao;
 
-  public AuthenticationResponse register(RegisterRequest request) {
+  public AuthenticationResponse createAccount(RegisterRequest request) {
     var user = User.builder()
         .firstname(request.getFirstname())
         .lastname(request.getLastname())
