@@ -33,8 +33,11 @@ public class AuthenticationService {
   private final AuthenticationManager authenticationManager;
   private final EmailDao emailDao;
 
-  public AuthenticationResponse createAccount(RegisterRequest request) {
-    // Validate input
+  /**
+   * Validate register request input
+   */
+  private void validateRegisterRequest(RegisterRequest request) {
+    // Validate required fields
     if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
       throw new RequestValidationException("Email không được để trống");
     }
@@ -60,6 +63,11 @@ public class AuthenticationService {
     if (repository.findByAccount(request.getAccount()).isPresent()) {
       throw new DuplicateResourceException("Mã tài khoản đã tồn tại trong hệ thống");
     }
+  }
+
+  public AuthenticationResponse createAccount(RegisterRequest request) {
+    // Validate input
+    validateRegisterRequest(request);
 
     try {
       var user = User.builder()
@@ -110,11 +118,11 @@ public class AuthenticationService {
     }
 
     try {
-      // Sử dụng email của user để authenticate (vì Spring Security dùng email làm
-      // username)
+      // Sử dụng username (account hoặc email) để authenticate
+      String usernameForAuth = loginIdentifier;
       authenticationManager.authenticate(
           new UsernamePasswordAuthenticationToken(
-              user.getEmail(),
+              usernameForAuth,
               request.getPassword()));
     } catch (Exception e) {
       throw new ResourceNotFoundException("Thông tin đăng nhập không chính xác");
@@ -189,7 +197,7 @@ public class AuthenticationService {
       HttpServletResponse response) throws IOException {
     final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
     final String refreshToken;
-    final String userEmail;
+    final String username;
 
     if (authHeader == null || !authHeader.startsWith("Bearer ")) {
       throw new RequestValidationException("Authorization header không hợp lệ");
@@ -198,14 +206,16 @@ public class AuthenticationService {
     refreshToken = authHeader.substring(7);
 
     try {
-      userEmail = jwtService.extractUsername(refreshToken);
+      username = jwtService.extractUsername(refreshToken);
     } catch (Exception e) {
       throw new RequestValidationException("Refresh token không hợp lệ");
     }
 
-    if (userEmail != null) {
-      var user = this.repository.findByEmail(userEmail)
-          .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
+    if (username != null) {
+      // Tìm user bằng account trước, nếu không thấy thì tìm bằng email
+      var user = repository.findByAccount(username)
+          .orElseGet(() -> repository.findByEmail(username)
+              .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng")));
 
       if (jwtService.isTokenValid(refreshToken, user)) {
         try {
