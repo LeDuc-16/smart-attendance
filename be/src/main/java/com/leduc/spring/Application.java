@@ -8,6 +8,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
 import static com.leduc.spring.user.Role.ADMIN;
+import static com.leduc.spring.user.Role.TEACHER;
+import static com.leduc.spring.user.Role.STUDENT;
 
 @SpringBootApplication
 public class Application {
@@ -17,37 +19,34 @@ public class Application {
 	}
 
 	@Bean
-	public CommandLineRunner commandLineRunner(
-			AuthenticationService service
-	) {
+	public CommandLineRunner commandLineRunner(AuthenticationService service) {
 		return args -> {
 			var admin = RegisterRequest.builder()
 					.firstname("Admin")
-					.lastname("Admin")
-					.email("accc26348@gmail.com")
+					.lastname("User")
+					.email("ng@gmail.com")
 					.password("password")
 					.role(ADMIN)
 					.build();
 			System.out.println("Admin token: " + service.register(admin).getAccessToken());
 
-			var manager = RegisterRequest.builder()
-					.firstname("Admin")
-					.lastname("Admin")
+			var teacher = RegisterRequest.builder()
+					.firstname("Teacher")
+					.lastname("User")
+					.email("n@gmail.com")
+					.password("password")
+					.role(TEACHER)
+					.build();
+			System.out.println("Teacher token: " + service.register(teacher).getAccessToken());
+
+			var student = RegisterRequest.builder()
+					.firstname("Student")
+					.lastname("User")
 					.email("ngnlduc@gmail.com")
 					.password("password")
-					.role(ADMIN)
+					.role(STUDENT)
 					.build();
-			System.out.println("Manager token: " + service.register(manager).getAccessToken());
-
-			var friend = RegisterRequest.builder()
-					.firstname("Admin")
-					.lastname("Admin")
-					.email("manhdo1234x@gmail.com")
-					.password("password")
-					.role(ADMIN)
-					.build();
-			System.out.println("Friend token: " + service.register(friend).getAccessToken());
-
+			System.out.println("Student token: " + service.register(student).getAccessToken());
 		};
 	}
 }
