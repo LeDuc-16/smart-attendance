@@ -3,6 +3,7 @@ package com.leduc.spring.auth;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.leduc.spring.config.JwtService;
 import com.leduc.spring.email.EmailDao;
+import com.leduc.spring.exception.ApiResponse;
 import com.leduc.spring.exception.DuplicateResourceException;
 import com.leduc.spring.exception.RequestValidationException;
 import com.leduc.spring.exception.ResourceNotFoundException;
@@ -37,22 +38,12 @@ public class AuthenticationService {
    * Validate register request input
    */
   private void validateRegisterRequest(RegisterRequest request) {
-    // Validate required fields
-    if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
-      throw new RequestValidationException("Email không được để trống");
-    }
-    if (request.getPassword() == null || request.getPassword().length() < 6) {
-      throw new RequestValidationException("Mật khẩu phải có ít nhất 6 ký tự");
-    }
-    if (request.getFirstname() == null || request.getFirstname().trim().isEmpty()) {
-      throw new RequestValidationException("Tên không được để trống");
-    }
-    if (request.getLastname() == null || request.getLastname().trim().isEmpty()) {
-      throw new RequestValidationException("Họ không được để trống");
-    }
-    if (request.getAccount() == null || request.getAccount().trim().isEmpty()) {
-      throw new RequestValidationException("Mã tài khoản không được để trống");
-    }
+    // Validate required fields using utility methods
+    validateRequiredString(request.getEmail(), "Email");
+    validatePassword(request.getPassword(), 6);
+    validateRequiredString(request.getFirstname(), "Tên");
+    validateRequiredString(request.getLastname(), "Họ");
+    validateRequiredString(request.getAccount(), "Mã tài khoản");
 
     // Check if email already exists
     if (repository.findByEmail(request.getEmail()).isPresent()) {
@@ -65,11 +56,37 @@ public class AuthenticationService {
     }
   }
 
-  public AuthenticationResponse createAccount(RegisterRequest request) {
-    // Validate input
-    validateRegisterRequest(request);
+  /**
+   * Validate login request input
+   */
+  private void validateLoginRequest(AuthenticationRequest request) {
+    validateRequiredString(request.getAccount(), "Mã tài khoản");
+    validateRequiredString(request.getPassword(), "Mật khẩu");
+  }
 
+  /**
+   * Generic validator utility - validate string fields
+   */
+  private void validateRequiredString(String value, String fieldName) {
+    if (value == null || value.trim().isEmpty()) {
+      throw new RequestValidationException(fieldName + " không được để trống");
+    }
+  }
+
+  /**
+   * Validate password with minimum length
+   */
+  private void validatePassword(String password, int minLength) {
+    if (password == null || password.length() < minLength) {
+      throw new RequestValidationException("Mật khẩu phải có ít nhất " + minLength + " ký tự");
+    }
+  }
+
+  public ApiResponse<AuthenticationResponse> createAccount(RegisterRequest request) {
     try {
+      // Validate input
+      validateRegisterRequest(request);
+
       var user = User.builder()
           .firstname(request.getFirstname())
           .lastname(request.getLastname())
@@ -82,53 +99,49 @@ public class AuthenticationService {
       var jwtToken = jwtService.generateToken(user);
       var refreshToken = jwtService.generateRefreshToken(user);
       saveUserToken(savedUser, jwtToken);
-      return AuthenticationResponse.builder()
+
+      var authResponse = AuthenticationResponse.builder()
           .accessToken(jwtToken)
           .refreshToken(refreshToken)
           .build();
+
+      return ApiResponse.success(authResponse, "Tạo tài khoản thành công", "/api/v1/auth/register");
+
+    } catch (DuplicateResourceException | RequestValidationException e) {
+      return ApiResponse.error(
+          e instanceof DuplicateResourceException ? 409 : 400,
+          e.getMessage(),
+          "/api/v1/auth/register");
+
     } catch (Exception e) {
-      throw new RuntimeException("Lỗi khi tạo tài khoản: " + e.getMessage());
+      return ApiResponse.error(
+          500,
+          "Lỗi khi tạo tài khoản: " + e.getMessage(),
+          "/api/v1/auth/register");
     }
   }
 
-  public AuthenticationResponse login(AuthenticationRequest request) {
-    // Validate input - cần có ít nhất email hoặc account
-    if ((request.getEmail() == null || request.getEmail().trim().isEmpty()) &&
-        (request.getAccount() == null || request.getAccount().trim().isEmpty())) {
-      throw new RequestValidationException("Email hoặc mã tài khoản không được để trống");
-    }
-    if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
-      throw new RequestValidationException("Mật khẩu không được để trống");
-    }
-
-    // Tìm user theo email hoặc account
-    User user = null;
-    String loginIdentifier = "";
-
-    if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
-      loginIdentifier = request.getEmail();
-      user = repository.findByEmail(request.getEmail()).orElse(null);
-    } else if (request.getAccount() != null && !request.getAccount().trim().isEmpty()) {
-      loginIdentifier = request.getAccount();
-      user = repository.findByAccount(request.getAccount()).orElse(null);
-    }
-
-    if (user == null) {
-      throw new ResourceNotFoundException("Không tìm thấy người dùng với thông tin đăng nhập: " + loginIdentifier);
-    }
-
+  public ApiResponse<AuthenticationResponse> login(AuthenticationRequest request) {
     try {
-      // Sử dụng username (account hoặc email) để authenticate
-      String usernameForAuth = loginIdentifier;
-      authenticationManager.authenticate(
-          new UsernamePasswordAuthenticationToken(
-              usernameForAuth,
-              request.getPassword()));
-    } catch (Exception e) {
-      throw new ResourceNotFoundException("Thông tin đăng nhập không chính xác");
-    }
+      // Validate input - sử dụng hàm validate chung
+      validateLoginRequest(request);
 
-    try {
+      // Tìm user theo account
+      User user = repository.findByAccount(request.getAccount())
+          .orElseThrow(
+              () -> new ResourceNotFoundException(
+                  "Không tìm thấy người dùng với mã tài khoản: " + request.getAccount()));
+
+      try {
+        // Sử dụng account để authenticate
+        authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                request.getAccount(),
+                request.getPassword()));
+      } catch (Exception e) {
+        throw new ResourceNotFoundException("Thông tin đăng nhập không chính xác");
+      }
+
       var jwtToken = jwtService.generateToken(user);
       var refreshToken = jwtService.generateRefreshToken(user);
       revokeAllUserTokens(user);
@@ -161,12 +174,24 @@ public class AuthenticationService {
         System.err.println("Lỗi gửi email thông báo: " + emailException.getMessage());
       }
 
-      return AuthenticationResponse.builder()
+      var authResponse = AuthenticationResponse.builder()
           .accessToken(jwtToken)
           .refreshToken(refreshToken)
           .build();
+
+      return ApiResponse.success(authResponse, "Đăng nhập thành công!", "/api/v1/auth/login");
+
+    } catch (DuplicateResourceException | RequestValidationException | ResourceNotFoundException e) {
+      return ApiResponse.error(
+          e instanceof ResourceNotFoundException ? 404 : 400,
+          e.getMessage(),
+          "/api/v1/auth/login");
+
     } catch (Exception e) {
-      throw new RuntimeException("Lỗi khi đăng nhập: " + e.getMessage());
+      return ApiResponse.error(
+          500,
+          "Lỗi khi đăng nhập: " + e.getMessage(),
+          "/api/v1/auth/login");
     }
   }
 
@@ -212,10 +237,9 @@ public class AuthenticationService {
     }
 
     if (username != null) {
-      // Tìm user bằng account trước, nếu không thấy thì tìm bằng email
+      // Tìm user bằng account (username trong JWT chính là account)
       var user = repository.findByAccount(username)
-          .orElseGet(() -> repository.findByEmail(username)
-              .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng")));
+          .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với mã tài khoản: " + username));
 
       if (jwtService.isTokenValid(refreshToken, user)) {
         try {

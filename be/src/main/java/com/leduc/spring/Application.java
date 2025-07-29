@@ -29,27 +29,42 @@ public class Application {
 					.password("password")
 					.role(ADMIN)
 					.build();
-			System.out.println("Admin token: " + service.createAccount(admin).getAccessToken());
+			var adminResult = service.createAccount(admin);
+			if (adminResult.statusCode() == 200) {
+				System.out.println("Admin token: " + adminResult.data().getAccessToken());
+			} else {
+				System.err.println("Lỗi tạo Admin: " + adminResult.message());
+			}
 
 			var teacher = RegisterRequest.builder()
 					.firstname("Teacher")
 					.lastname("User")
 					.account("TCH001")
-					.email("n@gmail.com")
+					.email("ngnlduc@gmail.com")
 					.password("password")
 					.role(TEACHER)
 					.build();
-			System.out.println("Teacher token: " + service.createAccount(teacher).getAccessToken());
+			var teacherResult = service.createAccount(teacher);
+			if (teacherResult.statusCode() == 200) {
+				System.out.println("Teacher token: " + teacherResult.data().getAccessToken());
+			} else {
+				System.err.println("Lỗi tạo Teacher: " + teacherResult.message());
+			}
 
 			var student = RegisterRequest.builder()
 					.firstname("Student")
 					.lastname("User")
 					.account("STD001")
-					.email("ngnlduc@gmail.com")
+					.email("student@gmail.com")
 					.password("password")
 					.role(STUDENT)
 					.build();
-			System.out.println("Student token: " + service.createAccount(student).getAccessToken());
+			var studentResult = service.createAccount(student);
+			if (studentResult.statusCode() == 200) {
+				System.out.println("Student token: " + studentResult.data().getAccessToken());
+			} else {
+				System.err.println("Lỗi tạo Student: " + studentResult.message());
+			}
 		};
 	}
 }

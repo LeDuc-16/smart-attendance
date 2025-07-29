@@ -8,105 +8,95 @@ import org.springframework.security.authentication.InsufficientAuthenticationExc
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import java.time.LocalDateTime;
-
 @ControllerAdvice
 public class DefaultExceptionHandler {
 
         @ExceptionHandler(ResourceNotFoundException.class)
-        public ResponseEntity<ApiError> handleException(ResourceNotFoundException e,
+        public ResponseEntity<ApiResponse<Object>> handleException(ResourceNotFoundException e,
                         HttpServletRequest request) {
-                ApiError apiError = new ApiError(
-                                request.getRequestURI(),
-                                e.getMessage(),
+                ApiResponse<Object> apiResponse = ApiResponse.error(
                                 HttpStatus.NOT_FOUND.value(),
-                                LocalDateTime.now());
+                                e.getMessage(),
+                                request.getRequestURI());
 
-                return new ResponseEntity<>(apiError, HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(apiResponse, HttpStatus.NOT_FOUND);
         }
 
         @ExceptionHandler(InsufficientAuthenticationException.class)
-        public ResponseEntity<ApiError> handleException(InsufficientAuthenticationException e,
+        public ResponseEntity<ApiResponse<Object>> handleException(InsufficientAuthenticationException e,
                         HttpServletRequest request) {
-                ApiError apiError = new ApiError(
-                                request.getRequestURI(),
-                                e.getMessage(),
+                ApiResponse<Object> apiResponse = ApiResponse.error(
                                 HttpStatus.FORBIDDEN.value(),
-                                LocalDateTime.now());
+                                e.getMessage(),
+                                request.getRequestURI());
 
-                return new ResponseEntity<>(apiError, HttpStatus.FORBIDDEN);
+                return new ResponseEntity<>(apiResponse, HttpStatus.FORBIDDEN);
         }
 
         @ExceptionHandler(BadCredentialsException.class)
-        public ResponseEntity<ApiError> handleException(BadCredentialsException e,
+        public ResponseEntity<ApiResponse<Object>> handleException(BadCredentialsException e,
                         HttpServletRequest request) {
-                ApiError apiError = new ApiError(
-                                request.getRequestURI(),
-                                e.getMessage(),
+                ApiResponse<Object> apiResponse = ApiResponse.error(
                                 HttpStatus.UNAUTHORIZED.value(),
-                                LocalDateTime.now());
+                                e.getMessage(),
+                                request.getRequestURI());
 
-                return new ResponseEntity<>(apiError, HttpStatus.UNAUTHORIZED);
+                return new ResponseEntity<>(apiResponse, HttpStatus.UNAUTHORIZED);
         }
 
         @ExceptionHandler(DuplicateResourceException.class)
-        public ResponseEntity<ApiError> handleException(DuplicateResourceException e,
+        public ResponseEntity<ApiResponse<Object>> handleException(DuplicateResourceException e,
                         HttpServletRequest request) {
-                ApiError apiError = new ApiError(
-                                request.getRequestURI(),
-                                e.getMessage(),
+                ApiResponse<Object> apiResponse = ApiResponse.error(
                                 HttpStatus.CONFLICT.value(),
-                                LocalDateTime.now());
+                                e.getMessage(),
+                                request.getRequestURI());
 
-                return new ResponseEntity<>(apiError, HttpStatus.CONFLICT);
+                return new ResponseEntity<>(apiResponse, HttpStatus.CONFLICT);
         }
 
         @ExceptionHandler(RequestValidationException.class)
-        public ResponseEntity<ApiError> handleException(RequestValidationException e,
+        public ResponseEntity<ApiResponse<Object>> handleException(RequestValidationException e,
                         HttpServletRequest request) {
-                ApiError apiError = new ApiError(
-                                request.getRequestURI(),
-                                e.getMessage(),
+                ApiResponse<Object> apiResponse = ApiResponse.error(
                                 HttpStatus.BAD_REQUEST.value(),
-                                LocalDateTime.now());
+                                e.getMessage(),
+                                request.getRequestURI());
 
-                return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
         }
 
         @ExceptionHandler(IllegalStateException.class)
-        public ResponseEntity<ApiError> handleException(IllegalStateException e,
+        public ResponseEntity<ApiResponse<Object>> handleException(IllegalStateException e,
                         HttpServletRequest request) {
-                ApiError apiError = new ApiError(
-                                request.getRequestURI(),
-                                e.getMessage(),
+                ApiResponse<Object> apiResponse = ApiResponse.error(
                                 HttpStatus.BAD_REQUEST.value(),
-                                LocalDateTime.now());
+                                e.getMessage(),
+                                request.getRequestURI());
 
-                return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
         }
 
         @ExceptionHandler(IllegalArgumentException.class)
-        public ResponseEntity<ApiError> handleException(IllegalArgumentException e,
+        public ResponseEntity<ApiResponse<Object>> handleException(IllegalArgumentException e,
                         HttpServletRequest request) {
-                ApiError apiError = new ApiError(
-                                request.getRequestURI(),
-                                e.getMessage(),
+                ApiResponse<Object> apiResponse = ApiResponse.error(
                                 HttpStatus.BAD_REQUEST.value(),
-                                LocalDateTime.now());
+                                e.getMessage(),
+                                request.getRequestURI());
 
-                return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
         }
 
         @ExceptionHandler(Exception.class)
-        public ResponseEntity<ApiError> handleException(Exception e,
+        public ResponseEntity<ApiResponse<Object>> handleException(Exception e,
                         HttpServletRequest request) {
-                ApiError apiError = new ApiError(
-                                request.getRequestURI(),
-                                e.getMessage(),
+                ApiResponse<Object> apiResponse = ApiResponse.error(
                                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                                LocalDateTime.now());
+                                e.getMessage(),
+                                request.getRequestURI());
 
-                return new ResponseEntity<>(apiError, HttpStatus.INTERNAL_SERVER_ERROR);
+                return new ResponseEntity<>(apiResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
 }
