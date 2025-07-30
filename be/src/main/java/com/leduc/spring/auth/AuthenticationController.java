@@ -25,13 +25,7 @@ public class AuthenticationController {
 
   private final AuthenticationService service;
 
-  @Operation(summary = "Tạo tài khoản mới", description = "Tạo tài khoản mới trong hệ thống với thông tin người dùng")
-  @ApiResponses(value = {
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tạo tài khoản thành công"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dữ liệu đầu vào không hợp lệ"),
-      @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Email hoặc mã tài khoản đã tồn tại")
-  })
-  @SecurityRequirement(name = "") // Không yêu cầu authentication
+ // Không yêu cầu authentication
   @PostMapping("/create-account")
   public ResponseEntity<ApiResponse<AuthenticationResponse>> createAccount(
       @RequestBody RegisterRequest request) {

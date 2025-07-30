@@ -30,4 +30,6 @@ public class DelegatedAuthEntryPoint implements AuthenticationEntryPoint {
                 request, response, null, authException
         );
     }
+
+    
 }
