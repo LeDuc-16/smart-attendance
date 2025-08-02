@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "otp")
+@Table(name = "otps")
 public class Otp {
 
     @Id

@@ -133,7 +133,6 @@ public class AuthenticationService {
                   "Không tìm thấy người dùng với mã tài khoản: " + request.getAccount()));
 
       try {
-        // Sử dụng account để authenticate
         authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(
                 request.getAccount(),

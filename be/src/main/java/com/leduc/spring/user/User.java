@@ -1,5 +1,6 @@
 package com.leduc.spring.user;
 
+import com.leduc.spring.faculty.Faculty;
 import com.leduc.spring.token.Token;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -39,6 +40,9 @@ public class User implements UserDetails {
 
   @OneToMany(mappedBy = "user")
   private List<Token> tokens;
+
+  @OneToMany(mappedBy = "user")
+  private List<Faculty> faculties;
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
