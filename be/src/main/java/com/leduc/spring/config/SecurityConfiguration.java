@@ -42,7 +42,8 @@ public class SecurityConfiguration {
                         "/swagger-ui.html",
                         "/api/v1/otp/**",
                         "api/v1/faculties/**",
-                        "/api/v1/majors/**"
+                        "/api/v1/majors/**",
+                        "api/v1/classes/**",
         };
         private final JwtAuthenticationFilter jwtAuthFilter;
         private final AuthenticationProvider authenticationProvider;

@@ -15,32 +15,35 @@ public class FacultyController {
         this.facultyService = facultyService;
     }
 
-    @PostMapping("/add-faculties")
-    public ResponseEntity<ApiResponse<Object>> createFaculty(@RequestBody CreateFacultyRequest request, HttpServletRequest servletRequest) {
-        return facultyService.createFaculty(request, servletRequest);
+    @PostMapping
+    public ResponseEntity<ApiResponse<Object>> createFaculty(
+            @RequestBody CreateFacultyRequest request,
+            HttpServletRequest servletRequest
+    ) {
+        return ResponseEntity.ok(facultyService.createFaculty(request, servletRequest));
     }
 
-    @GetMapping("/list-faculties")
-    public ResponseEntity<ApiResponse<Object>> getAllFaculties(HttpServletRequest servletRequest) {
-        return facultyService.listFaculties(servletRequest);
+    @GetMapping
+    public ResponseEntity<ApiResponse<Object>> listFaculties(HttpServletRequest servletRequest) {
+        return ResponseEntity.ok(facultyService.listFaculties(servletRequest));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<Object>> updateFaculty(
-            @PathVariable("id") Long facultyId,
+            @PathVariable("id") Long id,
             @RequestBody UpdateFacultyRequest request,
             HttpServletRequest servletRequest
     ) {
-        return facultyService.updateFaculty(servletRequest, facultyId, request);
+        return ResponseEntity.ok(facultyService.updateFaculty(servletRequest, id, request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Object>> deleteFaculty(
-            @PathVariable("id") Long facultyId,
+            @PathVariable("id") Long id,
             HttpServletRequest servletRequest
     ) {
-        return facultyService.deleteFaculty(servletRequest, facultyId);
+        return ResponseEntity.ok(facultyService.deleteFaculty(servletRequest, id));
     }
-
 }
+
 

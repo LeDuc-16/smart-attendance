@@ -24,7 +24,14 @@ public class Session {
 
     private LocalDateTime createdAt;
     private LocalDateTime datetime;
-    private Boolean statusAttendance;
+
+    // Lưu trạng thái điểm danh của sinh viên: PRESENT, LATE, ABSENT, EXCUSED
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status_attendance")
+    private AttendanceStatus statusAttendance;
+
+    // Lưu trạng thái lớp học (được kích hoạt bởi giảng viên)
+    private boolean isOpened;
 
     @OneToOne
     @JoinColumn(name = "schedule_id", unique = true)

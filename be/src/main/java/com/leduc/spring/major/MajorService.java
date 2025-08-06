@@ -7,7 +7,6 @@ import com.leduc.spring.exception.ResourceNotFoundException;
 import com.leduc.spring.faculty.Faculty;
 import com.leduc.spring.faculty.FacultyRepository;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,7 +22,7 @@ public class MajorService {
         this.facultyRepository = facultyRepository;
     }
 
-    public ResponseEntity<ApiResponse<Object>> addMajor(MajorRequest request, HttpServletRequest servletRequest) {
+    public ApiResponse<Object> addMajor(MajorRequest request, HttpServletRequest servletRequest) {
         Faculty faculty = facultyRepository.findById(request.getFacultyId())
                 .orElseThrow(() -> new ResourceNotFoundException("Faculty not found"));
 
@@ -42,29 +41,25 @@ public class MajorService {
 
         majorRepository.save(major);
 
-        return ResponseEntity.ok(
-                ApiResponse.success(null, "Major created successfully", servletRequest.getRequestURI())
-        );
+        return ApiResponse.success(null, "Major created successfully", servletRequest.getRequestURI());
     }
 
-    public ResponseEntity<ApiResponse<Object>> deleteMajor(Long id, HttpServletRequest servletRequest) {
+    public ApiResponse<Object> deleteMajor(Long id, HttpServletRequest servletRequest) {
         Major major = majorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Major not found"));
 
         majorRepository.delete(major);
 
-        return ResponseEntity.ok(
-                ApiResponse.success(null, "Major deleted successfully", servletRequest.getRequestURI())
-        );
+        return ApiResponse.success(null, "Major deleted successfully", servletRequest.getRequestURI());
     }
 
-    public ResponseEntity<ApiResponse<Object>> updateMajor(Long id, MajorRequest request, HttpServletRequest servletRequest) {
+    public ApiResponse<Object> updateMajor(Long id, MajorRequest request, HttpServletRequest servletRequest) {
         Major major = majorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Major not found"));
 
         boolean changes = false;
 
-        if (request.getMajorName() != null && !request.getMajorName().equals(major.getMajorName())) {
+        if (request.getMajorName() != null && !request.getMajorName().equalsIgnoreCase(major.getMajorName())) {
             if (majorRepository.existsByMajorNameIgnoreCaseAndFacultyId(request.getMajorName(), request.getFacultyId())) {
                 throw new DuplicateResourceException("Major name already exists");
             }
@@ -78,14 +73,11 @@ public class MajorService {
 
         majorRepository.save(major);
 
-        return ResponseEntity.ok(
-                ApiResponse.success(null, "Major updated successfully", servletRequest.getRequestURI())
-        );
+        return ApiResponse.success(null, "Major updated successfully", servletRequest.getRequestURI());
     }
 
-
-    //tim major theo ten khoa
-    public ResponseEntity<ApiResponse<Object>> findByFacultyName(String facultyName, HttpServletRequest servletRequest) {
+    // Tìm major theo tên khoa
+    public ApiResponse<Object> findByFacultyName(String facultyName, HttpServletRequest servletRequest) {
         Faculty faculty = facultyRepository.findByFacultyNameIgnoreCase(facultyName)
                 .orElseThrow(() -> new ResourceNotFoundException("Faculty not found"));
 
@@ -99,13 +91,11 @@ public class MajorService {
                 .map(MajorResponseMapper::toResponse)
                 .toList();
 
-        return ResponseEntity.ok(
-                ApiResponse.success(responses, "Majors for faculty: " + facultyName, servletRequest.getRequestURI())
-        );
+        return ApiResponse.success(responses, "Majors for faculty: " + facultyName, servletRequest.getRequestURI());
     }
 
-    // lay ra tat ca cac major bat ke khoa nao
-    public ResponseEntity<ApiResponse<Object>> listMajors(HttpServletRequest servletRequest) {
+    // Lấy ra tất cả majors bất kể khoa nào
+    public ApiResponse<Object> listMajors(HttpServletRequest servletRequest) {
         List<Major> majors = majorRepository.findAll();
 
         if (majors.isEmpty()) {
@@ -116,10 +106,6 @@ public class MajorService {
                 .map(MajorResponseMapper::toResponse)
                 .toList();
 
-        return ResponseEntity.ok(
-                ApiResponse.success(responses, "List of majors", servletRequest.getRequestURI())
-        );
+        return ApiResponse.success(responses, "List of majors", servletRequest.getRequestURI());
     }
-
-
 }
