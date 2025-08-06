@@ -18,8 +18,10 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Course {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "course_seq")
+    @SequenceGenerator(name = "course_seq", sequenceName = "course_sequence", allocationSize = 1)
     private Long id;
 
     private String courseName;
@@ -32,4 +34,3 @@ public class Course {
     @ManyToMany(mappedBy = "courses")
     private List<Student> students;
 }
-
