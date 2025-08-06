@@ -15,7 +15,8 @@ import java.time.LocalDateTime;
 public class Otp {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "otp_seq")
+    @SequenceGenerator(name = "otp_seq", sequenceName = "otp_sequence", allocationSize = 1)
     private Long id;
 
     private String otpCode;
@@ -25,5 +26,6 @@ public class Otp {
     private boolean used;
 
     @ManyToOne
+    @JoinColumn(name = "user_id") // thêm rõ ràng tên cột FK
     private User user;
 }

@@ -21,7 +21,8 @@ import java.time.LocalTime;
 @AllArgsConstructor
 public class Schedule {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "schedule_seq")
+    @SequenceGenerator(name = "schedule_seq", sequenceName = "schedule_sequence", allocationSize = 1)
     private Long id;
 
     private DayOfWeek dayOfWeek;

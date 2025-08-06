@@ -23,8 +23,17 @@ import org.springframework.security.core.userdetails.UserDetails;
 public class User implements UserDetails {
 
   @Id
-  @GeneratedValue
+  @SequenceGenerator(
+          name = "user_seq",
+          sequenceName = "user_sequence",
+          allocationSize = 1
+  )
+  @GeneratedValue(
+          strategy = GenerationType.SEQUENCE,
+          generator = "user_seq"
+  )
   private Integer id;
+
   private String firstname;
   private String lastname;
   private String email;

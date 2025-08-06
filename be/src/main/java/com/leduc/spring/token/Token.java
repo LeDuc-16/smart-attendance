@@ -16,8 +16,17 @@ import lombok.NoArgsConstructor;
 public class Token {
 
   @Id
-  @GeneratedValue
-  public Integer id;
+  @SequenceGenerator(
+          name = "token_seq",
+          sequenceName = "token_sequence",
+          allocationSize = 1
+  )
+  @GeneratedValue(
+          strategy = GenerationType.SEQUENCE,
+          generator = "token_seq"
+  )
+  private Integer id;
+
 
   @Column(unique = true)
   public String token;

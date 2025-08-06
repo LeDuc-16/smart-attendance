@@ -16,8 +16,10 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Builder
 public class Session {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "session_seq")
+    @SequenceGenerator(name = "session_seq", sequenceName = "session_sequence", allocationSize = 1)
     private Long id;
 
     private LocalDateTime createdAt;
@@ -28,4 +30,3 @@ public class Session {
     @JoinColumn(name = "schedule_id", unique = true)
     private Schedule schedule;
 }
-
