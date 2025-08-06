@@ -3,6 +3,7 @@ package com.leduc.spring.student;
 import com.leduc.spring.classes.ClassEntity;
 import com.leduc.spring.course.Course;
 import com.leduc.spring.major.Major;
+import com.leduc.spring.schedule.Schedule;
 import com.leduc.spring.user.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -45,4 +46,12 @@ public class Student {
             inverseJoinColumns = @JoinColumn(name = "course_id")
     )
     private List<Course> courses;
+
+    @ManyToMany
+    @JoinTable(
+            name = "student_schedule",
+            joinColumns = @JoinColumn(name = "student_id"),
+            inverseJoinColumns = @JoinColumn(name = "schedule_id")
+    )
+    private List<Schedule> schedules;
 }
