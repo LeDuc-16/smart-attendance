@@ -18,25 +18,6 @@ public class UserService {
     private final UserRepository repository;
 
     public void changePassword(ChangePasswordRequest request, Principal connectedUser) {
-        // Validate input
-        if (request == null) {
-            throw new RequestValidationException("Dữ liệu thay đổi mật khẩu không được để trống");
-        }
-        if (connectedUser == null) {
-            throw new RequestValidationException("Người dùng chưa đăng nhập");
-        }
-        if (request.getCurrentPassword() == null || request.getCurrentPassword().trim().isEmpty()) {
-            throw new RequestValidationException("Mật khẩu hiện tại không được để trống");
-        }
-        if (request.getNewPassword() == null || request.getNewPassword().trim().isEmpty()) {
-            throw new RequestValidationException("Mật khẩu mới không được để trống");
-        }
-        if (request.getConfirmationPassword() == null || request.getConfirmationPassword().trim().isEmpty()) {
-            throw new RequestValidationException("Xác nhận mật khẩu không được để trống");
-        }
-        if (request.getNewPassword().length() < 6) {
-            throw new RequestValidationException("Mật khẩu mới phải có ít nhất 6 ký tự");
-        }
 
         try {
             var user = (User) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();

@@ -30,10 +30,9 @@ public class Application {
 					.role(ADMIN)
 					.build();
 			var adminResult = service.createAccount(admin);
-			if (adminResult.statusCode() == 200) {
-				System.out.println("Admin token: " + adminResult.data().getAccessToken());
-			} else {
-				System.err.println("Lỗi tạo Admin: " + adminResult.message());
+			System.out.println("Admin account creation result: " + adminResult.message());
+			if (adminResult.data() != null) {
+				System.out.println("Admin access token: " + adminResult.data().getAccessToken());
 			}
 
 			var teacher = RegisterRequest.builder()
@@ -42,13 +41,12 @@ public class Application {
 					.account("TCH001")
 					.email("ngnlduc@gmail.com")
 					.password("password")
-					.role(TEACHER)
+					.role(ADMIN)
 					.build();
 			var teacherResult = service.createAccount(teacher);
-			if (teacherResult.statusCode() == 200) {
-				System.out.println("Teacher token: " + teacherResult.data().getAccessToken());
-			} else {
-				System.err.println("Lỗi tạo Teacher: " + teacherResult.message());
+			System.out.println("Teacher account creation result: " + teacherResult.message());
+			if (teacherResult.data() != null) {
+				System.out.println("Teacher access token: " + teacherResult.data().getAccessToken());
 			}
 
 			var student = RegisterRequest.builder()
@@ -60,10 +58,9 @@ public class Application {
 					.role(STUDENT)
 					.build();
 			var studentResult = service.createAccount(student);
-			if (studentResult.statusCode() == 200) {
-				System.out.println("Student token: " + studentResult.data().getAccessToken());
-			} else {
-				System.err.println("Lỗi tạo Student: " + studentResult.message());
+			System.out.println("Student account creation result: " + studentResult.message());
+			if (studentResult.data() != null) {
+				System.out.println("Student access token: " + studentResult.data().getAccessToken());
 			}
 		};
 	}

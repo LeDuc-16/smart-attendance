@@ -2,13 +2,9 @@ package com.leduc.spring.user;
 
 import com.leduc.spring.faculty.Faculty;
 import com.leduc.spring.token.Token;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -34,6 +30,7 @@ public class User implements UserDetails {
   private String email;
   private String account;
   private String password;
+  private LocalDate dateOfBirth;
 
   @Enumerated(EnumType.STRING)
   private Role role;
@@ -41,8 +38,8 @@ public class User implements UserDetails {
   @OneToMany(mappedBy = "user")
   private List<Token> tokens;
 
-  @OneToMany(mappedBy = "user")
-  private List<Faculty> faculties;
+  @OneToOne(mappedBy = "user")
+  private Faculty faculty;
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {

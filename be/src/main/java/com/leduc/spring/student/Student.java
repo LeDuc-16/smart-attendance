@@ -5,11 +5,19 @@ import com.leduc.spring.course.Course;
 import com.leduc.spring.major.Major;
 import com.leduc.spring.user.User;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Entity
 @Table(name = "students")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Student {
     @Id
     private Long id;

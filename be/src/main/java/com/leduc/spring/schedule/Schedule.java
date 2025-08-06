@@ -5,12 +5,20 @@ import com.leduc.spring.lecturer.Lecturer;
 import com.leduc.spring.room.Room;
 import com.leduc.spring.session.Session;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 
 @Entity
 @Table(name = "schedules")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Schedule {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

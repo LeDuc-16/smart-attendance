@@ -34,59 +34,8 @@ public class AuthenticationService {
   private final AuthenticationManager authenticationManager;
   private final EmailDao emailDao;
 
-  /**
-   * Validate register request input
-   */
-  private void validateRegisterRequest(RegisterRequest request) {
-    // Validate required fields using utility methods
-    validateRequiredString(request.getEmail(), "Email");
-    validatePassword(request.getPassword(), 6);
-    validateRequiredString(request.getFirstname(), "Tên");
-    validateRequiredString(request.getLastname(), "Họ");
-    validateRequiredString(request.getAccount(), "Mã tài khoản");
-
-    // Check if email already exists
-    if (repository.findByEmail(request.getEmail()).isPresent()) {
-      throw new DuplicateResourceException("Email đã tồn tại trong hệ thống");
-    }
-
-    // Check if account already exists
-    if (repository.findByAccount(request.getAccount()).isPresent()) {
-      throw new DuplicateResourceException("Mã tài khoản đã tồn tại trong hệ thống");
-    }
-  }
-
-  /**
-   * Validate login request input
-   */
-  private void validateLoginRequest(AuthenticationRequest request) {
-    validateRequiredString(request.getAccount(), "Mã tài khoản");
-    validateRequiredString(request.getPassword(), "Mật khẩu");
-  }
-
-  /**
-   * Generic validator utility - validate string fields
-   */
-  private void validateRequiredString(String value, String fieldName) {
-    if (value == null || value.trim().isEmpty()) {
-      throw new RequestValidationException(fieldName + " không được để trống");
-    }
-  }
-
-  /**
-   * Validate password with minimum length
-   */
-  private void validatePassword(String password, int minLength) {
-    if (password == null || password.length() < minLength) {
-      throw new RequestValidationException("Mật khẩu phải có ít nhất " + minLength + " ký tự");
-    }
-  }
-
   public ApiResponse<AuthenticationResponse> createAccount(RegisterRequest request) {
     try {
-      // Validate input
-      validateRegisterRequest(request);
-
       var user = User.builder()
           .firstname(request.getFirstname())
           .lastname(request.getLastname())
@@ -122,76 +71,85 @@ public class AuthenticationService {
   }
 
   public ApiResponse<AuthenticationResponse> login(AuthenticationRequest request) {
+    User user = repository.findByAccount(request.getAccount())
+        .orElseThrow(() -> new ResourceNotFoundException(
+            "Không tìm thấy người dùng với mã tài khoản: " + request.getAccount()));
+
+    authenticationManager.authenticate(
+        new UsernamePasswordAuthenticationToken(
+            request.getAccount(),
+            request.getPassword()));
+
+    var jwtToken = jwtService.generateToken(user);
+    var refreshToken = jwtService.generateRefreshToken(user);
+    revokeAllUserTokens(user);
+    saveUserToken(user, jwtToken);
+
+    // Send notification emails
     try {
-      // Validate input - sử dụng hàm validate chung
-      validateLoginRequest(request);
+      emailDao.sendSimpleNotificationEmail(
+          user,
+          "Hello " + user.getUsername() + ",\nWelcome to my LeDuc Dep Trai App!",
+          "Login Notification");
 
-      // Tìm user theo account
-      User user = repository.findByAccount(request.getAccount())
-          .orElseThrow(
-              () -> new ResourceNotFoundException(
-                  "Không tìm thấy người dùng với mã tài khoản: " + request.getAccount()));
+      String html = String.format("""
+          <html>
+            <body>
+              <h2 style="color: #2e6c80;">Xin chào %s!</h2>
+              <p>Bạn vừa đăng nhập thành công vào lúc <b>%s</b>.</p>
+              <p>Chúc bạn một ngày tốt lành cùng với <b>LeDuc Dep Trai App</b> ✨.</p>
+            </body>
+          </html>
+          """, user.getFirstname(), LocalDateTime.now());
 
-      try {
-        authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(
-                request.getAccount(),
-                request.getPassword()));
-      } catch (Exception e) {
-        throw new ResourceNotFoundException("Thông tin đăng nhập không chính xác");
-      }
-
-      var jwtToken = jwtService.generateToken(user);
-      var refreshToken = jwtService.generateRefreshToken(user);
-      revokeAllUserTokens(user);
-      saveUserToken(user, jwtToken);
-
-      // Send notification emails
-      try {
-        emailDao.sendSimpleNotificationEmail(
-            user,
-            "Hello " + user.getUsername() + ",\nWelcome to my LeDuc Dep Trai App!",
-            "Login Notification");
-
-        // Gửi email dạng HTML
-        String html = String.format("""
-            <html>
-              <body>
-                <h2 style="color: #2e6c80;">Xin chào %s!</h2>
-                <p>Bạn vừa đăng nhập thành công vào lúc <b>%s</b>.</p>
-                <p>Chúc bạn một ngày tốt lành cùng với <b>LeDuc Dep Trai App</b> ✨.</p>
-              </body>
-            </html>
-            """, user.getFirstname(), LocalDateTime.now());
-
-        emailDao.sendComplexNotificationEmail(
-            user,
-            "🔐 Login Notification - LeDuc Dep Trai App",
-            html);
-      } catch (Exception emailException) {
-        // Log email error but don't fail the login process
-        System.err.println("Lỗi gửi email thông báo: " + emailException.getMessage());
-      }
-
-      var authResponse = AuthenticationResponse.builder()
-          .accessToken(jwtToken)
-          .refreshToken(refreshToken)
-          .build();
-
-      return ApiResponse.success(authResponse, "Đăng nhập thành công!", "/api/v1/auth/login");
-
-    } catch (DuplicateResourceException | RequestValidationException | ResourceNotFoundException e) {
-      return ApiResponse.error(
-          e instanceof ResourceNotFoundException ? 404 : 400,
-          e.getMessage(),
-          "/api/v1/auth/login");
-
+      emailDao.sendComplexNotificationEmail(
+          user,
+          "🔐 Login Notification - LeDuc Dep Trai App",
+          html);
     } catch (Exception e) {
-      return ApiResponse.error(
-          500,
-          "Lỗi khi đăng nhập: " + e.getMessage(),
-          "/api/v1/auth/login");
+      System.err.println("Lỗi gửi email: " + e.getMessage());
     }
+
+    var authResponse = AuthenticationResponse.builder()
+        .accessToken(jwtToken)
+        .refreshToken(refreshToken)
+        .build();
+
+    return ApiResponse.success(authResponse, "Đăng nhập thành công!", "/api/v1/auth/login");
+  }
+
+  // Method dành cho việc tạo tài khoản sinh viên từ Excel import (không cần JWT)
+  public User createStudentAccount(String account, String firstname, String lastname, String email, String password) {
+    // Kiểm tra tài khoản đã tồn tại
+    if (repository.findByAccount(account).isPresent()) {
+      throw new DuplicateResourceException("Tài khoản đã tồn tại: " + account);
+    }
+
+    // Kiểm tra email đã tồn tại
+    if (repository.findByEmail(email).isPresent()) {
+      throw new DuplicateResourceException("Email đã tồn tại: " + email);
+    }
+
+    var user = User.builder()
+        .firstname(firstname)
+        .lastname(lastname)
+        .account(account)
+        .email(email)
+        .password(passwordEncoder.encode(password))
+        .role(com.leduc.spring.user.Role.STUDENT)
+        .build();
+
+    return repository.save(user);
+  }
+
+  // Method dành cho việc update thông tin sinh viên đã tồn tại
+  public User updateStudentAccount(User existingUser, String firstname, String lastname, String email) {
+    existingUser.setFirstname(firstname);
+    existingUser.setLastname(lastname);
+    existingUser.setEmail(email);
+    existingUser.setRole(com.leduc.spring.user.Role.STUDENT);
+
+    return repository.save(existingUser);
   }
 
   public void saveUserToken(User user, String jwtToken) {
