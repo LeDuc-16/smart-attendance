@@ -21,7 +21,7 @@ public class Major {
     @SequenceGenerator(
             name = "major_seq",
             sequenceName = "major_seq",
-            allocationSize = 1 // mỗi lần tăng 1 để không bị nhảy số
+            allocationSize = 1
     )
     private Long id;
 

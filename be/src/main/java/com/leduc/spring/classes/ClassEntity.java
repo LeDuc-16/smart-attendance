@@ -17,7 +17,8 @@ import java.util.List;
 @Table(name = "classes")
 public class ClassEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "class_seq")
+    @SequenceGenerator(name = "class_seq", sequenceName = "class_sequence", allocationSize = 1)
     private Long id;
 
     private String className;
