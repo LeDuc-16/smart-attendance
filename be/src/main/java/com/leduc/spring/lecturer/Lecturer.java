@@ -18,15 +18,17 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Lecturer {
+
     @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "lecturer_seq")
+    @SequenceGenerator(name = "lecturer_seq", sequenceName = "lecturer_sequence", allocationSize = 1)
     private Long id;
 
     private String lecturerCode;
     private String academicRank;
 
     @OneToOne
-    @MapsId
-    @JoinColumn(name = "id")
+    @JoinColumn(name = "user_id", unique = true)
     private User user;
 
     @ManyToOne
