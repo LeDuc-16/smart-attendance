@@ -62,8 +62,7 @@ public class StudentService {
                     }
 
                     User user = User.builder()
-                            .firstname(dto.getFirstname())
-                            .lastname(dto.getLastname())
+                            .name(dto.getName())
                             .email(dto.getEmail())
                             .account(dto.getAccount())
                             .password(passwordEncoder.encode(dto.getPassword()))
@@ -105,8 +104,7 @@ public class StudentService {
 
     private ImportStudentExcelDTO mapRowToDTO(Row row) {
         return ImportStudentExcelDTO.builder()
-                .firstname(getCellValue(row.getCell(0)))
-                .lastname(getCellValue(row.getCell(1)))
+                .name(getCellValue(row.getCell(1)))
                 .email(getCellValue(row.getCell(2)))
                 .account(getCellValue(row.getCell(3)))
                 .password(getCellValue(row.getCell(4)))

@@ -36,9 +36,7 @@ public class AuthenticationService {
 
   public ApiResponse<AuthenticationResponse> createAccount(RegisterRequest request) {
     try {
-      var user = User.builder()
-          .firstname(request.getFirstname())
-          .lastname(request.getLastname())
+      var user = User.builder().name(request.getName())
           .account(request.getAccount())
           .email(request.getEmail())
           .password(passwordEncoder.encode(request.getPassword()))
@@ -100,7 +98,7 @@ public class AuthenticationService {
               <p>Chúc bạn một ngày tốt lành cùng với <b>LeDuc Dep Trai App</b> ✨.</p>
             </body>
           </html>
-          """, user.getFirstname(), LocalDateTime.now());
+          """, user.getName(), LocalDateTime.now());
 
       emailDao.sendComplexNotificationEmail(
           user,
@@ -118,39 +116,7 @@ public class AuthenticationService {
     return ApiResponse.success(authResponse, "Đăng nhập thành công!", "/api/v1/auth/login");
   }
 
-  // Method dành cho việc tạo tài khoản sinh viên từ Excel import (không cần JWT)
-  public User createStudentAccount(String account, String firstname, String lastname, String email, String password) {
-    // Kiểm tra tài khoản đã tồn tại
-    if (repository.findByAccount(account).isPresent()) {
-      throw new DuplicateResourceException("Tài khoản đã tồn tại: " + account);
-    }
 
-    // Kiểm tra email đã tồn tại
-    if (repository.findByEmail(email).isPresent()) {
-      throw new DuplicateResourceException("Email đã tồn tại: " + email);
-    }
-
-    var user = User.builder()
-        .firstname(firstname)
-        .lastname(lastname)
-        .account(account)
-        .email(email)
-        .password(passwordEncoder.encode(password))
-        .role(com.leduc.spring.user.Role.STUDENT)
-        .build();
-
-    return repository.save(user);
-  }
-
-  // Method dành cho việc update thông tin sinh viên đã tồn tại
-  public User updateStudentAccount(User existingUser, String firstname, String lastname, String email) {
-    existingUser.setFirstname(firstname);
-    existingUser.setLastname(lastname);
-    existingUser.setEmail(email);
-    existingUser.setRole(com.leduc.spring.user.Role.STUDENT);
-
-    return repository.save(existingUser);
-  }
 
   public void saveUserToken(User user, String jwtToken) {
     var token = Token.builder()

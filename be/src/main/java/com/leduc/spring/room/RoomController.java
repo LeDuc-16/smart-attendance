@@ -32,7 +32,6 @@ public class RoomController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
     @Operation(summary = "Lấy danh sách phòng học", description = "Admin và giảng viên có quyền xem danh sách phòng học")
     public ResponseEntity<ApiResponse<Object>> listRooms(
             HttpServletRequest servletRequest

@@ -11,10 +11,10 @@ public enum Permission {
     ADMIN_CREATE("admin:create"),
     ADMIN_DELETE("admin:delete"),
 
-    TEACHER_READ("teacher:read"),
-    TEACHER_UPDATE("teacher:update"),
-    TEACHER_CREATE("teacher:create"),
-    TEACHER_DELETE("teacher:delete"),
+    LECTURER_READ("teacher:read"),
+    LECTURER_UPDATE("teacher:update"),
+    LECTURER_CREATE("teacher:create"),
+    LECTURER_DELETE("teacher:delete"),
 
     STUDENT_READ("student:read"),
     STUDENT_UPDATE("student:update"),

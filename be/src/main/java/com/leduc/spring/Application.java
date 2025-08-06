@@ -8,7 +8,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
 import static com.leduc.spring.user.Role.ADMIN;
-import static com.leduc.spring.user.Role.TEACHER;
 import static com.leduc.spring.user.Role.STUDENT;
 
 @SpringBootApplication
@@ -22,8 +21,7 @@ public class Application {
 	public CommandLineRunner commandLineRunner(AuthenticationService service) {
 		return args -> {
 			var admin = RegisterRequest.builder()
-					.firstname("Admin")
-					.lastname("User")
+					.name("Admin")
 					.account("ADM001")
 					.email("ng@gmail.com")
 					.password("password")
@@ -36,8 +34,7 @@ public class Application {
 			}
 
 			var teacher = RegisterRequest.builder()
-					.firstname("Teacher")
-					.lastname("User")
+					.name("User")
 					.account("TCH001")
 					.email("ngnlduc@gmail.com")
 					.password("password")
@@ -50,8 +47,7 @@ public class Application {
 			}
 
 			var student = RegisterRequest.builder()
-					.firstname("Student")
-					.lastname("User")
+					.name("Student")
 					.account("STD001")
 					.email("student@gmail.com")
 					.password("password")

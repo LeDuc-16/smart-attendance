@@ -3,6 +3,7 @@ package com.leduc.spring.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -15,7 +16,6 @@ import org.springframework.security.web.authentication.logout.LogoutHandler;
 
 import static com.leduc.spring.user.Permission.*;
 import static com.leduc.spring.user.Role.ADMIN;
-import static com.leduc.spring.user.Role.TEACHER;
 import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
@@ -44,6 +44,8 @@ public class SecurityConfiguration {
                         "api/v1/faculties/**",
                         "/api/v1/majors/**",
                         "api/v1/classes/**",
+                        "/api/v1/lecturers/**",
+                        "/api/v1/rooms/**"
         };
         private final JwtAuthenticationFilter jwtAuthFilter;
         private final AuthenticationProvider authenticationProvider;
@@ -52,20 +54,26 @@ public class SecurityConfiguration {
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
-                                .csrf(AbstractHttpConfigurer::disable)
-                                .authorizeHttpRequests(req -> req.requestMatchers(WHITE_LIST_URL)
-                                                .permitAll()
-                                                .anyRequest()
-                                                .authenticated())
-                                .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
-                                .authenticationProvider(authenticationProvider)
-                                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                                .logout(logout -> logout.logoutUrl("/api/v1/auth/logout")
-                                                .addLogoutHandler(logoutHandler)
-                                                .logoutSuccessHandler((request, response,
-                                                                authentication) -> SecurityContextHolder
-                                                                                .clearContext()));
+                        .csrf(AbstractHttpConfigurer::disable)
+                        .authorizeHttpRequests(req -> req
+                                // Các URL cho phép tất cả
+                                .requestMatchers(WHITE_LIST_URL).permitAll()
+
+                                // Còn lại cần xác thực
+                                .anyRequest().authenticated()
+                        )
+                        .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
+                        .authenticationProvider(authenticationProvider)
+                        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                        .logout(logout -> logout
+                                .logoutUrl("/api/v1/auth/logout")
+                                .addLogoutHandler(logoutHandler)
+                                .logoutSuccessHandler((request, response, authentication) ->
+                                        SecurityContextHolder.clearContext()
+                                )
+                        );
 
                 return http.build();
         }
+
 }
