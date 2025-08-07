@@ -56,7 +56,7 @@ public class Application {
 			var studentResult = service.createAccount(student);
 			System.out.println("Student account creation result: " + studentResult.message());
 			if (studentResult.data() != null) {
-				System.out.println("Student access token: " + studentResult.data().getAccessToken());
+				System.out.println("Student access toke: " + studentResult.data().getAccessToken());
 			}
 		};
 	}
