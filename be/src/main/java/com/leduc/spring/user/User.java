@@ -37,6 +37,8 @@ public class User implements UserDetails {
   private String name;
   private String email;
   private String account;
+  private String phoneNumber;
+  private String address;
   private String password;
   private LocalDate dateOfBirth;
 

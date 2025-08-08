@@ -23,8 +23,6 @@ public class Student {
     private Long id;
 
     private String studentCode;
-    private String phoneNumber;
-    private String address;
 
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId

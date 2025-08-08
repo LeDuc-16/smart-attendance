@@ -1,19 +1,15 @@
 package com.leduc.spring.schedule;
 
+import com.leduc.spring.classes.ClassEntity;
 import com.leduc.spring.course.Course;
 import com.leduc.spring.lecturer.Lecturer;
-import com.leduc.spring.room.Room;
-import com.leduc.spring.session.Session;
-import com.leduc.spring.student.Student;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.List;
+import java.util.Map;
 
 @Entity
 @Table(name = "schedules")
@@ -22,14 +18,20 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Schedule {
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "schedule_seq")
     @SequenceGenerator(name = "schedule_seq", sequenceName = "schedule_sequence", allocationSize = 1)
     private Long id;
 
-    private DayOfWeek dayOfWeek;
-    private LocalTime startTime;
-    private LocalTime endTime;
+    private LocalDate startDate;
+    private LocalDate endDate;
+
+    @ElementCollection
+    @CollectionTable(name = "schedule_days", joinColumns = @JoinColumn(name = "schedule_id"))
+    @MapKeyColumn(name = "day_of_week")
+    @MapKeyEnumerated(EnumType.STRING)
+    private Map<DayOfWeek, TimeRange> days; // Mỗi ngày → giờ bắt đầu/kết thúc
 
     @ManyToOne
     @JoinColumn(name = "course_id")
@@ -40,12 +42,6 @@ public class Schedule {
     private Lecturer lecturer;
 
     @ManyToOne
-    @JoinColumn(name = "room_id")
-    private Room room;
-
-    @OneToOne(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Session session;
-
-    @ManyToMany(mappedBy = "schedules")
-    private List<Student> students;
+    @JoinColumn(name = "class_id")
+    private ClassEntity classEntity;
 }

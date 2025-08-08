@@ -1,15 +1,15 @@
 package com.leduc.spring.attendance_log;
 
-import com.leduc.spring.student.Student;
 import com.leduc.spring.classes.ClassEntity;
-import com.leduc.spring.user.User;
+import com.leduc.spring.course.Course;
+import com.leduc.spring.lecturer.Lecturer;
+import com.leduc.spring.student.Student;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "attendance_logs")
@@ -23,29 +23,52 @@ public class AttendanceLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Sinh viên điểm danh
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)
     private Student student;
 
+    // Lớp học (ví dụ: 64KTPM3)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "class_id", nullable = false)
     private ClassEntity classEntity;
 
+    // Môn học (VD: CSDL)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "teacher_id", nullable = false)
-    private User teacher; // Teacher là User với role TEACHER
+    @JoinColumn(name = "course_id", nullable = false)
+    private Course course;
 
+    // Giảng viên
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lecturer_id", nullable = false)
+    private Lecturer lecturer;
+
+    // Ngày học
+    @Column(nullable = false)
+    private LocalDate sessionDate;
+
+    // Giờ học theo lịch
+    @Column(nullable = false)
+    private LocalTime scheduledStartTime;
+
+    @Column(nullable = false)
+    private LocalTime scheduledEndTime;
+
+    // Thời điểm thực tế sinh viên điểm danh
     @Column(nullable = false)
     private LocalDateTime attendanceTime;
 
+    // Trạng thái điểm danh (Đúng giờ, Muộn, Có phép, Vắng)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AttendanceStatus status;
 
+    // Ghi chú thêm
     @Column(length = 500)
-    private String note; // Ghi chú thêm nếu cần
+    private String note;
 
-    @Column(nullable = false)
+    // Ngày giờ log được tạo
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @PrePersist
