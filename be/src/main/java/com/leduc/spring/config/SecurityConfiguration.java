@@ -13,13 +13,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import static com.leduc.spring.user.Permission.*;
-import static com.leduc.spring.user.Role.ADMIN;
-import static org.springframework.http.HttpMethod.DELETE;
-import static org.springframework.http.HttpMethod.GET;
-import static org.springframework.http.HttpMethod.POST;
-import static org.springframework.http.HttpMethod.PUT;
+import java.util.List;
+
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
 @Configuration
@@ -29,24 +28,25 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 public class SecurityConfiguration {
 
         private static final String[] WHITE_LIST_URL = {
-                        "/api/v1/auth/**",
-                        "/v2/api-docs",
-                        "/v3/api-docs",
-                        "/v3/api-docs/**",
-                        "/swagger-resources",
-                        "/swagger-resources/**",
-                        "/configuration/ui",
-                        "/configuration/security",
-                        "/swagger-ui/**",
-                        "/webjars/**",
-                        "/swagger-ui.html",
-                        "/api/v1/otp/**",
-                        "api/v1/faculties/**",
-                        "/api/v1/majors/**",
-                        "api/v1/classes/**",
-                        "/api/v1/lecturers/**",
-                        "/api/v1/rooms/**"
+                "/api/v1/auth/**",
+                "/v2/api-docs",
+                "/v3/api-docs",
+                "/v3/api-docs/**",
+                "/swagger-resources",
+                "/swagger-resources/**",
+                "/configuration/ui",
+                "/configuration/security",
+                "/swagger-ui/**",
+                "/webjars/**",
+                "/swagger-ui.html",
+                "/api/v1/otp/**",
+                "/api/v1/faculties/**",
+                "/api/v1/majors/**",
+                "/api/v1/classes/**",
+                "/api/v1/lecturers/**",
+                "/api/v1/rooms/**"
         };
+
         private final JwtAuthenticationFilter jwtAuthFilter;
         private final AuthenticationProvider authenticationProvider;
         private final LogoutHandler logoutHandler;
@@ -55,11 +55,9 @@ public class SecurityConfiguration {
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
                         .csrf(AbstractHttpConfigurer::disable)
+                        .cors(c -> {}) // Kích hoạt cấu hình CORS
                         .authorizeHttpRequests(req -> req
-                                // Các URL cho phép tất cả
                                 .requestMatchers(WHITE_LIST_URL).permitAll()
-
-                                // Còn lại cần xác thực
                                 .anyRequest().authenticated()
                         )
                         .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
@@ -76,4 +74,16 @@ public class SecurityConfiguration {
                 return http.build();
         }
 
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration config = new CorsConfiguration();
+                config.setAllowedOrigins(List.of("http://localhost:5173")); // Cho phép frontend truy cập
+                config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+                config.setAllowCredentials(true); // Cho phép cookie hoặc header token
+
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", config);
+                return source;
+        }
 }
