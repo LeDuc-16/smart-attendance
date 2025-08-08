@@ -1,26 +1,29 @@
 package com.leduc.spring.exception;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import org.springframework.http.HttpStatus;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
-@Builder
-public record ApiResponse<T>(
-        int statusCode,
-        String message,
-        String path,
-        LocalDateTime timestamp,
-        T data) {
+@Data
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int statusCode;
+    private String message;
+    private String path;
+    private T data;
 
-    // Static factory methods for convenience
     public static <T> ApiResponse<T> success(T data, String message, String path) {
-        return new ApiResponse<>(200, message, path, LocalDateTime.now(), data);
+        return new ApiResponse<>(HttpStatus.OK.value(), message, path, data);
     }
 
     public static <T> ApiResponse<T> error(int statusCode, String message, String path) {
-        return new ApiResponse<>(statusCode, message, path, LocalDateTime.now(), null);
+        return new ApiResponse<>(statusCode, message, path, null);
+    }
+
+    // Thêm phương thức mới để hỗ trợ danh sách lỗi
+    public static <T> ApiResponse<List<String>> error(HttpStatus status, List<String> errors, String message, String path) {
+        return new ApiResponse<>(status.value(), message, path, errors);
     }
 }
