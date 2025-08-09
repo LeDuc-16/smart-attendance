@@ -22,7 +22,6 @@ public class ApiResponse<T> {
         return new ApiResponse<>(statusCode, message, path, null);
     }
 
-    // Thêm phương thức mới để hỗ trợ danh sách lỗi
     public static <T> ApiResponse<List<String>> error(HttpStatus status, List<String> errors, String message, String path) {
         return new ApiResponse<>(status.value(), message, path, errors);
     }

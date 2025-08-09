@@ -24,13 +24,13 @@ public class AuthenticationController {
   @PostMapping("/create-account")
   public ResponseEntity<ApiResponse<AuthenticationResponse>> createAccount(@RequestBody RegisterRequest request) {
     ApiResponse<AuthenticationResponse> response = service.createAccount(request);
-    return ResponseEntity.status(response.statusCode()).body(response);
+    return ResponseEntity.status(response.getStatusCode()).body(response);
   }
 
   @PostMapping("/login")
   public ResponseEntity<ApiResponse<AuthenticationResponse>> authenticate(@RequestBody AuthenticationRequest request) {
     ApiResponse<AuthenticationResponse> response = service.login(request);
-    return ResponseEntity.status(response.statusCode()).body(response);
+    return ResponseEntity.status(response.getStatusCode()).body(response);
   }
 
   @PostMapping("/refresh-token")

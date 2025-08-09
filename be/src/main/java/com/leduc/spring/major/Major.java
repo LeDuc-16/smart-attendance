@@ -25,6 +25,7 @@ public class Major {
     )
     private Long id;
 
+    @Column(name = "major_name")
     private String majorName;
 
     @ManyToOne

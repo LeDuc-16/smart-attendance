@@ -6,8 +6,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface MajorRepository extends JpaRepository<Major, Long> {
-    Optional<Major> findByName(String name); // Đồng bộ với findByName trong service
-    Optional<Major> findByMajorName(String majorName); // Giữ lại để tương thích với các code khác (nếu cần)
+    Optional<Major> findByMajorName(String majorName); // Used in StudentService
     boolean existsByMajorNameIgnoreCaseAndFacultyId(String majorName, Long facultyId);
     List<Major> findByFacultyId(Long facultyId);
 }

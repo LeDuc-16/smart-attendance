@@ -28,9 +28,9 @@ public class Application {
 					.role(ADMIN)
 					.build();
 			var adminResult = service.createAccount(admin);
-			System.out.println("Admin account creation result: " + adminResult.message());
-			if (adminResult.data() != null) {
-				System.out.println("Admin access token: " + adminResult.data().getAccessToken());
+			System.out.println("Admin account creation result: " + adminResult.getMessage());
+			if (adminResult.getData() != null) {
+				System.out.println("Admin access token: " + adminResult.getData().getAccessToken());
 			}
 
 			var teacher = RegisterRequest.builder()
@@ -41,9 +41,9 @@ public class Application {
 					.role(ADMIN)
 					.build();
 			var teacherResult = service.createAccount(teacher);
-			System.out.println("Teacher account creation result: " + teacherResult.message());
-			if (teacherResult.data() != null) {
-				System.out.println("Teacher access token: " + teacherResult.data().getAccessToken());
+			System.out.println("Teacher account creation result: " + teacherResult.getMessage());
+			if (teacherResult.getData() != null) {
+				System.out.println("Teacher access token: " + teacherResult.getData().getAccessToken());
 			}
 
 			var student = RegisterRequest.builder()
@@ -54,9 +54,9 @@ public class Application {
 					.role(STUDENT)
 					.build();
 			var studentResult = service.createAccount(student);
-			System.out.println("Student account creation result: " + studentResult.message());
-			if (studentResult.data() != null) {
-				System.out.println("Student access token: " + studentResult.data().getAccessToken());
+			System.out.println("Student account creation result: " + studentResult.getMessage());
+			if (studentResult.getData() != null) {
+				System.out.println("Student access token: " + studentResult.getData().getAccessToken());
 			}
 		};
 	}

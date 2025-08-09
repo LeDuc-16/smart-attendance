@@ -3,6 +3,7 @@ package com.leduc.spring.schedule;
 import com.leduc.spring.classes.ClassEntity;
 import com.leduc.spring.course.Course;
 import com.leduc.spring.lecturer.Lecturer;
+import com.leduc.spring.room.Room; // Import Room entity
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -44,4 +45,8 @@ public class Schedule {
     @ManyToOne
     @JoinColumn(name = "class_id")
     private ClassEntity classEntity;
+
+    @ManyToOne
+    @JoinColumn(name = "room_id") // Add foreign key for Room
+    private Room room; // Add this field to match mappedBy = "room"
 }

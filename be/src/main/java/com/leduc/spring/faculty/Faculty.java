@@ -2,6 +2,7 @@ package com.leduc.spring.faculty;
 
 import com.leduc.spring.lecturer.Lecturer;
 import com.leduc.spring.major.Major;
+import com.leduc.spring.student.Student;
 import com.leduc.spring.user.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -9,6 +10,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -30,6 +32,9 @@ public class Faculty {
     @OneToOne
     @JoinColumn(name = "user_id", unique = true)
     private User user;
+
+    @OneToMany(mappedBy = "faculty", fetch = FetchType.LAZY)
+    private List<Student> students = new ArrayList<>(); // Một khoa có nhiều sinh viên
 
     @OneToMany(mappedBy = "faculty", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Major> majors;

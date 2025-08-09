@@ -2,6 +2,7 @@ package com.leduc.spring.student;
 
 import com.leduc.spring.classes.ClassEntity;
 import com.leduc.spring.course.Course;
+import com.leduc.spring.faculty.Faculty;
 import com.leduc.spring.major.Major;
 import com.leduc.spring.schedule.Schedule;
 import com.leduc.spring.user.User;
@@ -22,6 +23,7 @@ public class Student {
     @Id
     private Long id;
 
+    @Column(name = "student_code", unique = true)
     private String studentCode;
 
     @OneToOne(fetch = FetchType.LAZY)
@@ -52,4 +54,8 @@ public class Student {
             inverseJoinColumns = @JoinColumn(name = "schedule_id")
     )
     private List<Schedule> schedules;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "faculty_id")
+    private Faculty faculty; // Thêm mối quan hệ với Faculty (một sinh viên thuộc về một khoa)
 }
