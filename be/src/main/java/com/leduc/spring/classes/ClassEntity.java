@@ -1,5 +1,6 @@
 package com.leduc.spring.classes;
 
+import com.leduc.spring.lecturer.Lecturer;
 import com.leduc.spring.student.Student;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -23,6 +24,10 @@ public class ClassEntity {
 
     private String className;
     private Integer capacityStudent;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lecturer_id") // Giảng viên chủ nhiệm
+    private Lecturer lecturer;
 
     @OneToMany(mappedBy = "classes")
     private List<Student> students;

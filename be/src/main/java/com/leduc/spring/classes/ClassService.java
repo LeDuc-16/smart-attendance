@@ -74,4 +74,7 @@ public class ClassService {
         classRepository.delete(classEntity);
         return ApiResponse.success(null, "Class deleted successfully", servletRequest.getRequestURI());
     }
+
+    // Thêm giảng viên vào lớp
+    public ApiResponse<Object> addLecturetoClass(Long lectuer)
 }
