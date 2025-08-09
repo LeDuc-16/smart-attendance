@@ -6,6 +6,7 @@ import lombok.Data;
 public class CreateLecturerRequest {
     private String lecturerCode;
     private String academicRank;
+    private String account;
     private String email; // Để tạo User
     private String password; // Để tạo User
     private String name; // Để tạo User

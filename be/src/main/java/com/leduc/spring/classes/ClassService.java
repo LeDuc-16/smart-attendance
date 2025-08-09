@@ -4,6 +4,8 @@ import com.leduc.spring.exception.ApiResponse;
 import com.leduc.spring.exception.DuplicateResourceException;
 import com.leduc.spring.exception.RequestValidationException;
 import com.leduc.spring.exception.ResourceNotFoundException;
+import com.leduc.spring.lecturer.Lecturer;
+import com.leduc.spring.lecturer.LecturerRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,7 @@ public class ClassService {
     @Autowired
     private ClassRepository classRepository;
 
+    private LecturerRepository lecturerRepository;
     // Thêm lớp học
     public ApiResponse<Object> addClass(CreateClassRequest request, HttpServletRequest servletRequest) {
         if (classRepository.existsByClassName(request.getClassName())) {
@@ -75,6 +78,22 @@ public class ClassService {
         return ApiResponse.success(null, "Class deleted successfully", servletRequest.getRequestURI());
     }
 
-    // Thêm giảng viên vào lớp
-    public ApiResponse<Object> addLecturetoClass(Long lectuer)
+    public ApiResponse<Object> addLecturerToClass(AddLecturerToClassRequest request, HttpServletRequest servletRequest) {
+        // Tìm lớp theo className
+        ClassEntity classEntity = classRepository.findByClassName(request.getClassName())
+                .orElseThrow(() -> new ResourceNotFoundException("Class not found with name: [%s]".formatted(request.getClassName())));
+
+        // Tìm giảng viên theo lecturerId
+        Lecturer lecturer = lecturerRepository.findById(request.getLecturerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Lecturer not found with id: [%d]".formatted(request.getLecturerId())));
+
+        // Gán giảng viên chủ nhiệm cho lớp
+        classEntity.setLecturer(lecturer);
+
+        // Lưu lớp
+        classRepository.save(classEntity);
+
+        return ApiResponse.success(null, "Lecturer assigned to class successfully", servletRequest.getRequestURI());
+    }
+
 }

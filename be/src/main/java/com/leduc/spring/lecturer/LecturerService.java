@@ -47,6 +47,7 @@ public class LecturerService {
                 .email(request.getEmail())
                 .password(request.getPassword()) // Nên mã hóa password trong thực tế
                 .name(request.getName())
+                .account(request.getAccount())
                 .role(Role.LECTURER) // Tự động gán vai trò LECTURER
                 .build();
         userRepository.save(user);
