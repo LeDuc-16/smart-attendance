@@ -41,7 +41,7 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public AuditorAware<Integer> auditorAware() {
+  public AuditorAware<Long> auditorAware() {
     return new ApplicationAuditAware();
   }
 

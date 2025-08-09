@@ -25,8 +25,6 @@ public class Course {
     private Long id;
 
     private String courseName;
-    private LocalDate startDate;
-    private LocalDate endDate;
 
     @ManyToMany(mappedBy = "courses")
     private List<Lecturer> lecturers;

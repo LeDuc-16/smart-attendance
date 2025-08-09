@@ -1,5 +1,7 @@
 package com.leduc.spring.config;
 
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.servers.Server;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -75,16 +77,20 @@ public class SecurityConfiguration {
                 return http.build();
         }
 
+
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration config = new CorsConfiguration();
-                config.setAllowedOrigins(List.of("http://localhost:5173")); // Cho phép frontend truy cập
+                config.setAllowedOriginPatterns(List.of("*")); // Cho phép tất cả origin
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-                config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-                config.setAllowCredentials(true); // Cho phép cookie hoặc header token
+                config.setAllowedHeaders(List.of("*"));
+                config.setExposedHeaders(List.of("Content-Disposition")); // Nếu cần download file sau này
+                config.setAllowCredentials(true);
 
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/**", config);
                 return source;
         }
+
+
 }

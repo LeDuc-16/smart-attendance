@@ -15,6 +15,7 @@ import com.leduc.spring.user.User;
 import com.leduc.spring.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -187,9 +189,42 @@ public class StudentService {
 
     // Hàm hỗ trợ lấy giá trị từ cell
     private String getCellValue(Row row, int cellIndex) {
-        if (row == null || row.getCell(cellIndex) == null) {
+        if (row == null) {
             return null;
         }
-        return row.getCell(cellIndex).toString().trim();
+
+        Cell cell = row.getCell(cellIndex);
+        if (cell == null) {
+            return null;
+        }
+
+        switch (cell.getCellType()) {
+            case STRING:
+                return cell.getStringCellValue().trim();
+
+            case NUMERIC:
+                // Dùng BigDecimal để tránh scientific notation
+                return BigDecimal.valueOf(cell.getNumericCellValue())
+                        .toPlainString()
+                        .trim();
+
+            case BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+
+            case FORMULA:
+                // Xử lý công thức, vẫn dùng BigDecimal nếu ra số
+                try {
+                    return BigDecimal.valueOf(cell.getNumericCellValue())
+                            .toPlainString()
+                            .trim();
+                } catch (IllegalStateException e) {
+                    return cell.getStringCellValue().trim();
+                }
+
+            case BLANK:
+            default:
+                return "";
+        }
     }
+
 }

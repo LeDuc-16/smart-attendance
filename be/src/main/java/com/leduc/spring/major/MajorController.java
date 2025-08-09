@@ -21,7 +21,6 @@ public class MajorController {
     private final MajorService majorService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Tạo ngành học mới", description = "Chỉ admin có quyền tạo ngành học mới")
     public ResponseEntity<ApiResponse<Object>> addMajor(
             @RequestBody MajorRequest request,
@@ -32,7 +31,6 @@ public class MajorController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Xóa ngành học", description = "Chỉ admin có quyền xóa ngành học")
     public ResponseEntity<ApiResponse<Object>> deleteMajor(
             @PathVariable Long id,
@@ -42,7 +40,6 @@ public class MajorController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Cập nhật ngành học", description = "Chỉ admin có quyền cập nhật thông tin ngành học")
     public ResponseEntity<ApiResponse<Object>> updateMajor(
             @PathVariable Long id,
@@ -53,7 +50,6 @@ public class MajorController {
     }
 
     @GetMapping("/faculty/{name}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
     @Operation(summary = "Tìm ngành học theo tên khoa", description = "Admin và giảng viên có quyền tìm ngành học theo tên khoa")
     public ResponseEntity<ApiResponse<Object>> findByFacultyName(
             @PathVariable String name,
@@ -63,7 +59,6 @@ public class MajorController {
     }
 
     @GetMapping("/list")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
     @Operation(summary = "Lấy danh sách ngành học", description = "Admin và giảng viên có quyền xem danh sách ngành học")
     public ResponseEntity<ApiResponse<Object>> listMajors(
             HttpServletRequest servletRequest

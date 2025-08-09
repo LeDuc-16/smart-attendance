@@ -1,4 +1,4 @@
 package com.leduc.spring.course;
 
-public class CourseRepository {
+public class CourseService {
 }
