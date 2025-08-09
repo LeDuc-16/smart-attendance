@@ -18,6 +18,7 @@ public class ClassService {
     @Autowired
     private ClassRepository classRepository;
 
+    @Autowired
     private LecturerRepository lecturerRepository;
     // Thêm lớp học
     public ApiResponse<Object> addClass(CreateClassRequest request, HttpServletRequest servletRequest) {

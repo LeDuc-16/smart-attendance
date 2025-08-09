@@ -47,6 +47,6 @@ public class Schedule {
     private ClassEntity classEntity;
 
     @ManyToOne
-    @JoinColumn(name = "room_id") // Add foreign key for Room
-    private Room room; // Add this field to match mappedBy = "room"
+    @JoinColumn(name = "room_id")
+    private Room room;
 }
