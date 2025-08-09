@@ -1,8 +1,7 @@
-
 const LecturerPage = () => {
-  return (
-    <div>LecturerPage</div>
-  )
+    return (
+        <div>LecturerPage</div>
+    )
 }
 
 export default LecturerPage
