@@ -1,22 +1,108 @@
-import React from 'react'
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import MyButton from "../components/MyButton";
+import MyInput from "../components/MyInput";
+import { login } from "../api/apiAuth";
 
 const LoginPage = () => {
-  return (
-    <>
-      <h1>Login</h1>
-      <form>
-        <div>
-          <label htmlFor="email">Email</label>
-          <input type="email" id="email" placeholder="Enter your email" />
-        </div>
-        <div>
-          <label htmlFor="password">Password</label>
-          <input type="password" id="password" placeholder="Enter your password" />
-        </div>
-        <button>Login</button>
-      </form>
-    </>
-  )
-}
+  const navigate = useNavigate();
+  const [account, setAccount] = useState(""); // Đổi từ email -> account
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-export default LoginPage
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const response = await login(account, password); // Dùng account
+      setMessage("Đăng nhập thành công!");
+
+      if (response.access_token) {
+        localStorage.setItem("token", response.access_token);
+        navigate("/dashboard");
+      } else {
+        setMessage("Không tìm thấy access_token trong phản hồi!");
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        setMessage(error.message);
+      } else {
+        setMessage("Đăng nhập thất bại. Vui lòng thử lại!");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-blue-200 flex justify-center items-center min-h-screen p-5">
+      <div className="rounded flex shadow-xl overflow-hidden w-full max-w-3xl border border-gray-300">
+        {/* Left side - Form */}
+        <div className="w-2/3 p-5 bg-gray-50 justify-center flex flex-col">
+          <h1 className="text-2xl flex justify-center font-semibold mb-4">
+            Đăng nhập
+          </h1>
+          <form onSubmit={handleLogin}>
+            <MyInput
+              label="Mã tài khoản"
+              placeholder="Nhập mã tài khoản của bạn"
+              type="text"
+              id="account"
+              value={account}
+              onChange={(e) => setAccount(e.target.value)}
+            />
+            <MyInput
+              label="Mật khẩu"
+              placeholder="Nhập mật khẩu của bạn"
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <div className="flex items-center justify-between mb-4">
+              <label className="inline-flex items-center text-sm text-gray-700">
+                <input type="checkbox" className="form-checkbox" />
+                <span className="ml-2">Ghi nhớ tôi</span>
+              </label>
+              <a href="#" className="text-sm text-blue-600 hover:underline">
+                Quên mật khẩu?
+              </a>
+            </div>
+            <MyButton title="Đăng nhập" type="submit" isLoading={isLoading} />
+
+            {message && (
+              <p
+                className={`mt-2 text-center ${message.includes("thành công")
+                  ? "text-green-500"
+                  : "text-red-500"
+                  }`}
+              >
+                {message}
+              </p>
+            )}
+          </form>
+        </div>
+
+        {/* Right side - Logo and school info */}
+        <div className="w-1/2 bg-blue-900 p-4 rounded h-150 justify-center flex flex-col text-white">
+          <img
+            src="https://images.unsplash.com/photo-1753735880239-d2213c79d1e4?q=80&w=1935&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D://upload.wikimedia.org/wikipedia/vi/thumb/4/42/Logo_DH_Thuy_Loi.svg/1200px-Logo_DH_Thuy_Loi.svg.png"
+            className="w-32 h-32 rounded-full object-cover mx-auto mb-4"
+            alt="Logo TLU"
+          />
+          <h2 className="text-xl font-bold mb-2 text-center">
+            Quản lý hệ thống điểm danh thông minh
+          </h2>
+          <p className="text-gray-200 text-center text-sm leading-relaxed">
+            Dành riêng cho phòng đào tạo và giảng viên tại trường đại học Thủy
+            Lợi để quản lý điểm danh sinh viên một cách hiệu quả và thông minh.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LoginPage;
