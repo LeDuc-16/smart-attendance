@@ -1,5 +1,6 @@
 package com.leduc.spring.schedule;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.leduc.spring.classes.ClassEntity;
 import com.leduc.spring.course.Course;
 import com.leduc.spring.lecturer.Lecturer;
@@ -35,11 +36,14 @@ public class Schedule {
     @Column(name = "day_of_week")
     private List<DayOfWeek> dayOfWeek;
 
+    @JsonFormat(pattern = "HH:mm:ss")
     @Column(name = "start_time")
     private LocalTime startTime;
 
+    @JsonFormat(pattern = "HH:mm:ss")
     @Column(name = "end_time")
     private LocalTime endTime;
+
 
     @ManyToOne
     @JoinColumn(name = "course_id")

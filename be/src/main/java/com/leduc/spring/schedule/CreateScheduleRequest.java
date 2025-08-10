@@ -1,9 +1,7 @@
 package com.leduc.spring.schedule;
 
-import com.leduc.spring.classes.ClassEntity;
-import com.leduc.spring.course.Course;
-import com.leduc.spring.lecturer.Lecturer;
-import com.leduc.spring.room.Room;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,10 +20,16 @@ public class CreateScheduleRequest {
     private LocalDate startDate;
     private LocalDate endDate;
     private List<DayOfWeek> dayOfWeek;
+    @Schema(type = "string", example = "08:00:00")
+    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime startTime;
+
+    @Schema(type = "string", example = "10:00:00")
+    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime endTime;
-    private Course course;
-    private Lecturer lecturer;
-    private ClassEntity classEntity;
-    private Room room;
+
+    private Long courseId;     // Chỉ cần ID
+    private Long lecturerId;   // Chỉ cần ID
+    private Long classId;      // Chỉ cần ID
+    private Long roomId;       // Chỉ cần ID
 }
