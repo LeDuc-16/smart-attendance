@@ -32,5 +32,8 @@ public class ClassEntity {
     @OneToMany(mappedBy = "classes")
     private List<Student> students;
 
+    public ClassEntity(Long id) {
+        this.id = id;
+    }
 }
 

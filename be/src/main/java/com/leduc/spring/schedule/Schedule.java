@@ -3,14 +3,14 @@ package com.leduc.spring.schedule;
 import com.leduc.spring.classes.ClassEntity;
 import com.leduc.spring.course.Course;
 import com.leduc.spring.lecturer.Lecturer;
-import com.leduc.spring.room.Room; // Import Room entity
+import com.leduc.spring.room.Room;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.Map;
+import java.util.List;
 
 @Entity
 @Table(name = "schedules")
@@ -25,14 +25,21 @@ public class Schedule {
     @SequenceGenerator(name = "schedule_seq", sequenceName = "schedule_sequence", allocationSize = 1)
     private Long id;
 
+    @Column(name = "start_date")
     private LocalDate startDate;
+
+    @Column(name = "end_date")
     private LocalDate endDate;
 
-    @ElementCollection
-    @CollectionTable(name = "schedule_days", joinColumns = @JoinColumn(name = "schedule_id"))
-    @MapKeyColumn(name = "day_of_week")
-    @MapKeyEnumerated(EnumType.STRING)
-    private Map<DayOfWeek, TimeRange> days;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "day_of_week")
+    private List<DayOfWeek> dayOfWeek;
+
+    @Column(name = "start_time")
+    private LocalTime startTime;
+
+    @Column(name = "end_time")
+    private LocalTime endTime;
 
     @ManyToOne
     @JoinColumn(name = "course_id")

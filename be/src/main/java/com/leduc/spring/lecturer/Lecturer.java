@@ -44,4 +44,8 @@ public class Lecturer {
             joinColumns = @JoinColumn(name = "lecturer_id"),
             inverseJoinColumns = @JoinColumn(name = "course_id"))
     private List<Course> courses;
+
+    public Lecturer(Long id) {
+        this.id = id;
+    }
 }

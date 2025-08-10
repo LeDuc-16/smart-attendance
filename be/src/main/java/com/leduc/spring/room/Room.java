@@ -27,4 +27,8 @@ public class Room {
 
     @OneToMany(mappedBy = "room")
     private List<Schedule> schedules;
+
+    public Room(Long id) {
+        this.id = id;
+    }
 }

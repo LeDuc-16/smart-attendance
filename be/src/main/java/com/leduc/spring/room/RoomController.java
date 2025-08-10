@@ -21,7 +21,6 @@ public class RoomController {
     private final RoomService roomService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Tạo phòng học", description = "Chỉ admin có quyền tạo phòng học")
     public ResponseEntity<ApiResponse<Object>> createRoom(
             @RequestBody CreateRoomRequest request,
@@ -41,7 +40,6 @@ public class RoomController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Cập nhật phòng học", description = "Chỉ admin có quyền cập nhật phòng học")
     public ResponseEntity<ApiResponse<Object>> updateRoom(
             @PathVariable("id") Long id,
@@ -53,7 +51,6 @@ public class RoomController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Xóa phòng học", description = "Chỉ admin có quyền xóa phòng học")
     public ResponseEntity<ApiResponse<Object>> deleteRoom(
             @PathVariable("id") Long id,

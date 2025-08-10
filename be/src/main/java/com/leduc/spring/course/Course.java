@@ -51,4 +51,8 @@ public class Course {
 
     @LastModifiedDate
     private LocalDateTime lastModifiedDate;
+
+    public Course(Long id) {
+        this.id = id;
+    }
 }

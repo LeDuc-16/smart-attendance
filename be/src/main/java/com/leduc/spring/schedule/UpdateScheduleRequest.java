@@ -14,5 +14,4 @@ public class UpdateScheduleRequest {
     private Long roomId;
     private LocalDate startDate;
     private LocalDate endDate;
-    private Map<DayOfWeek, TimeRange> days;
 }
