@@ -32,7 +32,7 @@ public class Schedule {
     @CollectionTable(name = "schedule_days", joinColumns = @JoinColumn(name = "schedule_id"))
     @MapKeyColumn(name = "day_of_week")
     @MapKeyEnumerated(EnumType.STRING)
-    private Map<DayOfWeek, TimeRange> days; // Mỗi ngày → giờ bắt đầu/kết thúc
+    private Map<DayOfWeek, TimeRange> days;
 
     @ManyToOne
     @JoinColumn(name = "course_id")
