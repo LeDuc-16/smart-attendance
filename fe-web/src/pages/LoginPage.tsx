@@ -88,8 +88,8 @@ const LoginPage = () => {
         {/* Right side - Logo and school info */}
         <div className="w-1/2 bg-blue-900 p-4 rounded h-150 justify-center flex flex-col text-white">
           <img
-            src="https://images.unsplash.com/photo-1753735880239-d2213c79d1e4?q=80&w=1935&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D://upload.wikimedia.org/wikipedia/vi/thumb/4/42/Logo_DH_Thuy_Loi.svg/1200px-Logo_DH_Thuy_Loi.svg.png"
-            className="w-32 h-32 rounded-full object-cover mx-auto mb-4"
+            src="https://www.tlu.edu.vn/Portals/0/2014/Logo-WRU.png"
+            className="rounded-full object-cover mx-auto mb-4"
             alt="Logo TLU"
           />
           <h2 className="text-xl font-bold mb-2 text-center">
