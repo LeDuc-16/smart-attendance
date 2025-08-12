@@ -34,11 +34,13 @@ spring:
           writetimeout: 5000
         debug: true
 
-  servlet:
-    multipart:
-      max-file-size: 10MB        # Giới hạn dung lượng 1 file
-      max-request-size: 20MB     # Giới hạn dung lượng toàn request
-      file-size-threshold: 2KB   # Bắt đầu ghi ra disk nếu file vượt quá ngưỡng này
+  spring:
+    servlet:
+      multipart:
+        max-file-size: 200MB       # Giới hạn dung lượng 1 file
+        max-request-size: 250MB    # Giới hạn dung lượng toàn request
+        file-size-threshold: 2KB   # Ngưỡng ghi ra disk (không quan trọng lắm)
+
 
 application:
   security:
