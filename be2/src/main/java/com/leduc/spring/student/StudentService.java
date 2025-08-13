@@ -10,9 +10,12 @@ import com.leduc.spring.faculty.Faculty;
 import com.leduc.spring.faculty.FacultyRepository;
 import com.leduc.spring.major.Major;
 import com.leduc.spring.major.MajorRepository;
+import com.leduc.spring.s3.S3Buckets;
+import com.leduc.spring.s3.S3Service;
 import com.leduc.spring.user.Role;
 import com.leduc.spring.user.User;
 import com.leduc.spring.user.UserRepository;
+import io.micrometer.common.util.StringUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Cell;
@@ -22,12 +25,14 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +44,8 @@ public class StudentService {
     private final MajorRepository majorRepository;
     private final FacultyRepository facultyRepository;
     private final PasswordEncoder passwordEncoder;
+    private final S3Service s3Service;
+    private final S3Buckets s3Buckets;
 
     // Thêm một sinh viên
     public ApiResponse<Object> addStudent(CreateStudentRequest request, HttpServletRequest servletRequest) {
@@ -225,6 +232,54 @@ public class StudentService {
             default:
                 return "";
         }
+    }
+
+    @Transactional
+    public ApiResponse<Object> uploadStudentProfileImage(Long studentId, MultipartFile file, HttpServletRequest servletRequest) {
+        // Check if student exists
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Student with id [%s] not found".formatted(studentId)));
+
+        // Generate unique image ID
+        String profileImageId = UUID.randomUUID().toString();
+
+        try {
+            // Upload image to S3
+            s3Service.putObject(
+                    s3Buckets.getStudent(), // Adjust to use the appropriate bucket
+                    "profile-images/students/%s/%s".formatted(studentId, profileImageId),
+                    file.getBytes()
+            );
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload profile image", e);
+        }
+
+        // Update student's profileImageId
+        studentRepository.updateProfileImageId(profileImageId, studentId);
+
+        return ApiResponse.success(null, "Student profile image uploaded successfully", servletRequest.getRequestURI());
+    }
+
+    public ApiResponse<Object> getStudentProfileImage(Long studentId, HttpServletRequest servletRequest) {
+        // Check if student exists
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Student with id [%s] not found".formatted(studentId)));
+
+        // Check if profile image exists
+        if (StringUtils.isBlank(student.getProfileImageId())) {
+            throw new ResourceNotFoundException(
+                    "Profile image for student with id [%s] not found".formatted(studentId));
+        }
+
+        // Retrieve image from S3
+        byte[] profileImage = s3Service.getObject(
+                s3Buckets.getStudent(), // Adjust to use the appropriate bucket
+                "profile-images/students/%s/%s".formatted(studentId, student.getProfileImageId())
+        );
+
+        return ApiResponse.success(profileImage, "Student profile image retrieved successfully", servletRequest.getRequestURI());
     }
 
 }
