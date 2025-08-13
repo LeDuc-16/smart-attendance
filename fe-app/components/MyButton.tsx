@@ -1,4 +1,3 @@
-import React from 'react';
 import { TouchableOpacity, Text, ActivityIndicator, GestureResponderEvent } from 'react-native';
 
 interface MyButtonProps {
