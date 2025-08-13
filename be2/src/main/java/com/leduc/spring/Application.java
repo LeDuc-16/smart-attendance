@@ -21,10 +21,10 @@ public class Application {
 	public CommandLineRunner commandLineRunner(AuthenticationService service) {
 		return args -> {
 			var admin = RegisterRequest.builder()
-					.name("Admin")
-					.account("ADM001")
+					.name("A")
+					.account("A")
 					.email("ng@gmail.com")
-					.password("password")
+					.password("a")
 					.role(ADMIN)
 					.build();
 			var adminResult = service.createAccount(admin);
