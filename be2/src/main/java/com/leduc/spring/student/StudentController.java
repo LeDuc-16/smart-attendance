@@ -46,4 +46,32 @@ public class StudentController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @PostMapping(
+            value = "/{studentId}/profile-image",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    @Operation(summary = "Tải lên ảnh hồ sơ sinh viên", description = "Tải lên ảnh hồ sơ cho sinh viên theo ID")
+    public ResponseEntity<ApiResponse<Object>> uploadStudentProfileImage(
+            @PathVariable("studentId") Long studentId,
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest servletRequest
+    ) {
+        ApiResponse<Object> response = studentService.uploadStudentProfileImage(studentId, file, servletRequest);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping(
+            value = "/{studentId}/profile-image",
+            produces = MediaType.IMAGE_JPEG_VALUE
+    )
+    @Operation(summary = "Lấy ảnh hồ sơ sinh viên", description = "Lấy ảnh hồ sơ của sinh viên theo ID")
+    public ResponseEntity<byte[]> getStudentProfileImage(
+            @PathVariable("studentId") Long studentId,
+            HttpServletRequest servletRequest
+    ) {
+        ApiResponse<Object> response = studentService.getStudentProfileImage(studentId, servletRequest);
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_JPEG)
+                .body((byte[]) response.getData());
+    }
 }
