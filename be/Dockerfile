@@ -1,5 +1,5 @@
 # Multi-stage build để tối ưu kích thước image
-FROM maven:3.9.4-jdk-17-slim AS build
+FROM maven:3.9.4-jdk-17 AS build
 
 # Set working directory
 WORKDIR /app
