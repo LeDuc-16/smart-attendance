@@ -1,0 +1,56 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/smart_attendance
+    username: postgres
+    password: password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database: POSTGRESQL
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        "[format_sql]": true
+        jdbc:
+          "[time_zone]": UTC
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+application:
+  security:
+    jwt:
+      secret-key: ${APPLICATION_SECURITY_JWT_SECRET_KEY:mySecretKey123456789012345678901234567890}
+      expiration: ${APPLICATION_SECURITY_JWT_EXPIRATION:86400000} # 1 day
+      refresh-token:
+        expiration: ${APPLICATION_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION:604800000} # 7 days
+
+logging:
+  level:
+    "[com.leduc.spring]": INFO
+    "[org.springframework.security]": DEBUG
+    "[org.hibernate.SQL]": DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+  file:
+    name: /app/logs/smart-attendance.log
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
