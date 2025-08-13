@@ -35,6 +35,9 @@ public class Student {
     @JoinColumn(name = "major_id")
     private Major major;
 
+    @Column(name = "profile_image_id")
+    private String profileImageId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "class_id")
     private ClassEntity classes;
