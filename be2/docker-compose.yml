@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: smart-attendance-db
+    environment:
+      POSTGRES_DB: smart_attendance
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - smart-attendance-network
+    restart: unless-stopped
+
+  # Spring Boot Application
+  app:
+    build: .
+    container_name: smart-attendance-app
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/smart_attendance
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - APPLICATION_SECURITY_JWT_SECRET_KEY=mySecretKey123456789012345678901234567890
+      - APPLICATION_SECURITY_JWT_EXPIRATION=86400000
+      - APPLICATION_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION=604800000
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - smart-attendance-network
+    restart: unless-stopped
+    volumes:
+      - app_logs:/app/logs
+
+volumes:
+  postgres_data:
+  app_logs:
+
+networks:
+  smart-attendance-network:
+    driver: bridge
