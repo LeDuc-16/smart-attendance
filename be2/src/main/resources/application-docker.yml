@@ -54,3 +54,9 @@ management:
   endpoint:
     health:
       show-details: always
+
+# ================= AWS S3 CONFIG =================
+aws:
+  region: ap-southeast-1      # region gần Việt Nam
+  s3:
+    mock: false               # true dùng FakeS3, false dùng AWS thật
