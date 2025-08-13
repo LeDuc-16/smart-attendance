@@ -36,9 +36,11 @@ spring:
       max-file-size: 200MB
       max-request-size: 250MB
       file-size-threshold: 2KB
+
 server:
   port: 8080
   address: 0.0.0.0
+
 application:
   security:
     jwt:
@@ -46,3 +48,9 @@ application:
       expiration: 3600000
       refresh-token:
         expiration: 86400000
+
+# ================= AWS S3 CONFIG =================
+aws:
+  region: ap-southeast-1      # region gần Việt Nam nhất
+  s3:
+    mock: false               # true dùng FakeS3, false dùng AWS thật
