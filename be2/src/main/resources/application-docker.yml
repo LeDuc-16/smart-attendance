@@ -55,8 +55,9 @@ management:
     health:
       show-details: always
 
-# ================= AWS S3 CONFIG =================
 aws:
-  region: ap-southeast-1      # region gần Việt Nam
+  region: ap-southeast-1   # Ví dụ: Singapore region gần Việt Nam
   s3:
-    mock: false               # true dùng FakeS3, false dùng AWS thật
+    mock: false            # false nếu muốn dùng thật trên AWS
+    buckets:
+      student: smart-attendance-student
