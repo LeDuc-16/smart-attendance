@@ -10,8 +10,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
-import static com.leduc.spring.user.Role.ADMIN;
-import static com.leduc.spring.user.Role.STUDENT;
+import static com.leduc.spring.user.Role.*;
 
 @SpringBootApplication
 public class Application {
@@ -24,9 +23,9 @@ public class Application {
 	@Bean
 	public CommandLineRunner accountRunner(AuthenticationService service) {
 		return args -> {
-			createUser(service, "A", "A", "ng@gmail.com", "a", ADMIN);
-			createUser(service, "User", "TCH001", "ngnlduc@gmail.com", "password", ADMIN);
-			createUser(service, "Student", "STD001", "student@gmail.com", "password", STUDENT);
+			createUser(service, "ad", "ad", "ng@gmail.com", "ad", ADMIN);
+			createUser(service, "lec", "lec", "ngnlduc@gmail.com", "lec", LECTURER);
+			createUser(service, "st", "st", "student@gmail.com", "st", STUDENT);
 		};
 	}
 
@@ -36,7 +35,7 @@ public class Application {
 				.account(account)
 				.email(email)
 				.password(password)
-				.role(STUDENT)
+				.role(role)
 				.build();
 		var result = service.createAccount(request);
 		System.out.println(name + " account creation result: " + result.getMessage());

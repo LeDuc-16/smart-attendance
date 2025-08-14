@@ -17,9 +17,7 @@ public class AuthenticationRequest {
   @Schema(hidden = true)
   private String email;
 
-  @Schema(description = "Mã tài khoản", example = "TCH001", required = true)
   private String account;
 
-  @Schema(description = "Mật khẩu", example = "password", required = true)
   private String password;
 }

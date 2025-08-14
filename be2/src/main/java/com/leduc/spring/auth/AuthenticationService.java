@@ -7,11 +7,20 @@ import com.leduc.spring.exception.ApiResponse;
 import com.leduc.spring.exception.DuplicateResourceException;
 import com.leduc.spring.exception.RequestValidationException;
 import com.leduc.spring.exception.ResourceNotFoundException;
+import com.leduc.spring.lecturer.Lecturer;
+import com.leduc.spring.lecturer.LecturerMapper;
+import com.leduc.spring.lecturer.LecturerRepository;
+import com.leduc.spring.lecturer.LecturerResponse;
+import com.leduc.spring.student.Student;
+import com.leduc.spring.student.StudentMapper;
+import com.leduc.spring.student.StudentRepository;
+import com.leduc.spring.student.StudentResponse;
 import com.leduc.spring.token.Token;
 import com.leduc.spring.token.TokenRepository;
 import com.leduc.spring.token.TokenType;
 import com.leduc.spring.user.User;
 import com.leduc.spring.user.UserDTO;
+import com.leduc.spring.user.UserMapper;
 import com.leduc.spring.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,6 +38,8 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AuthenticationService {
   private final UserRepository repository;
+  private final StudentRepository studentRepository;
+  private final LecturerRepository lecturerRepository;
   private final TokenRepository tokenRepository;
   private final PasswordEncoder passwordEncoder;
   private final JwtService jwtService;
@@ -37,37 +48,62 @@ public class AuthenticationService {
 
   public ApiResponse<AuthenticationResponse> createAccount(RegisterRequest request) {
     try {
-      var user = User.builder().name(request.getName())
-          .account(request.getAccount())
-          .email(request.getEmail())
-          .password(passwordEncoder.encode(request.getPassword()))
-          .role(request.getRole())
-          .build();
+      var user = User.builder()
+              .name(request.getName())
+              .account(request.getAccount())
+              .email(request.getEmail())
+              .password(passwordEncoder.encode(request.getPassword()))
+              .role(request.getRole())
+              .build();
+
       var savedUser = repository.save(user);
+
+      // Tạo bản ghi phụ thuộc role
+      switch (request.getRole()) {
+        case STUDENT:
+          Student student = Student.builder()
+                  .user(savedUser)
+                  .studentCode(null)
+                  .build();
+          studentRepository.save(student);
+          break;
+        case LECTURER:
+          Lecturer lecturer = Lecturer.builder()
+                  .user(savedUser)
+                  .lecturerCode(null)
+                  .build();
+          lecturerRepository.save(lecturer);
+          break;
+        default:
+          // ADMIN không cần tạo bản ghi phụ
+          break;
+      }
+
       var jwtToken = jwtService.generateToken(user);
       var refreshToken = jwtService.generateRefreshToken(user);
       saveUserToken(savedUser, jwtToken);
 
       var authResponse = AuthenticationResponse.builder()
-          .accessToken(jwtToken)
-          .refreshToken(refreshToken)
-          .build();
+              .accessToken(jwtToken)
+              .refreshToken(refreshToken)
+              .build();
 
       return ApiResponse.success(authResponse, "Tạo tài khoản thành công", "/api/v1/auth/register");
 
     } catch (DuplicateResourceException | RequestValidationException e) {
       return ApiResponse.error(
-          e instanceof DuplicateResourceException ? 409 : 400,
-          e.getMessage(),
-          "/api/v1/auth/register");
+              e instanceof DuplicateResourceException ? 409 : 400,
+              e.getMessage(),
+              "/api/v1/auth/register");
 
     } catch (Exception e) {
       return ApiResponse.error(
-          500,
-          "Lỗi khi tạo tài khoản: " + e.getMessage(),
-          "/api/v1/auth/register");
+              500,
+              "Lỗi khi tạo tài khoản: " + e.getMessage(),
+              "/api/v1/auth/register");
     }
   }
+
 
   public ApiResponse<AuthenticationResponse> login(AuthenticationRequest request) {
     User user = repository.findByAccount(request.getAccount())
@@ -84,31 +120,52 @@ public class AuthenticationService {
     revokeAllUserTokens(user);
     saveUserToken(user, jwtToken);
 
-    UserDTO userDTO = UserDTO.builder()
-            .id(user.getId())
-            .name(user.getName())
-            .email(user.getEmail())
-            .account(user.getAccount())
-            .phoneNumber(user.getPhoneNumber())
-            .address(user.getAddress())
-            .dateOfBirth(user.getDateOfBirth())
-            .role(user.getRole())
-            .build();
+    // Tùy role -> lấy DTO phù hợp
+    Object userData;
+    switch (user.getRole()) {
+      case STUDENT:
+        userData = studentRepository.findByUserId(user.getId())
+                .map(StudentMapper::fromEntity)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy sinh viên"));
+        break;
+      case LECTURER:
+        userData = lecturerRepository.findByUserId(user.getId())
+                .map(LecturerMapper::fromEntity)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên"));
+        break;
+      default:
+        userData = UserMapper.fromEntity(user);
+        break;
+    }
 
     AuthenticationResponse response = AuthenticationResponse.builder()
             .accessToken(jwtToken)
             .refreshToken(refreshToken)
-            .user(userDTO)
+            .user(userData) // truyền object phù hợp
             .build();
 
     return ApiResponse.success(
-            response,                      // data
-            "Đăng nhập thành công",        // message
-            "/api/v1/auth/login"           // path
+            response,
+            "Đăng nhập thành công",
+            "/api/v1/auth/login"
     );
-
   }
 
+
+  public Object getAccountInfoByRole(User user) {
+    switch (user.getRole()) {
+      case STUDENT:
+        return studentRepository.findById(user.getId())
+                .map(StudentMapper::fromEntity)
+                .orElseThrow();
+      case LECTURER:
+        return lecturerRepository.findByUserId(user.getId())
+                .map(LecturerMapper::fromEntity)
+                .orElseThrow();
+      default:
+        return UserMapper.fromEntity(user);
+    }
+  }
 
 
 
