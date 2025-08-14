@@ -247,9 +247,10 @@ public class StudentService {
         try {
             // Upload image to S3
             s3Service.putObject(
-                    s3Buckets.getStudent(), // Adjust to use the appropriate bucket
+                    s3Buckets.getStudent(),
                     "profile-images/students/%s/%s".formatted(studentId, profileImageId),
-                    file.getBytes()
+                    file.getBytes(),
+                    file.getContentType() // 👈 Lấy loại file từ MultipartFile
             );
         } catch (IOException e) {
             throw new RuntimeException("Failed to upload profile image", e);
