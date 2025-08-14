@@ -74,4 +74,10 @@ public class StudentController {
                 .contentType(MediaType.IMAGE_JPEG)
                 .body((byte[]) response.getData());
     }
+
+    @GetMapping
+    @Operation(summary = "Lấy danh sách sinh viên", description = "Lấy danh sách tất cả sinh viên")
+    public ResponseEntity<ApiResponse<Object>> listStudents(HttpServletRequest servletRequest) {
+        return ResponseEntity.ok(studentService.listStudents(servletRequest));
+    }
 }

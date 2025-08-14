@@ -282,4 +282,25 @@ public class StudentService {
         return ApiResponse.success(profileImage, "Student profile image retrieved successfully", servletRequest.getRequestURI());
     }
 
+    public ApiResponse<Object> listStudents(HttpServletRequest servletRequest) {
+        List<Student> students = studentRepository.findAll();
+        if (students.isEmpty()) {
+            throw new ResourceNotFoundException("No students found");
+        }
+
+        List<StudentResponse> responseList = students.stream().map(student -> StudentResponse.builder()
+                .id(student.getId())
+                .studentCode(student.getStudentCode())
+                .studentName(student.getUser().getName())
+                .className(student.getClasses().getClassName())
+                .majorName(student.getMajor().getMajorName())
+                .facultyName(student.getFaculty().getFacultyName())
+                .account(student.getUser().getAccount())
+                .email(student.getUser().getEmail())
+                .build()
+        ).toList();
+
+        return ApiResponse.success(responseList, "List of students retrieved successfully", servletRequest.getRequestURI());
+    }
+
 }

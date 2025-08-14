@@ -51,8 +51,8 @@ application:
 
 # ================= AWS S3 CONFIG =================
 aws:
-  region: ap-southeast-1   # Ví dụ: Singapore region gần Việt Nam
+  region: ap-southeast-2   # Ví dụ: Singapore region gần Việt Nam
   s3:
     mock: false            # false nếu muốn dùng thật trên AWS
     buckets:
-      student: smart-attendance-student
+      student: leducdev

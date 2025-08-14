@@ -16,7 +16,7 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - smart-attendance-network
-    restart: unless-stopped
+    restart: "no"
 
   # Spring Boot Application
   app:
@@ -31,13 +31,16 @@ services:
       - APPLICATION_SECURITY_JWT_SECRET_KEY=mySecretKey123456789012345678901234567890
       - APPLICATION_SECURITY_JWT_EXPIRATION=86400000
       - APPLICATION_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION=604800000
+      - AWS_ACCESS_KEY_ID=AKIAQHXH6DCCPJQAPNOQ
+      - AWS_SECRET_ACCESS_KEY=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
+      - AWS_REGION=ap-southeast-2
     ports:
       - "8080:8080"
     depends_on:
       - postgres
     networks:
       - smart-attendance-network
-    restart: unless-stopped
+    restart: "no"
     volumes:
       - app_logs:/app/logs
 
