@@ -70,7 +70,7 @@ public class LecturerService {
         if (lecturers == null || lecturers.isEmpty()) {
             throw new ResourceNotFoundException("No lecturers found");
         }
-        List<LecturerResponse> responses = Lecturer.(lecturers);
+        List<LecturerResponse> responses = LecturerMapper.toResponseList(lecturers);
         return ApiResponse.success(responses, "List of lecturers", servletRequest.getRequestURI());
     }
 

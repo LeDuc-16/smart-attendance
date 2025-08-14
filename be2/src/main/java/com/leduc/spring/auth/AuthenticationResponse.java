@@ -19,6 +19,6 @@ public class AuthenticationResponse {
   @JsonProperty("refresh_token")
   private String refreshToken;
 
-  private UserDTO user; // thêm dòng này
+  private Object user; // thêm dòng này
 
 }
