@@ -35,7 +35,7 @@ public class Application {
 				.account(account)
 				.email(email)
 				.password(password)
-				.role(STUDENT)
+				.role(role)
 				.build();
 		var result = service.createAccount(request);
 		System.out.println(name + " account creation result: " + result.getMessage());

@@ -63,14 +63,14 @@ public class AuthenticationService {
         case STUDENT:
           Student student = Student.builder()
                   .user(savedUser)
-                  .studentCode("ST-" + savedUser.getId())
+                  .studentCode(null)
                   .build();
           studentRepository.save(student);
           break;
         case LECTURER:
           Lecturer lecturer = Lecturer.builder()
                   .user(savedUser)
-                  .lecturerCode("LEC-" + savedUser.getId())
+                  .lecturerCode(null)
                   .build();
           lecturerRepository.save(lecturer);
           break;
