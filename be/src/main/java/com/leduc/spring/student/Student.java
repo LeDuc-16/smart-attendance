@@ -58,9 +58,4 @@ public class Student {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "faculty_id")
     private Faculty faculty; // Thêm mối quan hệ với Faculty (một sinh viên thuộc về một khoa)
-
-    @Column(
-            unique = true
-    )
-    private String profileImageId;
 }
