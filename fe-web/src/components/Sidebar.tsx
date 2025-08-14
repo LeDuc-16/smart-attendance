@@ -73,16 +73,16 @@ const Sidebar: React.FC<SidebarProps> = () => {
                 {/* Menu Items */}
                 <nav className="flex-1">
                     <ul className="space-y-2">
-                        <MenuItem icon={skyLineIcon} text="Tổng quan" href="/dashboard" />
-                        <MenuItem icon={schoolIcon} text="Quản lý khoa" href="/faculty" />
-                        <MenuItem icon={graduatesIcon} text="Quản lý ngành" href="/major" />
-                        <MenuItem icon={graduateIcon} text="Quản lý giảng viên" href="/lecturer" />
-                        <MenuItem icon={buildingIcon} text="Quản lý lớp học" href="/classroom" />
-                        <MenuItem icon={audienceIcon} text="Quản lý sinh viên" href="/student" />
-                        <MenuItem icon={booksIcon} text="Quản lý môn học" href="/general" />
-                        <MenuItem icon={classroomIcon} text="Quản lý phòng học" href="/classroom" />
-                        <MenuItem icon={calenderIcon} text="Quản lý giảng dạy" href="/lecturer" />
-                        <MenuItem icon={accountIcon} text="Quản lý điểm danh" href="/attendance" />
+                        <MenuItem icon={skyLineIcon} text="Tổng quan" href="/dashboard/general" />
+                        <MenuItem icon={schoolIcon} text="Quản lý khoa" href="/dashboard/faculty" />
+                        <MenuItem icon={graduatesIcon} text="Quản lý ngành" href="/dashboard/major" />
+                        <MenuItem icon={graduateIcon} text="Quản lý giảng viên" href="/dashboard/lecturer" />
+                        <MenuItem icon={buildingIcon} text="Quản lý lớp học" href="/dashboard/class" />
+                        <MenuItem icon={audienceIcon} text="Quản lý sinh viên" href="/dashboard/student" />
+                        <MenuItem icon={booksIcon} text="Quản lý môn học" href="/dashboard/subject" />
+                        <MenuItem icon={classroomIcon} text="Quản lý phòng học" href="/dashboard/classroom" />
+                        <MenuItem icon={calenderIcon} text="Quản lý giảng dạy" href="/dashboard/teaching" />
+                        <MenuItem icon={accountIcon} text="Quản lý điểm danh" href="/dashboard/attendance" />
                     </ul>
                 </nav>
             </div>

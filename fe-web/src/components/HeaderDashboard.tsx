@@ -20,7 +20,7 @@ const HeaderDashboard = () => {
         const dateNum = date.getDate();
         const month = date.getMonth() + 1;
         const year = date.getFullYear();
-        return `${day}, ngày ${dateNum} tháng ${month}, ${year}`;
+        return `${day}, ${dateNum} tháng ${month}, ${year}`;
     };
     return (
         <header className="fixed top-0 h-18 bg-white border-b border-gray-300 shadow-sm z-10 w-full md:left-80 md:w-[calc(100%-20rem)]">

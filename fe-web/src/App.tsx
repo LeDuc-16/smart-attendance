@@ -1,12 +1,15 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import DashboardLayout from "./layout/DashboardLayout";
+import ClassPage from "./pages/ClassPage";
 import ClassRoomPage from "./pages/ClassRoomPage";
 import LecturerPage from "./pages/LecturerPage";
 import FacultyPage from "./pages/FacultyPage";
 import GeneralPage from "./pages/GeneralPage";
 import MajorPage from "./pages/MajorPage";
 import StudentPage from "./pages/StudentPage";
+import SubjectPage from "./pages/SubjectPage";
+import TeachingPage from "./pages/TeachingPage";
 import AttendancePage from "./pages/AttendancePage";
 
 const App = () => {
@@ -19,13 +22,16 @@ const App = () => {
 
         {/* Dashboard routes */}
         <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<GeneralPage />} /> {/* Khi vào /dashboard */}
+          <Route index element={<GeneralPage />} />
+          <Route path="class" element={<ClassPage />} />
+          <Route path="subject" element={<SubjectPage />} />
           <Route path="classroom" element={<ClassRoomPage />} />
           <Route path="lecturer" element={<LecturerPage />} />
           <Route path="faculty" element={<FacultyPage />} />
           <Route path="general" element={<GeneralPage />} />
           <Route path="major" element={<MajorPage />} />
           <Route path="student" element={<StudentPage />} />
+          <Route path="teaching" element={<TeachingPage />} />
           <Route path="attendance" element={<AttendancePage />} />
         </Route>
       </Routes>
