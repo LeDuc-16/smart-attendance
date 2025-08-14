@@ -27,9 +27,7 @@ const GeneralPage = () => {
                 </p>
             </div>
 
-            {/* --- Sử dụng CSS Grid để tạo lưới --- */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {/* Dùng hàm map để lặp qua mảng dữ liệu và render các card */}
                 {menuItems.map((item) => (
                     <DashboardCard
                         key={item.text}

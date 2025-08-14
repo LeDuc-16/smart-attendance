@@ -85,7 +85,6 @@ const LoginPage = () => {
           </form>
         </div>
 
-        {/* Right side - Logo and school info */}
         <div className="w-1/2 bg-blue-900 p-4 rounded h-150 justify-center flex flex-col text-white">
           <img
             src="https://www.tlu.edu.vn/Portals/0/2014/Logo-WRU.png"

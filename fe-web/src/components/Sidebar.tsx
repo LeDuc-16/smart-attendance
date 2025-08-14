@@ -1,4 +1,3 @@
-// components/Sidebar.js
 import React, { useState } from "react";
 import MenuItem from "./MenuItem";
 import skyLineIcon from '../assets/icons/skyline.png';
