@@ -57,8 +57,8 @@ public class Application {
 			byte[] content = "Hello S3 World!".getBytes();
 
 			// Upload
-			s3Service.putObject(bucket, key, content);
-			System.out.println("Uploaded file to S3: " + key );
+			s3Service.putObject(bucket, key, content, "text/plain");
+			System.out.println("Uploaded file to S3: " + key);
 
 			// Download
 			byte[] downloaded = s3Service.getObject(bucket, key);

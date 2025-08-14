@@ -19,13 +19,15 @@ public class S3Service {
         this.s3 = s3;
     }
 
-    public void putObject(String bucketName, String key, byte[] file) {
+    public void putObject(String bucketName, String key, byte[] file, String contentType) {
         PutObjectRequest objectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(key)
+                .contentType(contentType) // 👈 Thêm content type ở đây
                 .build();
         s3.putObject(objectRequest, RequestBody.fromBytes(file));
     }
+
 
     public byte[] getObject(String bucketName, String key) {
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
