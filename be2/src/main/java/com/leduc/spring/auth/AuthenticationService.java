@@ -7,6 +7,10 @@ import com.leduc.spring.exception.ApiResponse;
 import com.leduc.spring.exception.DuplicateResourceException;
 import com.leduc.spring.exception.RequestValidationException;
 import com.leduc.spring.exception.ResourceNotFoundException;
+import com.leduc.spring.lecturer.LecturerRepository;
+import com.leduc.spring.lecturer.LecturerResponse;
+import com.leduc.spring.student.StudentRepository;
+import com.leduc.spring.student.StudentResponse;
 import com.leduc.spring.token.Token;
 import com.leduc.spring.token.TokenRepository;
 import com.leduc.spring.token.TokenType;
@@ -29,6 +33,8 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AuthenticationService {
   private final UserRepository repository;
+  private final StudentRepository studentRepository;
+  private final LecturerRepository lecturerRepository;
   private final TokenRepository tokenRepository;
   private final PasswordEncoder passwordEncoder;
   private final JwtService jwtService;
@@ -110,6 +116,37 @@ public class AuthenticationService {
   }
 
 
+  public Object getAccountInfoByRole(User user) {
+    switch (user.getRole()) {
+      case STUDENT:
+        return studentRepository.findByUserId(user.getId())
+                .map(student -> {
+                  StudentResponse resp = new StudentResponse();
+                  resp.setId(student.getId());
+                  resp.setStudentCode(student.getStudentCode());
+                  resp.setUserId(student.getUser().getId());
+                  resp.setClassId(student.getClasses() != null ? student.getClasses().getId() : null);
+                  resp.setMajorId(student.getMajor() != null ? student.getMajor().getId() : null);
+                  resp.setFacultyId(student.getFaculty() != null ? student.getFaculty().getId() : null);
+                  return resp;
+                })
+                .orElseThrow();
+      case LECTURER:
+        return lecturerRepository.findByUserId(user.getId())
+                .map(lecturer -> {
+                  LecturerResponse resp = new LecturerResponse();
+                  resp.setId(lecturer.getId());
+                  resp.setLecturerCode(lecturer.getLecturerCode());
+                  resp.setAcademicRank(lecturer.getAcademicRank());
+                  resp.setUserId(lecturer.getUser().getId());
+                  resp.setFacultyId(lecturer.getFaculty() != null ? lecturer.getFaculty().getId() : null);
+                  return resp;
+                })
+                .orElseThrow();
+      default:
+        return UserDTO.fromEntity(user);
+    }
+  }
 
 
   public void saveUserToken(User user, String jwtToken) {

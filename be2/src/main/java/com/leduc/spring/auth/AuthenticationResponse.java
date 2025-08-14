@@ -20,4 +20,5 @@ public class AuthenticationResponse {
   private String refreshToken;
 
   private UserDTO user; // thêm dòng này
+
 }
