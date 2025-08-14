@@ -1,12 +1,14 @@
 const GeneralPage = () => {
     return (
-        <div className="space-y-6">
+        // THAY ĐỔI 1: Giảm khoảng cách dọc giữa các khối
+        <div className="space-y-4">
             {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {/* Giảm cả khoảng cách dưới của khối này */}
+            <div className="mb-4">
+                <h1 className="text-2xl font-bold text-[#1E3A8A] mb-2"> {/* THAY ĐỔI 2: Đổi màu tiêu đề */}
                     Tổng quan hệ thống
                 </h1>
-                <p className="text-gray-600">
+                <p className="text-[#717182]"> {/* THAY ĐỔI 3: Đổi màu text mô tả */}
                     Thống kê tổng quan về hệ thống điểm danh
                 </p>
             </div>
@@ -153,4 +155,4 @@ const GeneralPage = () => {
     );
 };
 
-export default GeneralPage;
+export default GeneralPage

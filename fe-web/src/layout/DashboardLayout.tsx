@@ -8,7 +8,7 @@ const DashboardLayout: React.FC = () => {
             <Sidebar />
             <div className="flex-1 flex flex-col">
                 <HeaderDashboard />
-                <main className="flex-1 p-6 mt-20 md:mt-24">
+                <main className="flex-1 p-6 mt-20 md:mt-18">
                     <Outlet />
                 </main>
             </div>

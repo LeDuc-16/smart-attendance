@@ -1,23 +1,40 @@
-// components/MenuItem.js
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 
 interface MenuItemProps {
-    icon: string; // Kiểu string cho icon (ví dụ: emoji hoặc ký tự)
-    text: string; // Kiểu string cho văn bản
-    href: string; // Kiểu string cho đường dẫn
+    icon: React.ElementType | string;
+    text: string;
+    href: string;
 }
 
-const MenuItem: React.FC<MenuItemProps> = ({ icon, text, href }) => {
+const MenuItem: React.FC<MenuItemProps> = ({ icon: Icon, text, href }) => {
+
+    const renderIcon = () => {
+        if (!Icon) return null;
+        const iconClasses = "mr-2 w-5 h-5";
+        if (typeof Icon === 'string') {
+            return <img src={Icon} alt="" className={iconClasses} />;
+        }
+        return <Icon className={iconClasses} />;
+    };
+
     return (
         <li>
-            <Link
+            <NavLink
                 to={href}
-                className="flex items-center p-2 rounded-xl hover:bg-blue-600 transition-colors duration-200 text-white border-2 mb-5"
+                className={({ isActive }) => {
+                    const baseClasses = "flex items-center p-2 rounded-xl transition-colors duration-200 text-white border-2 border-[#CED4DA] mb-5";
+
+                    if (isActive) {
+                        return `${baseClasses} bg-[#00509E]`;
+                    }
+
+                    return `${baseClasses} hover:bg-blue-600`;
+                }}
             >
-                <span className="mr-2 text-lg">{icon}</span>
+                {renderIcon()}
                 <span>{text}</span>
-            </Link>
+            </NavLink>
         </li>
     );
 };

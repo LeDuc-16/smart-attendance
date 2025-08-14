@@ -21,8 +21,8 @@ const MyButton = ({
             disabled={isLoading}
             onClick={onClick}
             className={`w-full py-2 px-4 flex items-center justify-center rounded transition duration-200 text-white font-semibold ${isLoading
-                    ? "bg-gray-500 cursor-not-allowed"
-                    : "bg-blue-900 hover:bg-blue-800"
+                ? "bg-gray-500 cursor-not-allowed"
+                : "bg-blue-900 hover:bg-blue-800"
                 } ${className}`}
         >
             {isLoading && (
