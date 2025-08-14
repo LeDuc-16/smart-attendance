@@ -59,4 +59,14 @@ public class ClassController {
         ApiResponse<Object> response = classService.deleteClass(servletRequest, id);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/add-lecturer-to-class")
+    @Operation(summary = "Gán giảng viên chủ nhiệm cho lớp", description = "Chỉ admin có quyền gán giảng viên chủ nhiệm")
+    public ResponseEntity<ApiResponse<Object>> addLecturerToClass(
+            @RequestBody AddLecturerToClassRequest request,
+            HttpServletRequest servletRequest
+    ) {
+        ApiResponse<Object> response = classService.addLecturerToClass(request, servletRequest);
+        return ResponseEntity.ok(response);
+    }
 }

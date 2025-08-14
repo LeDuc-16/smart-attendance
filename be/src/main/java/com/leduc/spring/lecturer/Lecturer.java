@@ -1,5 +1,6 @@
 package com.leduc.spring.lecturer;
 
+import com.leduc.spring.classes.ClassEntity;
 import com.leduc.spring.course.Course;
 import com.leduc.spring.faculty.Faculty;
 import com.leduc.spring.user.User;
@@ -35,9 +36,16 @@ public class Lecturer {
     @JoinColumn(name = "faculty_id")
     private Faculty faculty;
 
+    @OneToMany(mappedBy = "lecturer")
+    private List<ClassEntity> classes;
+
     @ManyToMany
     @JoinTable(name = "lecturer_course",
             joinColumns = @JoinColumn(name = "lecturer_id"),
             inverseJoinColumns = @JoinColumn(name = "course_id"))
     private List<Course> courses;
+
+    public Lecturer(Long id) {
+        this.id = id;
+    }
 }

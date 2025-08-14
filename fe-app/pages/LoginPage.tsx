@@ -4,8 +4,11 @@ import { StatusBar } from 'expo-status-bar';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import MyInput from '../components/MyInput';
 import MyButton from '../components/MyButton';
+import Error from '../components/Error';
 import { RootStackParamList } from '../types/navigation';
 import LoginBackGround from './LoginBackGround';
+import { apiAuthService } from '../services/api/apiAuthService';
+import { apiFaceRegisterService } from '../services/api/apiFaceRegisterService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -14,18 +17,75 @@ export default function LoginPage({ navigation }: Props) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>('');
 
   const handleLogin = async () => {
+    // Clear previous error
+    setError('');
+    
     if (!email || !password) {
-      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+      setError('Vui lòng nhập đầy đủ thông tin');
       return;
     }
 
     setIsLoading(true);
-    setTimeout(() => {
+
+    try {
+      // Gọi API login thực tế
+      const authResponse = await apiAuthService.login({
+        account: email,
+        password: password,
+      });
+
+      console.log('Login successful:', authResponse);
+
+      // Kiểm tra xem user đã đăng ký face chưa
+      if (authResponse.access_token) {
+        // Set token cho face service
+        apiFaceRegisterService.setAuthToken(authResponse.access_token);
+
+        try {
+          const faceRegistrationStatus = await apiFaceRegisterService.checkFaceRegistration();
+
+          if (faceRegistrationStatus.hasRegistered) {
+            // Đã đăng ký face, chuyển đến main app hoặc dashboard
+            Alert.alert('Đăng nhập thành công', `Chào mừng ${faceRegistrationStatus.userName}!`, [
+              {
+                text: 'OK',
+                onPress: () => {
+                  navigation.navigate('DashBoardPage'); // Chuyển đến trang Dashboard
+                },
+              },
+            ]);
+          } else {
+            // Chưa đăng ký face, chuyển đến trang đăng ký face
+            Alert.alert(
+              'Chưa đăng ký khuôn mặt',
+              'Bạn cần đăng ký khuôn mặt để sử dụng tính năng điểm danh',
+              [
+                {
+                  text: 'Đăng ký ngay',
+                  onPress: () => navigation.navigate('FaceRegisterPage'),
+                },
+                {
+                  text: 'Để sau',
+                  style: 'cancel',
+                },
+              ]
+            );
+          }
+        } catch (faceCheckError) {
+          console.error('Face check error:', faceCheckError);
+          // Nếu lỗi khi check face, vẫn cho chuyển đến đăng ký face
+          navigation.navigate('FaceRegisterPage');
+        }
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setError(error.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+    } finally {
       setIsLoading(false);
-      navigation.navigate('FaceRegisterPage'); 
-    }, 2000);
+    }
   };
 
   return (

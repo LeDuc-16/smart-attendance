@@ -7,8 +7,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -24,13 +28,31 @@ public class Course {
     @SequenceGenerator(name = "course_seq", sequenceName = "course_sequence", allocationSize = 1)
     private Long id;
 
+    @Column(name = "course_name", nullable = false)
     private String courseName;
-    private LocalDate startDate;
-    private LocalDate endDate;
+
+    @Column(name = "credits", nullable = false)
+    private int credits; // Thêm trường số tín chỉ
 
     @ManyToMany(mappedBy = "courses")
     private List<Lecturer> lecturers;
 
     @ManyToMany(mappedBy = "courses")
     private List<Student> students;
+
+    @CreatedBy
+    private Long createdBy;
+
+    @LastModifiedBy
+    private Long lastModifiedBy;
+
+    @CreatedDate
+    private LocalDateTime createdDate;
+
+    @LastModifiedDate
+    private LocalDateTime lastModifiedDate;
+
+    public Course(Long id) {
+        this.id = id;
+    }
 }

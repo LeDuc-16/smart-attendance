@@ -1,0 +1,58 @@
+spring:
+  config:
+    import: optional:file:local.environment.properties
+  datasource:
+    url: jdbc:postgresql://14.225.210.41:5432/mydb
+    username: sa
+    password: password
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ngnlduc@gmail.com
+    password: kxly sqsn weln scka
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+        debug: true
+  servlet:
+    multipart:
+      max-file-size: 200MB
+      max-request-size: 250MB
+      file-size-threshold: 2KB
+
+server:
+  port: 8080
+  address: 0.0.0.0
+
+application:
+  security:
+    jwt:
+      secret-key: myNewLongSecretKeyThatIsAtLeast32CharsLong1234
+      expiration: 3600000
+      refresh-token:
+        expiration: 86400000
+
+# ================= AWS S3 CONFIG =================
+aws:
+  region: ap-southeast-2   # Ví dụ: Singapore region gần Việt Nam
+  s3:
+    mock: false            # false nếu muốn dùng thật trên AWS
+    buckets:
+      student: leducdev
