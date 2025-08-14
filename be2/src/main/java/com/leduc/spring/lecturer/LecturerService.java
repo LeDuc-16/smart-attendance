@@ -70,7 +70,7 @@ public class LecturerService {
         if (lecturers == null || lecturers.isEmpty()) {
             throw new ResourceNotFoundException("No lecturers found");
         }
-        List<LecturerResponse> responses = LecturerResponseMapper.toResponseList(lecturers);
+        List<LecturerResponse> responses = Lecturer.(lecturers);
         return ApiResponse.success(responses, "List of lecturers", servletRequest.getRequestURI());
     }
 
@@ -78,7 +78,7 @@ public class LecturerService {
     public ApiResponse<Object> getLecturerById(Long id, HttpServletRequest servletRequest) {
         Lecturer lecturer = lecturerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lecturer not found with id: [%s]".formatted(id)));
-        LecturerResponse response = LecturerResponseMapper.toResponse(lecturer);
+        LecturerResponse response = LecturerMapper.fromEntity(lecturer);
         return ApiResponse.success(response, "Lecturer details", servletRequest.getRequestURI());
     }
 

@@ -3,9 +3,9 @@ package com.leduc.spring.lecturer;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class LecturerResponseMapper {
+public class LecturerMapper {
 
-    public static LecturerResponse toResponse(Lecturer lecturer) {
+    public static LecturerResponse fromEntity(Lecturer lecturer) {
         LecturerResponse response = new LecturerResponse();
         response.setId(lecturer.getId());
         response.setLecturerCode(lecturer.getLecturerCode());
@@ -17,7 +17,7 @@ public class LecturerResponseMapper {
 
     public static List<LecturerResponse> toResponseList(List<Lecturer> lecturers) {
         return lecturers.stream()
-                .map(LecturerResponseMapper::toResponse)
+                .map(LecturerMapper::fromEntity)
                 .collect(Collectors.toList());
     }
 }
