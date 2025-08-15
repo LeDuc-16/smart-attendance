@@ -39,6 +39,8 @@ public class Student {
     @JoinColumn(name = "class_id")
     private ClassEntity classes;
 
+    @Column(name = "profile_image_id") private String profileImageId;
+
     @ManyToMany
     @JoinTable(
             name = "student_course",
