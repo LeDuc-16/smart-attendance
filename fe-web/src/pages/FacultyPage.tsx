@@ -1,13 +1,7 @@
-// src/pages/FacultyPage.tsx
-
 import React, { useState, useEffect, useCallback } from 'react';
-// Đảm bảo đường dẫn import và các kiểu dữ liệu đã được cập nhật
 import { getFaculties, createFaculty, updateFaculty, deleteFaculty, type Faculty, type FacultyPayload } from '../api/apiFaculty';
-
-// Icons
 import { FiEdit, FiTrash2, FiSearch, FiPlus, FiX } from 'react-icons/fi';
 
-// Component Form Modal được tạo riêng để dễ quản lý
 const FacultyFormModal = ({
     isOpen,
     onClose,
@@ -19,13 +13,10 @@ const FacultyFormModal = ({
     onSubmit: (data: FacultyPayload) => void;
     initialData: Faculty | null;
 }) => {
-    // Chỉ giữ lại facultyName trong state
     const [formData, setFormData] = useState<FacultyPayload>({
         facultyName: '',
     });
     const [formError, setFormError] = useState('');
-
-    // Khi modal mở, điền dữ liệu có sẵn (cho trường hợp sửa)
     useEffect(() => {
         if (isOpen) {
             if (initialData) {
@@ -33,10 +24,9 @@ const FacultyFormModal = ({
                     facultyName: initialData.facultyName,
                 });
             } else {
-                // Reset form cho trường hợp thêm mới
                 setFormData({ facultyName: '' });
             }
-            setFormError(''); // Xóa lỗi cũ khi mở modal
+            setFormError('');
         }
     }, [isOpen, initialData]);
 
@@ -47,7 +37,6 @@ const FacultyFormModal = ({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Validation đơn giản chỉ cho tên khoa
         if (!formData.facultyName) {
             setFormError('Vui lòng điền tên khoa.');
             return;
@@ -73,7 +62,6 @@ const FacultyFormModal = ({
                     <div className="p-6">
                         <div className="bg-blue-50 p-4 rounded-lg space-y-4">
                             <h4 className="font-semibold">Thông tin khoa</h4>
-                            {/* Chỉ giữ lại input cho Tên khoa */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Tên khoa <span className="text-red-500">*</span></label>
                                 <input
@@ -104,17 +92,12 @@ const FacultyPage = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
-    // State cho modal
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingFaculty, setEditingFaculty] = useState<Faculty | null>(null);
-
-    // State cho phân trang
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [totalPages, setTotalPages] = useState<number>(0);
     const [totalItems, setTotalItems] = useState<number>(0);
     const itemsPerPage = 5;
-
-    // State cho tìm kiếm
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
@@ -123,13 +106,39 @@ const FacultyPage = () => {
         setError(null);
         try {
             const params = { page: pageToFetch - 1, size: itemsPerPage, search: currentSearchTerm };
+            console.log('Calling API with params:', params);
+
             const response = await getFaculties(params);
-            if (response && response.data) {
-                setFaculties(response.data.content || []);
-                setTotalItems(response.data.totalElements || 0);
-                setTotalPages(response.data.totalPages || 0);
+            console.log('API Response:', response);
+
+            if (response) {
+                const data = response.data;
+
+                // Trường hợp phân trang
+                if (data && Array.isArray(data.content)) {
+                    setFaculties(data.content);
+                    setTotalItems(data.totalElements || 0);
+                    setTotalPages(data.totalPages || 0);
+                    console.log('Set faculties (paged):', data.content);
+
+                    // Trường hợp mảng thuần
+                } else if (Array.isArray(data)) {
+                    setFaculties(data);
+                    setTotalItems(data.length);
+                    setTotalPages(1); // Hoặc tự tính nếu backend trả thêm thông tin phân trang
+                    console.log('Set faculties (array):', data);
+
+                } else {
+                    console.warn('Data format không đúng:', data);
+                    setFaculties([]);
+                    setTotalItems(0);
+                    setTotalPages(0);
+                }
             } else {
-                setFaculties([]); setTotalItems(0); setTotalPages(0);
+                console.log('No response from API');
+                setFaculties([]);
+                setTotalItems(0);
+                setTotalPages(0);
             }
         } catch (err) {
             setError('Không thể tải dữ liệu khoa.');
@@ -163,22 +172,23 @@ const FacultyPage = () => {
 
     const handleFormSubmit = async (data: FacultyPayload) => {
         try {
+            let response;
             if (editingFaculty) {
-                await updateFaculty(editingFaculty.id, data);
+                response = await updateFaculty(editingFaculty.id, data);
+                console.log('Update response:', response);
                 alert('Cập nhật khoa thành công!');
             } else {
-                await createFaculty(data);
+                response = await createFaculty(data);
+                console.log('Create response:', response);
                 alert('Thêm khoa thành công!');
             }
             setIsModalOpen(false);
-            fetchFaculties(editingFaculty ? currentPage : 1, '');
+            console.log('Fetching faculties after submit...');
+            fetchFaculties(editingFaculty ? currentPage : 1, debouncedSearchTerm);
         } catch (error: any) {
-            // **FIX:** Cải thiện thông báo lỗi để dễ dàng gỡ lỗi hơn
             console.error("API Error:", error.response || error);
 
-            // Lấy thông báo lỗi từ server nếu có
             const serverMessage = error.response?.data?.message;
-            // Lấy mã trạng thái HTTP
             const statusCode = error.response?.status;
 
             let displayMessage = `Lỗi: Không thể thực hiện thao tác.`;
@@ -186,7 +196,7 @@ const FacultyPage = () => {
                 displayMessage += ` (Mã lỗi: ${statusCode})`;
             }
             if (serverMessage) {
-                displayMessage = serverMessage; // Ưu tiên hiển thị lỗi từ server
+                displayMessage = serverMessage;
             }
 
             alert(displayMessage);
@@ -289,7 +299,10 @@ const FacultyPage = () => {
                         <FiSearch className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />
                     </div>
                     <button
-                        onClick={() => fetchFaculties(1, searchTerm)}
+                        onClick={() => {
+                            setDebouncedSearchTerm(searchTerm);
+                            setCurrentPage(1);
+                        }}
                         className="bg-white text-blue-600 border border-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 flex items-center font-semibold text-sm"
                     >
                         Tìm kiếm
@@ -314,7 +327,6 @@ const FacultyPage = () => {
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        {/* Đã bỏ cột Mã khoa và Email */}
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên khoa</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
                                     </tr>
@@ -322,7 +334,6 @@ const FacultyPage = () => {
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {faculties.length > 0 ? faculties.map((faculty) => (
                                         <tr key={faculty.id} className="hover:bg-gray-50">
-                                            {/* Đã bỏ cột Mã khoa và Email */}
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{faculty.facultyName}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
                                                 <button onClick={() => openEditModal(faculty)} className="text-indigo-600 hover:text-indigo-900" title="Sửa">
@@ -335,7 +346,6 @@ const FacultyPage = () => {
                                         </tr>
                                     )) : (
                                         <tr>
-                                            {/* Cập nhật colspan */}
                                             <td colSpan={2} className="text-center py-6 text-gray-500">Không tìm thấy khoa nào.</td>
                                         </tr>
                                     )}
