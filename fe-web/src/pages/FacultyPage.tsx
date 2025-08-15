@@ -145,7 +145,7 @@ const FacultyPage = () => {
                 setTotalPages(0);
             }
         } catch (err) {
-            setError('Không thể tải dữ liệu khoa.');
+            setError('Thử thêm dữ liệu trên be');
             console.error(err);
         } finally {
             setLoading(false);
