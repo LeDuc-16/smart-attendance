@@ -27,9 +27,6 @@ public class StudentFaceData {
     @Column(name = "face_id", nullable = false)
     private String faceId; // AWS Rekognition FaceId
 
-    @Column(name = "image_s3_key")
-    private String imageS3Key; // Link ảnh gốc trên S3
-
     @Column(name = "active", nullable = false)
     private boolean active; // Đang dùng hay không
 
