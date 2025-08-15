@@ -23,7 +23,7 @@ public class Student {
     @Id
     private Long id;
 
-    @Column(name = "student_code", unique = true)
+    @Column(name = "student_code", unique = true, nullable = false)
     private String studentCode;
 
     @OneToOne(fetch = FetchType.LAZY)
@@ -34,9 +34,6 @@ public class Student {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "major_id")
     private Major major;
-
-    @Column(name = "profile_image_id")
-    private String profileImageId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "class_id")
@@ -60,5 +57,9 @@ public class Student {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "faculty_id")
-    private Faculty faculty; // Thêm mối quan hệ với Faculty (một sinh viên thuộc về một khoa)
+    private Faculty faculty;
+
+    // Một sinh viên có thể có nhiều bản dữ liệu khuôn mặt
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StudentFaceData> faceDataList;
 }

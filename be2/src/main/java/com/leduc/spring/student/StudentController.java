@@ -80,4 +80,15 @@ public class StudentController {
     public ResponseEntity<ApiResponse<Object>> listStudents(HttpServletRequest servletRequest) {
         return ResponseEntity.ok(studentService.listStudents(servletRequest));
     }
+
+    @DeleteMapping("/{studentId}")
+    @Operation(summary = "Xóa sinh viên", description = "Chỉ admin có quyền xóa sinh viên")
+    public ResponseEntity<ApiResponse<Object>> deleteStudent(
+            @PathVariable("studentId") Long studentId,
+            HttpServletRequest servletRequest
+    ) {
+        ApiResponse<Object> response = studentService.deleteStudent(studentId, servletRequest);
+        return ResponseEntity.ok(response);
+    }
+
 }

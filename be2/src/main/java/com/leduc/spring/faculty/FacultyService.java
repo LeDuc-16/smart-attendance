@@ -8,6 +8,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class FacultyService {
 
@@ -31,13 +33,17 @@ public class FacultyService {
 
     // Liệt kê tất cả các khoa
     public ApiResponse<Object> listFaculties(HttpServletRequest servletRequest) {
-        Iterable<Faculty> faculties = facultyRepository.findAll();
+        List<Faculty> faculties = facultyRepository.findAll();
 
-        if (faculties == null || !faculties.iterator().hasNext()) {
-            throw new ResourceNotFoundException("No faculties have found yet");
+        if (faculties.isEmpty()) {
+            throw new ResourceNotFoundException("No faculties found");
         }
 
-        return ApiResponse.success(faculties, "List of faculties", servletRequest.getRequestURI());
+        List<FacultyResponse> responses = faculties.stream()
+                .map(FacultyResponseMapper::toResponse)
+                .toList();
+
+        return ApiResponse.success(responses, "List of faculties", servletRequest.getRequestURI());
     }
 
     // Cập nhật thông tin khoa

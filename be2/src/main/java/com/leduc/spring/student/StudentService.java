@@ -304,4 +304,29 @@ public class StudentService {
         return ApiResponse.success(responseList, "List of students retrieved successfully", servletRequest.getRequestURI());
     }
 
+    @Transactional
+    public ApiResponse<Object> deleteStudent(Long studentId, HttpServletRequest servletRequest) {
+        // Tìm student
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Student with id [%s] not found".formatted(studentId)));
+
+        // Xóa ảnh hồ sơ nếu có
+        if (StringUtils.isNotBlank(student.getProfileImageId())) {
+            s3Service.deleteObject(
+                    s3Buckets.getStudent(),
+                    "profile-images/students/%s/%s".formatted(studentId, student.getProfileImageId())
+            );
+        }
+
+        // Xóa user liên kết
+        Long userId = student.getUser().getId();
+        studentRepository.delete(student);
+        userRepository.deleteById(userId);
+
+        return ApiResponse.success(null, "Student deleted successfully", servletRequest.getRequestURI());
+    }
+
+
+
 }
