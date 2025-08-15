@@ -1,4 +1,4 @@
-package com.leduc.spring.studentfacedata;
+package com.leduc.spring.student_face_data;
 
 import com.leduc.spring.student.Student;
 import jakarta.persistence.*;

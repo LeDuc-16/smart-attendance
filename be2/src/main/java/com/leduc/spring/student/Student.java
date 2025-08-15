@@ -5,6 +5,7 @@ import com.leduc.spring.course.Course;
 import com.leduc.spring.faculty.Faculty;
 import com.leduc.spring.major.Major;
 import com.leduc.spring.schedule.Schedule;
+import com.leduc.spring.student_face_data.StudentFaceData; // ✅ Import đúng package
 import com.leduc.spring.user.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -39,7 +40,8 @@ public class Student {
     @JoinColumn(name = "class_id")
     private ClassEntity classes;
 
-    @Column(name = "profile_image_id") private String profileImageId;
+    @Column(name = "profile_image_id")
+    private String profileImageId;
 
     @ManyToMany
     @JoinTable(
