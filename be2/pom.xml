@@ -102,12 +102,21 @@
 			<scope>runtime</scope>
 		</dependency>
 
+			<dependency>
+				<groupId>software.amazon.awssdk</groupId>
+				<artifactId>bom</artifactId>
+				<version>2.20.26</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
 		<!-- Springdoc OpenAPI (Swagger) -->
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>2.7.0</version>
 		</dependency>
+
 
 		<!-- Apache POI for Excel -->
 		<dependency>
@@ -119,6 +128,13 @@
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
 			<version>5.2.4</version>
+		</dependency>
+
+		<!-- AWS SDK Rekognition -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>rekognition</artifactId>
+			<version>2.20.26</version>
 		</dependency>
 
 		<!-- Testing -->
