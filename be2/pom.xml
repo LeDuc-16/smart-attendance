@@ -20,6 +20,19 @@
 		<java.version>17</java.version>
 	</properties>
 
+	<!-- Quản lý version AWS SDK BOM -->
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>software.amazon.awssdk</groupId>
+				<artifactId>bom</artifactId>
+				<version>2.20.26</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
 	<dependencies>
 		<!-- Apache Commons IO -->
 		<dependency>
@@ -28,11 +41,14 @@
 			<version>2.17.0</version>
 		</dependency>
 
-		<!-- AWS SDK v2 -->
+		<!-- AWS SDK -->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
-			<version>2.20.26</version>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>rekognition</artifactId>
 		</dependency>
 
 		<!-- Spring Boot Starters -->
@@ -57,7 +73,7 @@
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
 		</dependency>
 
-		<!-- Apache Commons Exec (gọi script) -->
+		<!-- Apache Commons Exec -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-exec</artifactId>
@@ -102,21 +118,12 @@
 			<scope>runtime</scope>
 		</dependency>
 
-		<dependency>
-			<groupId>software.amazon.awssdk</groupId>
-			<artifactId>bom</artifactId>
-			<version>2.20.26</version>
-			<type>pom</type>
-			<scope>import</scope>
-		</dependency>
-
 		<!-- Springdoc OpenAPI (Swagger) -->
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>2.7.0</version>
 		</dependency>
-
 
 		<!-- Apache POI for Excel -->
 		<dependency>
@@ -128,13 +135,6 @@
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
 			<version>5.2.4</version>
-		</dependency>
-
-		<!-- AWS SDK Rekognition -->
-		<dependency>
-			<groupId>software.amazon.awssdk</groupId>
-			<artifactId>rekognition</artifactId>
-			<version>2.20.26</version>
 		</dependency>
 
 		<!-- Testing -->
