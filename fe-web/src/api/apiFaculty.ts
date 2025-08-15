@@ -1,11 +1,13 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 
 const facultyApiClient = axios.create({
-    baseURL: 'http://localhost:8080',
+    baseURL: 'http://127.0.0.1:8080', // localhost hoặc 127.0.0.1
     headers: {
         'Content-Type': 'application/json',
     },
+    withCredentials: true,
 });
+
 
 facultyApiClient.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
@@ -16,6 +18,18 @@ facultyApiClient.interceptors.request.use(
         return config;
     },
     (error) => {
+        return Promise.reject(error);
+    }
+);
+
+facultyApiClient.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        if (error.response?.status === 403) {
+            // Token hết hạn hoặc không hợp lệ
+            localStorage.removeItem('token');
+            window.location.href = '/login'; // Chuyển về trang login
+        }
         return Promise.reject(error);
     }
 );

@@ -37,6 +37,7 @@ const FacultyFormModal = ({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        // Validation đơn giản chỉ cho tên khoa
         if (!formData.facultyName) {
             setFormError('Vui lòng điền tên khoa.');
             return;
@@ -101,41 +102,44 @@ const FacultyPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
+
     const fetchFaculties = useCallback(async (pageToFetch: number, currentSearchTerm: string) => {
         setLoading(true);
         setError(null);
         try {
-            const params = { page: pageToFetch - 1, size: itemsPerPage, search: currentSearchTerm };
-            console.log('Calling API with params:', params);
+            // Kiểm tra token
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setError('Vui lòng đăng nhập để tiếp tục');
+                window.location.href = '/login';
+                return;
+            }
+
+            const params = {
+                page: pageToFetch - 1,
+                size: itemsPerPage,
+                search: currentSearchTerm
+            };
 
             const response = await getFaculties(params);
-            console.log('API Response:', response);
+            console.log('API Response:', response); if (response && response.data) {
+                // Nếu BE trả về mảng trực tiếp
+                if (Array.isArray(response.data)) {
+                    const filteredData = currentSearchTerm
+                        ? response.data.filter(f => f.facultyName.toLowerCase().includes(currentSearchTerm.toLowerCase()))
+                        : response.data;
 
-            if (response) {
-                const data = response.data;
-
-                // Trường hợp phân trang
-                if (data && Array.isArray(data.content)) {
-                    setFaculties(data.content);
-                    setTotalItems(data.totalElements || 0);
-                    setTotalPages(data.totalPages || 0);
-                    console.log('Set faculties (paged):', data.content);
-
-                    // Trường hợp mảng thuần
-                } else if (Array.isArray(data)) {
-                    setFaculties(data);
-                    setTotalItems(data.length);
-                    setTotalPages(1); // Hoặc tự tính nếu backend trả thêm thông tin phân trang
-                    console.log('Set faculties (array):', data);
-
-                } else {
-                    console.warn('Data format không đúng:', data);
-                    setFaculties([]);
-                    setTotalItems(0);
-                    setTotalPages(0);
+                    setFaculties(filteredData);
+                    setTotalItems(filteredData.length);
+                    setTotalPages(Math.ceil(filteredData.length / itemsPerPage));
+                }
+                // Nếu BE trả về đúng format PageableResponse
+                else if (Array.isArray(response.data.content)) {
+                    setFaculties(response.data.content);
+                    setTotalItems(response.data.totalElements);
+                    setTotalPages(response.data.totalPages);
                 }
             } else {
-                console.log('No response from API');
                 setFaculties([]);
                 setTotalItems(0);
                 setTotalPages(0);
@@ -172,19 +176,18 @@ const FacultyPage = () => {
 
     const handleFormSubmit = async (data: FacultyPayload) => {
         try {
-            let response;
             if (editingFaculty) {
-                response = await updateFaculty(editingFaculty.id, data);
-                console.log('Update response:', response);
+                await updateFaculty(editingFaculty.id, data);
                 alert('Cập nhật khoa thành công!');
             } else {
-                response = await createFaculty(data);
-                console.log('Create response:', response);
+                await createFaculty(data);
                 alert('Thêm khoa thành công!');
             }
             setIsModalOpen(false);
-            console.log('Fetching faculties after submit...');
-            fetchFaculties(editingFaculty ? currentPage : 1, debouncedSearchTerm);
+            setDebouncedSearchTerm(searchTerm);
+            setCurrentPage(1);
+            fetchFaculties(1, searchTerm);
+
         } catch (error: any) {
             console.error("API Error:", error.response || error);
 
@@ -299,10 +302,7 @@ const FacultyPage = () => {
                         <FiSearch className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />
                     </div>
                     <button
-                        onClick={() => {
-                            setDebouncedSearchTerm(searchTerm);
-                            setCurrentPage(1);
-                        }}
+                        onClick={() => fetchFaculties(1, searchTerm)}
                         className="bg-white text-blue-600 border border-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 flex items-center font-semibold text-sm"
                     >
                         Tìm kiếm
@@ -332,21 +332,37 @@ const FacultyPage = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {faculties.length > 0 ? faculties.map((faculty) => (
-                                        <tr key={faculty.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{faculty.facultyName}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
-                                                <button onClick={() => openEditModal(faculty)} className="text-indigo-600 hover:text-indigo-900" title="Sửa">
-                                                    <FiEdit size={16} />
-                                                </button>
-                                                <button onClick={() => handleDeleteFaculty(faculty.id)} className="text-red-600 hover:text-red-900" title="Xóa">
-                                                    <FiTrash2 size={16} />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    )) : (
+                                    {faculties.length > 0 ? (
+                                        faculties.map((faculty) => (
+                                            <tr key={faculty.id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                    {faculty.facultyName}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                    <div className="flex items-center space-x-4">
+                                                        <button
+                                                            onClick={() => openEditModal(faculty)}
+                                                            className="text-indigo-600 hover:text-indigo-900"
+                                                            title="Sửa"
+                                                        >
+                                                            <FiEdit size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteFaculty(faculty.id)}
+                                                            className="text-red-600 hover:text-red-900"
+                                                            title="Xóa"
+                                                        >
+                                                            <FiTrash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
                                         <tr>
-                                            <td colSpan={2} className="text-center py-6 text-gray-500">Không tìm thấy khoa nào.</td>
+                                            <td colSpan={2} className="text-center py-6 text-gray-500">
+                                                Không tìm thấy khoa nào.
+                                            </td>
                                         </tr>
                                     )}
                                 </tbody>
