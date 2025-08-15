@@ -22,6 +22,7 @@ import com.leduc.spring.user.User;
 import com.leduc.spring.user.UserDTO;
 import com.leduc.spring.user.UserMapper;
 import com.leduc.spring.user.UserRepository;
+import jakarta.persistence.PersistenceException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -30,9 +31,11 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -46,8 +49,26 @@ public class AuthenticationService {
   private final AuthenticationManager authenticationManager;
   private final EmailDao emailDao;
 
+
+  @Transactional
   public ApiResponse<AuthenticationResponse> createAccount(RegisterRequest request) {
     try {
+      // Kiểm tra tài khoản đã tồn tại chưa
+      if (repository.findByAccount(request.getAccount()).isPresent()) {
+        return ApiResponse.error(
+                409,
+                "Tài khoản đã tồn tại: " + request.getAccount(),
+                "/api/v1/auth/register"
+        );
+      }
+      if (repository.findByEmail(request.getEmail()).isPresent()) {
+        return ApiResponse.error(
+                409,
+                "Email đã tồn tại: " + request.getEmail(),
+                "/api/v1/auth/register"
+        );
+      }
+
       var user = User.builder()
               .name(request.getName())
               .account(request.getAccount())
@@ -57,30 +78,58 @@ public class AuthenticationService {
               .build();
 
       var savedUser = repository.save(user);
+      System.out.println("Saved User: " + savedUser.getAccount());
 
       // Tạo bản ghi phụ thuộc role
       switch (request.getRole()) {
         case STUDENT:
-          Student student = Student.builder()
-                  .user(savedUser)
-                  .studentCode(null)
-                  .build();
-          studentRepository.save(student);
+          try {
+            // Tạo studentCode tự động
+            String studentCode = "STU-" + UUID.randomUUID().toString().substring(0, 8);
+            // Kiểm tra studentCode đã tồn tại
+            while (studentRepository.existsByStudentCode(studentCode)) {
+              studentCode = "STU-" + UUID.randomUUID().toString().substring(0, 8);
+            }
+
+            Student student = Student.builder()
+                    .user(savedUser)
+                    .studentCode(studentCode)
+                    .build();
+            studentRepository.save(student);
+            System.out.println("Saved Student for user: " + savedUser.getAccount() + " with studentCode: " + studentCode);
+          } catch (PersistenceException e) {
+            System.err.println("Error saving Student: " + e.getMessage());
+            throw new RuntimeException("Không thể lưu Student: " + e.getMessage(), e);
+          }
           break;
         case LECTURER:
-          Lecturer lecturer = Lecturer.builder()
-                  .user(savedUser)
-                  .lecturerCode(null)
-                  .build();
-          lecturerRepository.save(lecturer);
+          try {
+            // Tạo lecturerCode tự động
+            String lecturerCode = "LEC-" + UUID.randomUUID().toString().substring(0, 8);
+            // Kiểm tra lecturerCode đã tồn tại
+            while (lecturerRepository.existsByLecturerCode(lecturerCode)) {
+              lecturerCode = "LEC-" + UUID.randomUUID().toString().substring(0, 8);
+            }
+
+            Lecturer lecturer = Lecturer.builder()
+                    .user(savedUser)
+                    .lecturerCode(lecturerCode)
+                    .build();
+            lecturerRepository.save(lecturer);
+            System.out.println("Saved Lecturer for user: " + savedUser.getAccount() + " with lecturerCode: " + lecturerCode);
+          } catch (PersistenceException e) {
+            System.err.println("Error saving Lecturer: " + e.getMessage());
+            throw new RuntimeException("Không thể lưu Lecturer: " + e.getMessage(), e);
+          }
           break;
         default:
           // ADMIN không cần tạo bản ghi phụ
+          System.out.println("No additional record needed for ADMIN");
           break;
       }
 
-      var jwtToken = jwtService.generateToken(user);
-      var refreshToken = jwtService.generateRefreshToken(user);
+      var jwtToken = jwtService.generateToken(savedUser);
+      var refreshToken = jwtService.generateRefreshToken(savedUser);
       saveUserToken(savedUser, jwtToken);
 
       var authResponse = AuthenticationResponse.builder()
@@ -95,14 +144,15 @@ public class AuthenticationService {
               e instanceof DuplicateResourceException ? 409 : 400,
               e.getMessage(),
               "/api/v1/auth/register");
-
     } catch (Exception e) {
+      System.err.println("Lỗi khi tạo tài khoản: " + e.getMessage());
       return ApiResponse.error(
               500,
               "Lỗi khi tạo tài khoản: " + e.getMessage(),
               "/api/v1/auth/register");
     }
   }
+
 
 
   public ApiResponse<AuthenticationResponse> login(AuthenticationRequest request) {
