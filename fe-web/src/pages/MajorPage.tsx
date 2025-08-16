@@ -35,7 +35,7 @@ const MajorPage = () => {
             setTotalPages(Math.ceil(data.length / itemsPerPage));
         } catch (err) {
             console.error(err);
-            setError('Không thể tải dữ liệu ngành.');
+            setError('Thử thêm dữ liệu trên be');
         } finally {
             setLoading(false);
         }
