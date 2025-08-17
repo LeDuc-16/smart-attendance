@@ -1,7 +1,7 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 
 const facultyApiClient = axios.create({
-    baseURL: 'http://127.0.0.1:8080', // localhost hoặc 127.0.0.1
+    baseURL: 'http://127.0.0.1:8080',
     headers: {
         'Content-Type': 'application/json',
     },
@@ -26,9 +26,8 @@ facultyApiClient.interceptors.response.use(
     (response) => response,
     async (error) => {
         if (error.response?.status === 403) {
-            // Token hết hạn hoặc không hợp lệ
             localStorage.removeItem('token');
-            window.location.href = '/login'; // Chuyển về trang login
+            window.location.href = '/login';
         }
         return Promise.reject(error);
     }
