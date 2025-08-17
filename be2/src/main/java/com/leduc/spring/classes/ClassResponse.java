@@ -9,4 +9,5 @@ public class ClassResponse {
     private Long id;
     private String className;
     private Integer capacityStudent;
+    private String advisor;
 }
