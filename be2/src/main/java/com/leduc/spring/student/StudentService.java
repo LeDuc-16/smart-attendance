@@ -96,6 +96,10 @@ public class StudentService {
                 .build();
         studentRepository.save(student);
 
+        // Cập nhật danh sách students trong class
+        classEntity.getStudents().add(student);
+        classRepository.save(classEntity);
+
         return ApiResponse.success(null, "Student added successfully", servletRequest.getRequestURI());
     }
 
