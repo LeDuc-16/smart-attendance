@@ -441,7 +441,7 @@ const ClassPage = () => {
 
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                     <h2 className="text-lg font-semibold text-gray-700 p-4 border-b border-gray-200">
-                        Thống kê điểm danh - Thứ Năm, 31 tháng 07 năm 2025
+                        Danh sách lớp học
                     </h2>
                     {loading ? (
                         <p className="p-6 text-center text-gray-500">Đang tải dữ liệu...</p>
