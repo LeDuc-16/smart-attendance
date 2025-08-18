@@ -56,17 +56,15 @@ public class Application {
 	@Bean
 	public CommandLineRunner s3TestRunner(S3Service s3Service, S3Buckets s3Buckets) {
 		return args -> {
-			System.out.println("Testing S3 upload/download...");
-
-			String bucket = s3Buckets.getStudent();
-			String key = "hello";
-			byte[] content = "Hello S3 World!".getBytes();
-
-			s3Service.putObject(bucket, key, content, "text/plain");
-			System.out.println("Uploaded file to S3: " + key);
-
-			byte[] downloaded = s3Service.getObject(bucket, key);
-			System.out.println("Downloaded content: " + new String(downloaded));
+			// System.out.println("Testing S3 upload/download...");
+			// String bucket = s3Buckets.getStudent();
+			// String key = "hello";
+			// byte[] content = "Hello S3 World!".getBytes();
+			// s3Service.putObject(bucket, key, content, "text/plain");
+			// System.out.println("Uploaded file to S3: " + key);
+			// byte[] downloaded = s3Service.getObject(bucket, key);
+			// System.out.println("Downloaded content: " + new String(downloaded));
+			System.out.println("Skipping S3 test for now");
 		};
 	}
 }
