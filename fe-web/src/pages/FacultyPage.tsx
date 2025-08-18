@@ -38,12 +38,12 @@ const FacultyFormModal = ({
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
-        setInputError(''); // Clear error khi user đang gõ
+        setInputError('');
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Validation đơn giản chỉ cho tên khoa
+
         if (!formData.facultyName.trim()) {
             setInputError('Vui lòng điền tên khoa.');
             return;
@@ -58,8 +58,15 @@ const FacultyFormModal = ({
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
                 <div className="flex justify-between items-start p-4">
                     <div>
-                        <h3 className="text-xl font-semibold text-[#1E3A8A]">{initialData ? 'Chỉnh sửa khoa' : 'Thêm mới'}</h3>
-                        <p className="text-sm text-gray-500 mt-1">Sửa thông tin khoa khoa.</p>
+                        <h3 className="text-xl font-semibold text-[#1E3A8A]">
+                            {initialData ? 'Chỉnh sửa khoa' : 'Thêm mới'}
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                            {initialData
+                                ? 'Sửa thông tin khoa.'
+                                : 'Thêm thông tin khoa mới.'}
+                        </p>
+
                     </div>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
                         <FiX size={24} />
@@ -98,6 +105,64 @@ const FacultyFormModal = ({
     );
 };
 
+const DeleteConfirmModal = ({
+    isOpen,
+    onClose,
+    onConfirm,
+    facultyName,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    facultyName: string;
+}) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-60">
+            <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-0">
+                <div className="flex items-start justify-between px-6 pt-6">
+                    <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-4">
+                            <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 className="text-xl font text-gray-900">Xác nhận xóa khoa</h2>
+                            <div className="text-gray-400 text-base font-medium">Hành động không thể hoàn tác</div>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
+                        <FiX size={24} />
+                    </button>
+                </div>
+                <div className="px-6 pb-0 pt-4">
+                    <span className="text-base text-gray-500">
+                        Bạn có chắc chắn muốn xóa khoa <span className="font-bold text-black">{facultyName}</span> khỏi hệ thống?
+                    </span>
+                </div>
+                <div className="flex items-center justify-end gap-6 px-6 pb-6 pt-6">
+                    <button
+                        className="rounded-lg border border-gray-400 px-6 py-2 text-black font-semibold text-lg transition hover:bg-gray-100"
+                        onClick={onClose}
+                        type="button"
+                    >
+                        Hủy
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="rounded-lg bg-red-500 px-6 py-2 font-semibold text-white text-lg transition hover:bg-red-600"
+                        type="button"
+                    >
+                        Xóa khoa
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const FacultyPage = () => {
     const [faculties, setFaculties] = useState<Faculty[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -106,6 +171,11 @@ const FacultyPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingFaculty, setEditingFaculty] = useState<Faculty | null>(null);
     const [modalError, setModalError] = useState('');
+
+    // State cho modal xác nhận xóa
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletingFaculty, setDeletingFaculty] = useState<Faculty | null>(null);
+
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [totalPages, setTotalPages] = useState<number>(0);
     const [totalItems, setTotalItems] = useState<number>(0);
@@ -113,7 +183,6 @@ const FacultyPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
-    // Toast functions
     const showSuccessToast = (message: string) => {
         toast.success(message, {
             position: "top-right",
@@ -140,7 +209,6 @@ const FacultyPage = () => {
         setLoading(true);
         setError(null);
         try {
-            // Kiểm tra token
             const token = localStorage.getItem('token');
             if (!token) {
                 setError('Vui lòng đăng nhập để tiếp tục');
@@ -158,7 +226,6 @@ const FacultyPage = () => {
             console.log('API Response:', response);
 
             if (response && response.data) {
-                // Nếu BE trả về mảng trực tiếp
                 if (Array.isArray(response.data)) {
                     const filteredData = currentSearchTerm
                         ? response.data.filter(f => f.facultyName.toLowerCase().includes(currentSearchTerm.toLowerCase()))
@@ -168,7 +235,6 @@ const FacultyPage = () => {
                     setTotalItems(filteredData.length);
                     setTotalPages(Math.ceil(filteredData.length / itemsPerPage));
                 }
-                // Nếu BE trả về đúng format PageableResponse
                 else if (Array.isArray(response.data.content)) {
                     setFaculties(response.data.content);
                     setTotalItems(response.data.totalElements);
@@ -211,6 +277,18 @@ const FacultyPage = () => {
         setIsModalOpen(true);
     };
 
+    // Mở modal xác nhận xóa
+    const openDeleteModal = (faculty: Faculty) => {
+        setDeletingFaculty(faculty);
+        setIsDeleteModalOpen(true);
+    };
+
+    // Đóng modal xác nhận xóa
+    const closeDeleteModal = () => {
+        setDeletingFaculty(null);
+        setIsDeleteModalOpen(false);
+    };
+
     const handleFormSubmit = async (data: FacultyPayload) => {
         setModalError('');
         try {
@@ -242,22 +320,24 @@ const FacultyPage = () => {
         }
     };
 
-    const handleDeleteFaculty = async (id: number) => {
-        if (window.confirm('Bạn có chắc chắn muốn xóa khoa này không?')) {
-            try {
-                await deleteFaculty(id);
-                showSuccessToast('Xóa khoa thành công!');
+    // Xử lý xóa khoa sau khi xác nhận
+    const handleConfirmDelete = async () => {
+        if (!deletingFaculty) return;
 
-                // Kiểm tra nếu đây là item cuối cùng của trang và không phải trang đầu
-                if (faculties.length === 1 && currentPage > 1) {
-                    setCurrentPage(currentPage - 1);
-                } else {
-                    fetchFaculties(currentPage, debouncedSearchTerm);
-                }
-            } catch (error) {
-                showErrorToast('Lỗi: Không thể xóa khoa.');
-                console.error(error);
+        try {
+            await deleteFaculty(deletingFaculty.id);
+            showSuccessToast('Xóa khoa thành công!');
+            closeDeleteModal();
+
+            if (faculties.length === 1 && currentPage > 1) {
+                setCurrentPage(currentPage - 1);
+            } else {
+                fetchFaculties(currentPage, debouncedSearchTerm);
             }
+        } catch (error) {
+            showErrorToast('Lỗi: Không thể xóa khoa.');
+            console.error(error);
+            closeDeleteModal();
         }
     };
 
@@ -268,20 +348,15 @@ const FacultyPage = () => {
     };
 
     const renderPagination = () => {
-        // Tối đa 3 trang giữa
         let pageButtons = [];
         let pages: number[] = [];
         if (totalPages <= 3) {
-            // Trường hợp ít hơn 3 trang, hiển thị hết
             for (let i = 1; i <= totalPages; i++) pages.push(i);
         } else if (currentPage <= 2) {
-            // Đầu trang: 1 2 3
             pages = [1, 2, 3];
         } else if (currentPage >= totalPages - 1) {
-            // Cuối trang: totalPages-2, totalPages-1, totalPages
             pages = [totalPages - 2, totalPages - 1, totalPages];
         } else {
-            // Trang giữa: currentPage-1, currentPage, currentPage+1
             pages = [currentPage - 1, currentPage, currentPage + 1];
         }
 
@@ -327,7 +402,6 @@ const FacultyPage = () => {
         );
     };
 
-
     return (
         <>
             <ToastContainer />
@@ -340,6 +414,12 @@ const FacultyPage = () => {
                 onSubmit={handleFormSubmit}
                 initialData={editingFaculty}
                 formError={modalError}
+            />
+            <DeleteConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={closeDeleteModal}
+                onConfirm={handleConfirmDelete}
+                facultyName={deletingFaculty?.facultyName || ''}
             />
             <div className="space-y-4">
                 <div className="mb-4">
@@ -405,7 +485,7 @@ const FacultyPage = () => {
                                                                 <FiEdit size={16} />
                                                             </button>
                                                             <button
-                                                                onClick={() => handleDeleteFaculty(faculty.id)}
+                                                                onClick={() => openDeleteModal(faculty)}
                                                                 className="text-red-600 hover:text-red-900"
                                                                 title="Xóa"
                                                             >
