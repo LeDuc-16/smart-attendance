@@ -11,8 +11,13 @@ public class ClassResponseMapper {
                 .id(entity.getId())
                 .className(entity.getClassName())
                 .capacityStudent(entity.getCapacityStudent())
+                // Lấy name từ User qua Lecturer
+                .advisor(entity.getLecturer() != null && entity.getLecturer().getUser() != null
+                        ? entity.getLecturer().getUser().getName()
+                        : null)
                 .build();
     }
+
 
     public static List<ClassResponse> toResponseList(Iterable<ClassEntity> entities) {
         return StreamSupport.stream(entities.spliterator(), false)
@@ -20,3 +25,4 @@ public class ClassResponseMapper {
                 .collect(Collectors.toList());
     }
 }
+
