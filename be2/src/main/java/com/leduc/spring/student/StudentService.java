@@ -96,10 +96,6 @@ public class StudentService {
                 .build();
         studentRepository.save(student);
 
-        // Cập nhật danh sách students trong class
-        classEntity.getStudents().add(student);
-        classRepository.save(classEntity);
-
         return ApiResponse.success(null, "Student added successfully", servletRequest.getRequestURI());
     }
 
@@ -297,9 +293,9 @@ public class StudentService {
                 .id(student.getId())
                 .studentCode(student.getStudentCode())
                 .studentName(student.getUser().getName())
-                .className(student.getClasses().getClassName())
-                .majorName(student.getMajor().getMajorName())
-                .facultyName(student.getFaculty().getFacultyName())
+                .className(student.getClasses() != null ? student.getClasses().getClassName() : "N/A")
+                .majorName(student.getMajor() != null ? student.getMajor().getMajorName() : null)
+                .facultyName(student.getFaculty() != null ? student.getFaculty().getFacultyName() : null)
                 .account(student.getUser().getAccount())
                 .email(student.getUser().getEmail())
                 .build()
