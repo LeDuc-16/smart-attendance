@@ -145,7 +145,7 @@ const FacultyPage = () => {
                 setTotalPages(0);
             }
         } catch (err) {
-            setError('Không thể tải dữ liệu khoa.');
+            setError('Thử thêm dữ liệu trên be');
             console.error(err);
         } finally {
             setLoading(false);
@@ -301,12 +301,6 @@ const FacultyPage = () => {
                         />
                         <FiSearch className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />
                     </div>
-                    <button
-                        onClick={() => fetchFaculties(1, searchTerm)}
-                        className="bg-white text-blue-600 border border-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 flex items-center font-semibold text-sm"
-                    >
-                        Tìm kiếm
-                    </button>
                     <button
                         onClick={openAddModel}
                         className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center font-semibold text-sm"

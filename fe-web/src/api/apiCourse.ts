@@ -1,15 +1,14 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 
-const facultyApiClient = axios.create({
-    baseURL: 'http://127.0.0.1:8080',
+const courseApiClient = axios.create({
+    baseURL: 'http://localhost:8080',
     headers: {
         'Content-Type': 'application/json',
     },
     withCredentials: true,
 });
 
-
-facultyApiClient.interceptors.request.use(
+courseApiClient.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
         const token = localStorage.getItem('token');
         if (token) {
@@ -22,7 +21,7 @@ facultyApiClient.interceptors.request.use(
     }
 );
 
-facultyApiClient.interceptors.response.use(
+courseApiClient.interceptors.response.use(
     (response) => response,
     async (error) => {
         if (error.response?.status === 403) {
@@ -33,14 +32,16 @@ facultyApiClient.interceptors.response.use(
     }
 );
 
-
-export interface Faculty {
+// Interfaces
+export interface Course {
     id: number;
-    facultyName: string;
+    courseName: string;
+    credits: number;
 }
 
-export interface FacultyPayload {
-    facultyName: string;
+export interface CoursePayload {
+    courseName: string;
+    credits: number;
 }
 
 export interface ApiResponse<T> {
@@ -58,23 +59,23 @@ export interface PageableResponse<T> {
     number: number;
 }
 
-
-export const getFaculties = async (params?: { page?: number; size?: number; search?: string }): Promise<ApiResponse<PageableResponse<Faculty>>> => {
-    const response = await facultyApiClient.get('/api/v1/faculties', { params });
+// API Functions
+export const getCourses = async (params?: { page?: number; size?: number; search?: string }): Promise<ApiResponse<PageableResponse<Course>>> => {
+    const response = await courseApiClient.get('/api/v1/courses', { params });
     return response.data;
 };
 
-export const createFaculty = async (data: FacultyPayload): Promise<ApiResponse<Faculty>> => {
-    const response = await facultyApiClient.post('/api/v1/faculties', data);
+export const createCourse = async (data: CoursePayload): Promise<ApiResponse<Course>> => {
+    const response = await courseApiClient.post('/api/v1/courses', data);
     return response.data;
 };
 
-export const updateFaculty = async (id: number, data: FacultyPayload): Promise<ApiResponse<Faculty>> => {
-    const response = await facultyApiClient.put(`/api/v1/faculties/${id}`, data);
+export const updateCourse = async (id: number, data: CoursePayload): Promise<ApiResponse<Course>> => {
+    const response = await courseApiClient.put(`/api/v1/courses/${id}`, data);
     return response.data;
 };
 
-export const deleteFaculty = async (id: number): Promise<ApiResponse<null>> => {
-    const response = await facultyApiClient.delete(`/api/v1/faculties/${id}`);
+export const deleteCourse = async (id: number): Promise<ApiResponse<null>> => {
+    const response = await courseApiClient.delete(`/api/v1/courses/${id}`);
     return response.data;
 };

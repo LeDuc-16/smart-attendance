@@ -1,18 +1,4 @@
-import axios, { type InternalAxiosRequestConfig } from 'axios';
-
-const majorApiClient = axios.create({
-    baseURL: 'http://localhost:8080',
-    headers: { 'Content-Type': 'application/json' },
-});
-
-majorApiClient.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
-        const token = localStorage.getItem('token');
-        if (token) config.headers.Authorization = `Bearer ${token}`;
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
+import axios from 'axios';
 
 export interface Major {
     id: number;
@@ -26,29 +12,52 @@ export interface MajorPayload {
     facultyId: number;
 }
 
-export interface ApiResponse<T> {
-    statusCode: number;
-    message: string;
-    path: string;
-    data: T;
+export interface Faculty {
+    id: number;
+    facultyName: string;
 }
 
-export const getMajors = async (): Promise<Major[]> => {
-    const response = await majorApiClient.get('/api/v1/majors/list');
+// Lấy danh sách ngành
+export const getMajors = async () => {
+    const token = localStorage.getItem('token');
+    const response = await axios.get('http://localhost:8080/api/v1/majors/list', {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+};
+
+// Thêm ngành mới
+export const createMajor = async (data: MajorPayload) => {
+    const token = localStorage.getItem('token');
+    const response = await axios.post('http://localhost:8080/api/v1/majors', data, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+};
+
+// Cập nhật ngành
+export const updateMajor = async (id: number, data: MajorPayload) => {
+    const token = localStorage.getItem('token');
+    const response = await axios.put(`http://localhost:8080/api/v1/majors/${id}`, data, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+};
+
+
+export const deleteMajor = async (id: number) => {
+    const token = localStorage.getItem('token');
+    const response = await axios.delete(`http://localhost:8080/api/v1/majors/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+};
+
+
+export const getAllFaculties = async (): Promise<Faculty[]> => {
+    const token = localStorage.getItem('token');
+    const response = await axios.get('http://localhost:8080/api/v1/faculties', {
+        headers: { Authorization: `Bearer ${token}` }
+    });
     return response.data.data;
-};
-
-export const createMajor = async (data: MajorPayload): Promise<ApiResponse<Major>> => {
-    const response = await majorApiClient.post('/api/v1/majors', data);
-    return response.data;
-};
-
-export const updateMajor = async (id: number, data: MajorPayload): Promise<ApiResponse<Major>> => {
-    const response = await majorApiClient.put(`/api/v1/majors/${id}`, data);
-    return response.data;
-};
-
-export const deleteMajor = async (id: number): Promise<ApiResponse<null>> => {
-    const response = await majorApiClient.delete(`/api/v1/majors/${id}`);
-    return response.data;
 };
