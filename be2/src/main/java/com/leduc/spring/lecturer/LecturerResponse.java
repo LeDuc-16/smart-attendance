@@ -6,6 +6,7 @@ import lombok.Data;
 public class LecturerResponse {
     private Long id;
     private String lecturerCode;
+    private String name;
     private String academicRank;
     private Long userId;
     private Long facultyId;

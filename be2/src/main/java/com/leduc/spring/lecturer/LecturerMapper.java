@@ -9,6 +9,7 @@ public class LecturerMapper {
         LecturerResponse response = new LecturerResponse();
         response.setId(lecturer.getId());
         response.setLecturerCode(lecturer.getLecturerCode());
+        response.setName(lecturer.getUser() != null ? lecturer.getUser().getName() : null);
         response.setAcademicRank(lecturer.getAcademicRank());
         response.setUserId(lecturer.getUser() != null ? lecturer.getUser().getId().longValue() : null);
         response.setFacultyId(lecturer.getFaculty() != null ? lecturer.getFaculty().getId() : null);
