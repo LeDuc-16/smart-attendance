@@ -13,6 +13,8 @@ import software.amazon.awssdk.services.rekognition.model.ListCollectionsRequest;
 import software.amazon.awssdk.services.rekognition.model.ListCollectionsResponse;
 import software.amazon.awssdk.services.s3.S3Client;
 
+import java.net.URI;
+
 @Configuration
 public class AwsConfig {
 
@@ -29,9 +31,11 @@ public class AwsConfig {
         }
         return S3Client.builder()
                 .region(Region.of(awsRegion))
+                .endpointOverride(URI.create("https://s3.ap-southeast-2.amazonaws.com"))
                 .credentialsProvider(DefaultCredentialsProvider.create())
                 .build();
     }
+
 
     @Bean
     public RekognitionClient rekognitionClient() {
