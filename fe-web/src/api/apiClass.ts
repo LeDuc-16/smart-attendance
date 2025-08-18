@@ -22,15 +22,74 @@ classApiClient.interceptors.request.use(
 );
 
 export const addLecturerToClass = async (classId: number, lecturerId: number) => {
+    try {
+        // Cần lấy className từ classId trước
+        const classesResponse = await classApiClient.get('/api/v1/classes');
+        console.log('Classes response:', classesResponse.data); // Log để debug
+
+        const classes = classesResponse.data.data || classesResponse.data;
+        const targetClass = classes.find((c: Class) => c.id === classId);
+
+        if (!targetClass) {
+            throw new Error('Không tìm thấy lớp học');
+        }
+
+        console.log('Target class found:', targetClass); // Log class
+        console.log('Request payload:', {
+            className: targetClass.className,
+            lecturerId: lecturerId
+        }); // Log request
+
+        const response = await classApiClient.post('/api/v1/classes/add-lecturer-to-class', {
+            className: targetClass.className,
+            lecturerId: lecturerId
+        });
+
+        console.log('Add lecturer response:', response.data); // Log response
+        return response.data;
+
+    } catch (error: any) {
+        console.error('AddLecturerToClass error:', error);
+        console.error('Error response:', error.response?.data);
+        throw error;
+    }
+};
+
+// Thêm API lấy danh sách
+export const getAllFaculties = async (): Promise<DropdownOption[]> => {
     const token = localStorage.getItem("token");
-    const response = await classApiClient.post('/api/v1/classes/add-lecturer-to-class', {
-        className: `lop${classId}`,
-        lecturerId: lecturerId
-    }, {
+    const response = await axios.get("http://localhost:8080/api/v1/faculties", {
         headers: { Authorization: `Bearer ${token}` },
     });
-    return response.data;
+    return response.data.data.map((faculty: any) => ({
+        value: faculty.facultyName,
+        label: faculty.facultyName
+    }));
 };
+
+export const getAllMajors = async (): Promise<DropdownOption[]> => {
+    const token = localStorage.getItem("token");
+    const response = await axios.get("http://localhost:8080/api/v1/majors", {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data.data.map((major: any) => ({
+        value: major.majorName,
+        label: major.majorName
+    }));
+};
+
+export const getAllClasses = async (): Promise<DropdownOption[]> => {
+    const token = localStorage.getItem("token");
+    const response = await axios.get("http://localhost:8080/api/v1/classes", {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data.data.map((classItem: any) => ({
+        value: classItem.className,
+        label: classItem.className
+    }));
+};
+
+
 
 // Thêm vào apiClass.ts
 export const getClassWithLecturer = async (classId: number) => {
@@ -59,8 +118,8 @@ export interface Class {
     id: number;
     className: string;
     capacityStudent: number;
-    lecturerId?: number;
-    lecturerName?: string;
+    advisor?: number;         // ID giảng viên chủ nhiệm
+    lecturerName?: string;    // Hiển thị tên/maso giảng viên lên bảng
 }
 
 // trong apiClass.ts

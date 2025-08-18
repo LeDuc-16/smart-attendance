@@ -20,7 +20,11 @@ const LecturerPage = () => {
     const [formData, setFormData] = useState<LecturerPayload>({
         lecturerCode: "",
         academicRank: "",
-        facultyId: null,
+        account: "",
+        email: "",
+        password: "",
+        name: "",
+        facultyId: 0,
     });
     const [formError, setFormError] = useState("");
 
@@ -31,6 +35,16 @@ const LecturerPage = () => {
     const itemsPerPage = 5;
     const [totalPages, setTotalPages] = useState(1);
 
+    // Danh sách học hàm/học vị
+    const academicRanks = [
+        "Thạc sĩ",
+        "Tiến sĩ",
+        "PGS",
+        "GS",
+        "Kỹ sư",
+        "Cử nhân"
+    ];
+
     // Lấy danh sách giảng viên
     const fetchLecturers = useCallback(async () => {
         setLoading(true);
@@ -39,7 +53,8 @@ const LecturerPage = () => {
             let data: Lecturer[] = await getLecturers();
             if (debouncedSearchTerm) {
                 data = data.filter((l) =>
-                    l.lecturerCode.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+                    l.lecturerCode.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                    l.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
                 );
             }
             setLecturers(data);
@@ -77,7 +92,15 @@ const LecturerPage = () => {
 
     const openAddModal = () => {
         setEditingLecturer(null);
-        setFormData({ lecturerCode: "", academicRank: "", facultyId: null });
+        setFormData({
+            lecturerCode: "",
+            academicRank: "",
+            account: "",
+            email: "",
+            password: "",
+            name: "",
+            facultyId: 0,
+        });
         setFormError("");
         setIsModalOpen(true);
     };
@@ -86,8 +109,12 @@ const LecturerPage = () => {
         setEditingLecturer(lecturer);
         setFormData({
             lecturerCode: lecturer.lecturerCode,
-            academicRank: lecturer.academicRank,
-            facultyId: lecturer.facultyId,
+            academicRank: lecturer.academicRank || "",
+            account: "", // Không hiển thị account cũ
+            email: "",   // Không hiển thị email cũ
+            password: "", // Không hiển thị password
+            name: lecturer.name,
+            facultyId: lecturer.facultyId || 0,
         });
         setFormError("");
         setIsModalOpen(true);
@@ -105,13 +132,28 @@ const LecturerPage = () => {
 
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.lecturerCode || !formData.facultyId) {
-            setFormError("Vui lòng điền đầy đủ thông tin.");
+
+        // Validation
+        if (!formData.lecturerCode || !formData.name || !formData.facultyId) {
+            setFormError("Vui lòng điền đầy đủ thông tin bắt buộc.");
             return;
         }
+
+        if (!editingLecturer && (!formData.account || !formData.email || !formData.password)) {
+            setFormError("Vui lòng điền đầy đủ thông tin tài khoản.");
+            return;
+        }
+
         try {
             if (editingLecturer) {
-                await updateLecturer(editingLecturer.id, formData);
+                // Chỉ gửi các trường cần thiết khi sửa
+                const updatePayload = {
+                    lecturerCode: formData.lecturerCode,
+                    name: formData.name,
+                    academicRank: formData.academicRank,
+                    facultyId: formData.facultyId,
+                };
+                await updateLecturer(editingLecturer.id, updatePayload);
                 alert("Cập nhật giảng viên thành công!");
             } else {
                 await createLecturer(formData);
@@ -119,9 +161,10 @@ const LecturerPage = () => {
             }
             setIsModalOpen(false);
             fetchLecturers();
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            alert("Lỗi: Không thể thực hiện thao tác.");
+            const errorMessage = err.response?.data?.message || "Không thể thực hiện thao tác.";
+            alert(`Lỗi: ${errorMessage}`);
         }
     };
 
@@ -151,13 +194,13 @@ const LecturerPage = () => {
         <>
             {/* Modal Form */}
             {isModalOpen && (
-                <div className="fixed inset-0 flex justify-center items-center z-50">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+                <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center p-4 border-b">
                             <h3 className="text-xl font-semibold">
                                 {editingLecturer ? "Chỉnh sửa giảng viên" : "Thêm giảng viên mới"}
                             </h3>
-                            <button onClick={() => setIsModalOpen(false)}>
+                            <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-800">
                                 <FiX size={24} />
                             </button>
                         </div>
@@ -172,28 +215,51 @@ const LecturerPage = () => {
                                         name="lecturerCode"
                                         value={formData.lecturerCode}
                                         onChange={handleFormChange}
-                                        className="w-full border px-3 py-2 rounded-md"
+                                        className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Ví dụ: LEC-001"
                                     />
                                 </div>
+
                                 <div>
-                                    <label className="block mb-1 font-medium">Học hàm/Học vị</label>
+                                    <label className="block mb-1 font-medium">
+                                        Họ và tên <span className="text-red-500">*</span>
+                                    </label>
                                     <input
                                         type="text"
-                                        name="academicRank"
-                                        value={formData.academicRank || ""}
+                                        name="name"
+                                        value={formData.name}
                                         onChange={handleFormChange}
-                                        className="w-full border px-3 py-2 rounded-md"
+                                        className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Nhập họ và tên"
                                     />
                                 </div>
+
+                                <div>
+                                    <label className="block mb-1 font-medium">Học hàm/Học vị</label>
+                                    <select
+                                        name="academicRank"
+                                        value={formData.academicRank}
+                                        onChange={handleFormChange}
+                                        className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="">-- Chọn học hàm/học vị --</option>
+                                        {academicRanks.map((rank) => (
+                                            <option key={rank} value={rank}>
+                                                {rank}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
                                 <div>
                                     <label className="block mb-1 font-medium">
                                         Chọn khoa <span className="text-red-500">*</span>
                                     </label>
                                     <select
                                         name="facultyId"
-                                        value={formData.facultyId || 0}
+                                        value={formData.facultyId}
                                         onChange={handleFormChange}
-                                        className="w-full border px-3 py-2 rounded-md"
+                                        className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     >
                                         <option value={0}>-- Chọn khoa --</option>
                                         {faculties.map((f) => (
@@ -203,14 +269,62 @@ const LecturerPage = () => {
                                         ))}
                                     </select>
                                 </div>
+
+                                {/* Chỉ hiển thị thông tin tài khoản khi thêm mới */}
+                                {!editingLecturer && (
+                                    <>
+                                        <div>
+                                            <label className="block mb-1 font-medium">
+                                                Tài khoản <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="account"
+                                                value={formData.account}
+                                                onChange={handleFormChange}
+                                                className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                placeholder="Tên đăng nhập"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block mb-1 font-medium">
+                                                Email <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="email"
+                                                name="email"
+                                                value={formData.email}
+                                                onChange={handleFormChange}
+                                                className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                placeholder="example@email.com"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block mb-1 font-medium">
+                                                Mật khẩu <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="password"
+                                                name="password"
+                                                value={formData.password}
+                                                onChange={handleFormChange}
+                                                className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                placeholder="Mật khẩu"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
                                 {formError && <p className="text-red-500 text-sm">{formError}</p>}
                             </div>
-                            <div className="flex justify-end p-4">
+                            <div className="flex justify-end p-4 border-t">
                                 <button
                                     type="submit"
-                                    className="bg-blue-600 text-white px-6 py-2 rounded-lg"
+                                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-semibold"
                                 >
-                                    {editingLecturer ? "Lưu" : "Thêm"}
+                                    {editingLecturer ? "Lưu thay đổi" : "Thêm giảng viên"}
                                 </button>
                             </div>
                         </form>
@@ -286,7 +400,7 @@ const LecturerPage = () => {
                                                     {lecturer.lecturerCode}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {lecturer.fullName || `UserID-${lecturer.userId}`}
+                                                    {lecturer.name}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                                     {faculties.find((f) => f.id === lecturer.facultyId)?.facultyName || "-"}
@@ -294,21 +408,23 @@ const LecturerPage = () => {
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                                     {lecturer.academicRank || "-"}
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex space-x-4">
-                                                    <button
-                                                        onClick={() => openEditModal(lecturer)}
-                                                        className="text-indigo-600 hover:text-indigo-900"
-                                                        title="Sửa"
-                                                    >
-                                                        <FiEdit />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteLecturer(lecturer.id)}
-                                                        className="text-red-600 hover:text-red-900"
-                                                        title="Xóa"
-                                                    >
-                                                        <FiTrash2 />
-                                                    </button>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                    <div className="flex items-center space-x-4">
+                                                        <button
+                                                            onClick={() => openEditModal(lecturer)}
+                                                            className="text-indigo-600 hover:text-indigo-900"
+                                                            title="Sửa"
+                                                        >
+                                                            <FiEdit />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteLecturer(lecturer.id)}
+                                                            className="text-red-600 hover:text-red-900"
+                                                            title="Xóa"
+                                                        >
+                                                            <FiTrash2 />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))
@@ -320,12 +436,14 @@ const LecturerPage = () => {
                                         </tr>
                                     )}
                                 </tbody>
-
                             </table>
                         </div>
                     )}
                     {totalPages > 1 && (
                         <div className="flex items-center justify-between mt-4 px-4 py-3">
+                            <span className="text-sm text-gray-600">
+                                Hiển thị {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, lecturers.length)} của {lecturers.length} giảng viên
+                            </span>
                             <div className="flex items-center">
                                 <button
                                     onClick={() => handlePageChange(currentPage - 1)}
@@ -339,8 +457,8 @@ const LecturerPage = () => {
                                         key={page}
                                         onClick={() => handlePageChange(page)}
                                         className={`px-3 py-1 mx-1 rounded-md text-sm font-medium ${currentPage === page
-                                            ? "bg-blue-600 text-white"
-                                            : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                                                ? "bg-blue-600 text-white"
+                                                : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
                                             }`}
                                     >
                                         {page}

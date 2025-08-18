@@ -174,26 +174,28 @@ const ClassPage = () => {
                 }
 
                 // Lấy thông tin giảng viên cho từng lớp
+                // Trích đoạn trong fetchClasses
                 const classesWithLecturer = await Promise.all(
                     classData.map(async (classItem: Class) => {
-                        if (classItem.lecturerId) {
+                        const lecturerId = classItem.advisor;  // advisor là ID giảng viên
+                        if (lecturerId) {
                             try {
-                                const lecturer = await getLecturerById(classItem.lecturerId);
+                                const lecturer = await getLecturerById(lecturerId);
                                 return {
                                     ...classItem,
-                                    lecturerName: lecturer.lecturerCode || `Lecturer-${classItem.lecturerId}`
+                                    lecturerName: lecturer.lecturerCode || `${lecturerId}`,
                                 };
                             } catch (error) {
-                                console.error(`Error fetching lecturer ${classItem.lecturerId}:`, error);
                                 return {
                                     ...classItem,
-                                    lecturerName: `Lecturer-${classItem.lecturerId}`
+                                    lecturerName: `${lecturerId}`,
                                 };
                             }
                         }
                         return classItem;
                     })
                 );
+
 
                 const filteredData = currentSearchTerm
                     ? classesWithLecturer.filter(c => c.className.toLowerCase().includes(currentSearchTerm.toLowerCase()))
@@ -297,9 +299,14 @@ const ClassPage = () => {
         }
 
         try {
+            console.log('Calling API with:', { classId, lecturerId }); // Log request
+
             const response = await addLecturerToClass(classId, lecturerId);
 
-            if (response.statusCode === 200) {
+            console.log('API Response:', response); // Log response
+
+            // Kiểm tra response chi tiết hơn
+            if (response && (response.statusCode === 200 || response.status === 200)) {
                 // Lấy thông tin giảng viên
                 const lecturer = await getLecturerById(lecturerId);
 
@@ -317,12 +324,20 @@ const ClassPage = () => {
                 );
 
                 alert('Thêm giảng viên thành công!');
+
+                // Refresh data từ server để đảm bảo
+                await fetchClasses(currentPage, debouncedSearchTerm);
+            } else {
+                console.error('API returned unexpected response:', response);
+                alert('Lỗi: API trả về response không mong đợi');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error adding lecturer:', error);
-            alert('Lỗi: Không thể thêm giảng viên.');
+            console.error('Error details:', error.response?.data);
+            alert(`Lỗi: ${error.response?.data?.message || 'Không thể thêm giảng viên'}`);
         }
     };
+
 
 
     const handleAddStudent = (classId: number) => {
@@ -421,14 +436,6 @@ const ClassPage = () => {
                         />
                         <FiSearch className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />
                     </div>
-
-                    {/* Button làm mới */}
-                    <button
-                        onClick={() => fetchClasses(currentPage, debouncedSearchTerm)}
-                        className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 flex items-center font-semibold text-sm"
-                    >
-                        🔄 Làm mới
-                    </button>
 
                     <button
                         onClick={openAddModal}
