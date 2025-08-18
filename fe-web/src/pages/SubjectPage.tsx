@@ -65,7 +65,7 @@ const CourseFormModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
                 <div className="flex justify-between items-start p-4">
                     <div>

@@ -3,17 +3,20 @@ import axios from "axios";
 export interface Lecturer {
     id: number;
     lecturerCode: string;
+    name: string;           // Tên giảng viên từ BE
     academicRank: string | null;
     userId: number;
     facultyId: number | null;
-    facultyName?: string; // thêm để dễ hiển thị
-    fullName?: string;    // lấy từ user nếu BE trả
 }
 
 export interface LecturerPayload {
     lecturerCode: string;
-    academicRank: string | null;
-    facultyId: number | null;
+    academicRank: string;
+    account: string;
+    email: string;
+    password: string;
+    name: string;
+    facultyId: number;
 }
 
 export interface Faculty {
@@ -27,7 +30,7 @@ export const getLecturers = async () => {
     const response = await axios.get("http://localhost:8080/api/v1/lecturers", {
         headers: { Authorization: `Bearer ${token}` },
     });
-    return response.data.data; // dữ liệu chính nằm trong data
+    return response.data.data;
 };
 
 // Thêm giảng viên
@@ -40,7 +43,7 @@ export const createLecturer = async (data: LecturerPayload) => {
 };
 
 // Cập nhật giảng viên
-export const updateLecturer = async (id: number, data: LecturerPayload) => {
+export const updateLecturer = async (id: number, data: Partial<LecturerPayload>) => {
     const token = localStorage.getItem("token");
     const response = await axios.put(`http://localhost:8080/api/v1/lecturers/${id}`, data, {
         headers: { Authorization: `Bearer ${token}` },
@@ -57,7 +60,7 @@ export const deleteLecturer = async (id: number) => {
     return response.data;
 };
 
-// Lấy danh sách khoa (dùng lại như ở major)
+// Lấy danh sách khoa
 export const getAllFaculties = async (): Promise<Faculty[]> => {
     const token = localStorage.getItem("token");
     const response = await axios.get("http://localhost:8080/api/v1/faculties", {
