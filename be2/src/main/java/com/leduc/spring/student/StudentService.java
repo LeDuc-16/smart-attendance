@@ -10,8 +10,9 @@ import com.leduc.spring.faculty.Faculty;
 import com.leduc.spring.faculty.FacultyRepository;
 import com.leduc.spring.major.Major;
 import com.leduc.spring.major.MajorRepository;
-import com.leduc.spring.s3.S3Buckets;
-import com.leduc.spring.s3.S3Service;
+import com.leduc.spring.aws.s3.S3Buckets;
+import com.leduc.spring.aws.s3.S3Service;
+import com.leduc.spring.student_face_data.StudentFaceData;
 import com.leduc.spring.user.Role;
 import com.leduc.spring.user.User;
 import com.leduc.spring.user.UserRepository;
@@ -27,9 +28,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.rekognition.RekognitionClient;
+import software.amazon.awssdk.services.rekognition.model.*;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -46,6 +51,9 @@ public class StudentService {
     private final PasswordEncoder passwordEncoder;
     private final S3Service s3Service;
     private final S3Buckets s3Buckets;
+    private final RekognitionClient rekognitionClient;
+    // Thêm RekognitionClient
+    private static final String FACE_COLLECTION_ID = "students-faces";
 
     // Thêm một sinh viên
     public ApiResponse<Object> addStudent(CreateStudentRequest request, HttpServletRequest servletRequest) {
@@ -328,5 +336,116 @@ public class StudentService {
     }
 
 
+    /**
+     * Phát hiện khuôn mặt trong ảnh
+     * @param s3Key Đường dẫn ảnh trên S3
+     * @return true nếu ảnh chứa đúng 1 khuôn mặt, false nếu không
+     */
+    private boolean detectFace(String s3Key) {
+        Image awsImage = Image.builder()
+                .s3Object(S3Object.builder()
+                        .bucket(s3Buckets.getStudent())
+                        .name(s3Key)
+                        .build())
+                .build();
 
+        DetectFacesRequest request = DetectFacesRequest.builder()
+                .image(awsImage)
+                .attributes(Attribute.ALL)
+                .build();
+
+        DetectFacesResponse response = rekognitionClient.detectFaces(request);
+        return response.faceDetails().size() == 1;
+    }
+
+    /**
+     * Trích xuất đặc trưng khuôn mặt và lưu vào AWS Rekognition Collection
+     * @param file Ảnh được tải lên
+     * @param studentId ID của sinh viên
+     * @return FaceId nếu thành công, null nếu thất bại
+     */
+    private String indexFace(MultipartFile file, Long studentId) throws IOException {
+        Image awsImage = Image.builder()
+                .bytes(SdkBytes.fromByteArray(file.getBytes()))
+                .build();
+
+        IndexFacesRequest request = IndexFacesRequest.builder()
+                .image(awsImage)
+                .collectionId(FACE_COLLECTION_ID)
+                .externalImageId(studentId.toString()) // Sử dụng studentId làm externalImageId
+                .detectionAttributes(Attribute.ALL)
+                .build();
+
+        IndexFacesResponse response = rekognitionClient.indexFaces(request);
+
+        if (response.faceRecords().isEmpty() || response.faceRecords().size() > 1) {
+            return null; // Không tìm thấy khuôn mặt hoặc có nhiều hơn 1 khuôn mặt
+        }
+
+        return response.faceRecords().get(0).face().faceId();
+    }
+
+    /**
+     * Lưu thông tin khuôn mặt vào bảng student_face_data
+     * @param student Sinh viên
+     * @param faceId ID khuôn mặt từ AWS Rekognition
+     */
+    private void saveFaceData(Student student, String faceId) {
+        StudentFaceData faceData = StudentFaceData.builder()
+                .student(student)
+                .faceId(faceId)
+                .active(true) // Mặc định kích hoạt
+                .registeredAt(LocalDateTime.now())
+                .build();
+        student.getFaceDataList().add(faceData);
+        studentRepository.save(student);
+    }
+
+    /**
+     * Đăng ký ảnh khuôn mặt cho sinh viên
+     * @param studentId ID của sinh viên
+     * @param file Ảnh được tải lên
+     * @param servletRequest Yêu cầu HTTP
+     * @return ApiResponse với kết quả
+     */
+    @Transactional
+    public ApiResponse<Object> registerStudentFace(Long studentId, MultipartFile file, HttpServletRequest servletRequest) {
+        // 1. Kiểm tra sinh viên tồn tại
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Student with id [%s] not found".formatted(studentId)));
+
+        // 2. Tải ảnh lên S3 bằng hàm uploadStudentProfileImage hiện có
+        ApiResponse<Object> uploadResponse = uploadStudentProfileImage(studentId, file, servletRequest);
+        String profileImageId = student.getProfileImageId(); // Lấy profileImageId từ student sau khi upload
+        String s3Key = "profile-images/students/%s/%s".formatted(studentId, profileImageId);
+
+        // 3. Kiểm tra số lượng khuôn mặt
+        if (!detectFace(s3Key)) {
+            // Xóa ảnh vừa tải lên nếu không hợp lệ
+            s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
+            throw new ResourceNotFoundException("Face detection failed: must have exactly 1 face");
+        }
+
+        // 4. Trích xuất đặc trưng khuôn mặt
+        String faceId;
+        try {
+            faceId = indexFace(file, studentId);
+        } catch (IOException e) {
+            // Xóa ảnh vừa tải lên nếu index thất bại
+            s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
+            throw new RuntimeException("Failed to extract face features", e);
+        }
+
+        if (faceId == null) {
+            // Xóa ảnh vừa tải lên nếu không index được
+            s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
+            throw new ResourceNotFoundException("Failed to extract face features");
+        }
+
+        // 5. Lưu thông tin khuôn mặt vào student_face_data
+        saveFaceData(student, faceId);
+
+        return ApiResponse.success(null, "Student face registered successfully", servletRequest.getRequestURI());
+    }
 }

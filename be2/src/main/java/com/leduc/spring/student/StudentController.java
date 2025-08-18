@@ -91,4 +91,18 @@ public class StudentController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping(
+            value = "/{studentId}/face-registration",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    @Operation(summary = "Đăng ký ảnh khuôn mặt sinh viên", description = "Đăng ký ảnh khuôn mặt cho sinh viên theo ID, sử dụng AWS Rekognition")
+    public ResponseEntity<ApiResponse<Object>> registerStudentFace(
+            @PathVariable("studentId") Long studentId,
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest servletRequest
+    ) {
+        ApiResponse<Object> response = studentService.registerStudentFace(studentId, file, servletRequest);
+        return ResponseEntity.ok(response);
+    }
+
 }

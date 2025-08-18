@@ -1,4 +1,4 @@
-package com.leduc.spring.s3;
+package com.leduc.spring.aws.s3;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
