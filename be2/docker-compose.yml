@@ -31,8 +31,8 @@ services:
       - APPLICATION_SECURITY_JWT_SECRET_KEY=mySecretKey123456789012345678901234567890
       - APPLICATION_SECURITY_JWT_EXPIRATION=86400000
       - APPLICATION_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION=604800000
-      - AWS_ACCESS_KEY_ID=AKIAQHXH6DCCPJQAPNOQ
-      - AWS_SECRET_ACCESS_KEY=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
+      - AWS_ACCESS_KEY_ID=AKIAQHXH6DCCIGYBPHHA
+      - AWS_SECRET_ACCESS_KEY=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
       - AWS_REGION=ap-southeast-2
     ports:
       - "8080:8080"
@@ -47,7 +47,6 @@ services:
 volumes:
   postgres_data:
   app_logs:
-
 networks:
   smart-attendance-network:
     driver: bridge
