@@ -1,5 +1,7 @@
 package com.leduc.spring.aws.s3;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,14 +17,15 @@ import software.amazon.awssdk.services.s3.S3Client;
 @Configuration
 public class AwsConfig {
 
+    private static final Logger logger = LoggerFactory.getLogger(AwsConfig.class);
+
     @Value("${aws.region}")
     private String awsRegion;
 
     @Value("${aws.s3.mock}")
     private boolean mock;
 
-    @Value("${aws.rekognition.collection:students-faces}") // Giá trị mặc định nếu không có
-    private String faceCollectionId;
+    private static final String FACE_COLLECTION_ID = "student_faces";
 
     @Bean
     public S3Client s3Client() {
@@ -51,19 +54,21 @@ public class AwsConfig {
             ListCollectionsRequest listRequest = ListCollectionsRequest.builder().build();
             ListCollectionsResponse listResponse = client.listCollections(listRequest);
 
-            if (!listResponse.collectionIds().contains(faceCollectionId)) {
+            if (!listResponse.collectionIds().contains(FACE_COLLECTION_ID)) {
                 CreateCollectionRequest createRequest = CreateCollectionRequest.builder()
-                        .collectionId(faceCollectionId)
+                        .collectionId(FACE_COLLECTION_ID)
                         .build();
                 CreateCollectionResponse createResponse = client.createCollection(createRequest);
                 if (createResponse.statusCode() == 200) {
-                    System.out.println("Collection " + faceCollectionId + " created successfully");
+                    logger.info("Collection {} created successfully", FACE_COLLECTION_ID);
                 } else {
-                    throw new RuntimeException("Failed to create collection: " + faceCollectionId);
+                    logger.error("Failed to create collection: {}", FACE_COLLECTION_ID);
                 }
+            } else {
+                logger.info("Collection {} already exists", FACE_COLLECTION_ID);
             }
         } catch (Exception e) {
-            throw new RuntimeException("Failed to check or create Rekognition collection: " + e.getMessage(), e);
+            logger.error("Failed to check or create Rekognition collection: {}", e.getMessage(), e);
         }
     }
 }
