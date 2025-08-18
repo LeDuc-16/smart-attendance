@@ -53,7 +53,7 @@ public class StudentService {
     private final S3Buckets s3Buckets;
     private final RekognitionClient rekognitionClient;
     // Thêm RekognitionClient
-    private static final String FACE_COLLECTION_ID = "students-faces";
+    private static final String FACE_COLLECTION_ID = "student-faces";
 
     // Thêm một sinh viên
     public ApiResponse<Object> addStudent(CreateStudentRequest request, HttpServletRequest servletRequest) {
