@@ -25,24 +25,16 @@ const api = axios.create({
 export const login = async (
     account: string,
     password: string
-): Promise<AuthTokens> => {
+): Promise<any> => {
     try {
-        const response: AxiosResponse<ApiResponse<AuthTokens>> = await api.post('/api/v1/auth/login', {
+        const response = await api.post('/api/v1/auth/login', {
             account,
             password,
         });
 
         console.log("Login response:", response);
 
-        const accessToken = response.data.data.access_token;
-
-        if (accessToken) {
-            localStorage.setItem("token", accessToken);
-        } else {
-            console.warn("Không có access_token trả về từ server");
-        }
-
-        return response.data.data;
+        return response.data.data; // Trả về toàn bộ data (gồm user, access_token, refresh_token)
     } catch (error) {
         const axiosError = error as AxiosError<{ message?: string }>;
         throw new Error(axiosError.response?.data?.message || 'Đăng nhập thất bại');

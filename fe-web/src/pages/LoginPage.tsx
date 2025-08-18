@@ -16,13 +16,21 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await login(account, password); // Dùng account
-      setMessage("Đăng nhập thành công!");
+      const response = await login(account, password);
 
-      if (response.access_token) {
+      // Kiểm tra access_token trực tiếp từ response
+      if (response && response.access_token) {
+        setMessage("Đăng nhập thành công!");
         localStorage.setItem("token", response.access_token);
-        navigate("/dashboard");
+
+        const lecturerCode = response.user?.lecturerCode;
+        if (lecturerCode && lecturerCode.startsWith("LEC-")) {
+          navigate("/lecturer-dashboard");
+        } else {
+          navigate("/dashboard");
+        }
       } else {
+        console.log("API response:", response); // Thêm dòng này để debug
         setMessage("Không tìm thấy access_token trong phản hồi!");
       }
     } catch (error) {
