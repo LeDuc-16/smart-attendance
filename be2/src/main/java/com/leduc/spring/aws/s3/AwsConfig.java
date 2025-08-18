@@ -2,10 +2,9 @@ package com.leduc.spring.aws.s3;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import software.amazon.awssdk.auth.credentials.EnvironmentVariableCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.rekognition.RekognitionClient;
 import software.amazon.awssdk.services.rekognition.model.CreateCollectionRequest;
@@ -18,14 +17,10 @@ import software.amazon.awssdk.services.s3.S3Client;
 public class AwsConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(AwsConfig.class);
-
-    @Value("${aws.region}")
-    private String awsRegion;
-
-    @Value("${aws.s3.mock}")
-    private boolean mock;
-
     private static final String FACE_COLLECTION_ID = "student_faces";
+
+    private final String awsRegion = System.getenv().getOrDefault("AWS_REGION", "ap-southeast-2");
+    private final boolean mock = Boolean.parseBoolean(System.getenv().getOrDefault("AWS_S3_MOCK", "false"));
 
     @Bean
     public S3Client s3Client() {
@@ -34,7 +29,7 @@ public class AwsConfig {
         }
         return S3Client.builder()
                 .region(Region.of(awsRegion))
-                .credentialsProvider(EnvironmentVariableCredentialsProvider.create())
+                .credentialsProvider(DefaultCredentialsProvider.create())
                 .build();
     }
 
@@ -42,7 +37,7 @@ public class AwsConfig {
     public RekognitionClient rekognitionClient() {
         RekognitionClient client = RekognitionClient.builder()
                 .region(Region.of(awsRegion))
-                .credentialsProvider(EnvironmentVariableCredentialsProvider.create())
+                .credentialsProvider(DefaultCredentialsProvider.create())
                 .build();
 
         createCollectionIfNotExists(client);
@@ -51,14 +46,14 @@ public class AwsConfig {
 
     private void createCollectionIfNotExists(RekognitionClient client) {
         try {
-            ListCollectionsRequest listRequest = ListCollectionsRequest.builder().build();
-            ListCollectionsResponse listResponse = client.listCollections(listRequest);
+            ListCollectionsResponse listResponse = client.listCollections(ListCollectionsRequest.builder().build());
 
             if (!listResponse.collectionIds().contains(FACE_COLLECTION_ID)) {
-                CreateCollectionRequest createRequest = CreateCollectionRequest.builder()
-                        .collectionId(FACE_COLLECTION_ID)
-                        .build();
-                CreateCollectionResponse createResponse = client.createCollection(createRequest);
+                CreateCollectionResponse createResponse = client.createCollection(
+                        CreateCollectionRequest.builder()
+                                .collectionId(FACE_COLLECTION_ID)
+                                .build()
+                );
                 if (createResponse.statusCode() == 200) {
                     logger.info("Collection {} created successfully", FACE_COLLECTION_ID);
                 } else {
