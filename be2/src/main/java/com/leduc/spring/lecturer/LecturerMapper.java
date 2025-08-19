@@ -13,6 +13,7 @@ public class LecturerMapper {
         response.setAcademicRank(lecturer.getAcademicRank());
         response.setUserId(lecturer.getUser() != null ? lecturer.getUser().getId().longValue() : null);
         response.setFacultyId(lecturer.getFaculty() != null ? lecturer.getFaculty().getId() : null);
+        response.setRole(lecturer.getUser() != null ? lecturer.getUser().getRole() : null);
         return response;
     }
 

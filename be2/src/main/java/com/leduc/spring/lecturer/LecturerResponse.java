@@ -1,5 +1,6 @@
 package com.leduc.spring.lecturer;
 
+import com.leduc.spring.user.Role;
 import lombok.Data;
 
 @Data
@@ -10,4 +11,5 @@ public class LecturerResponse {
     private String academicRank;
     private Long userId;
     private Long facultyId;
+    private Role role;
 }
