@@ -39,7 +39,6 @@ public class ClassController {
         return ResponseEntity.ok(response);
     }
 
-
     @GetMapping
     @Operation(summary = "Lấy danh sách lớp học", description = "Admin và giảng viên có quyền xem danh sách lớp học")
     public ResponseEntity<ApiResponse<Object>> listClasses(
