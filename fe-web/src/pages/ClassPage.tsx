@@ -175,7 +175,7 @@ const SelectLecturerModal = ({
                             Chọn giảng viên chủ nhiệm
                         </h3>
                         <p className="text-sm text-gray-500 mt-1">
-                            Chọn giảng viên làm chủ nhiệm lớp.
+                            Thêm giảng viên chủ nhiệm.
                         </p>
                     </div>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800">

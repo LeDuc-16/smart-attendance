@@ -9,23 +9,27 @@ import {
     FiDownload,
     FiUpload
 } from 'react-icons/fi';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const CourseFormModal = ({
     isOpen,
     onClose,
     onSubmit,
     initialData,
+    formError,
 }: {
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (data: CoursePayload) => void;
     initialData: Course | null;
+    formError?: string;
 }) => {
     const [formData, setFormData] = useState<CoursePayload>({
         courseName: '',
         credits: 1,
     });
-    const [formError, setFormError] = useState('');
+    const [inputError, setInputError] = useState('');
 
     useEffect(() => {
         if (isOpen) {
@@ -37,7 +41,7 @@ const CourseFormModal = ({
             } else {
                 setFormData({ courseName: '', credits: 1 });
             }
-            setFormError('');
+            setInputError('');
         }
     }, [isOpen, initialData]);
 
@@ -47,18 +51,21 @@ const CourseFormModal = ({
             ...prev,
             [name]: name === 'credits' ? parseInt(value) || 1 : value
         }));
+        setInputError('');
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.courseName) {
-            setFormError('Vui lòng điền tên môn học.');
+
+        if (!formData.courseName.trim()) {
+            setInputError('Vui lòng điền tên môn học.');
             return;
         }
         if (formData.credits <= 0 || formData.credits > 10) {
-            setFormError('Số tín chỉ phải từ 1 đến 10.');
+            setInputError('Số tín chỉ phải từ 1 đến 10.');
             return;
         }
+
         onSubmit(formData);
     };
 
@@ -66,14 +73,16 @@ const CourseFormModal = ({
 
     return (
         <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-start p-4">
                     <div>
-                        <h3 className="text-xl font-semibold">
-                            {initialData ? 'Chỉnh sửa môn học' : 'Thêm môn học mới'}
+                        <h3 className="text-xl font-semibold text-[#1E3A8A]">
+                            {initialData ? 'Chỉnh sửa môn học' : 'Thêm mới'}
                         </h3>
                         <p className="text-sm text-gray-500 mt-1">
-                            Thêm thông tin môn học mới.
+                            {initialData
+                                ? 'Sửa thông tin môn học.'
+                                : 'Thêm thông tin môn học mới.'}
                         </p>
                     </div>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
@@ -84,6 +93,7 @@ const CourseFormModal = ({
                     <div className="p-6">
                         <div className="bg-blue-50 p-4 rounded-lg space-y-4">
                             <h4 className="font-semibold">Thông tin môn học</h4>
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Tên môn học <span className="text-red-500">*</span>
@@ -97,6 +107,7 @@ const CourseFormModal = ({
                                     placeholder="Nhập tên môn học"
                                 />
                             </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Số tín chỉ <span className="text-red-500">*</span>
@@ -112,8 +123,11 @@ const CourseFormModal = ({
                                     placeholder="Nhập số tín chỉ"
                                 />
                             </div>
+
+                            {(inputError || formError) && (
+                                <p className="text-red-500 text-sm mt-2">{inputError || formError}</p>
+                            )}
                         </div>
-                        {formError && <p className="text-red-500 text-sm mt-2">{formError}</p>}
                     </div>
                     <div className="flex justify-end p-4">
                         <button
@@ -129,19 +143,105 @@ const CourseFormModal = ({
     );
 };
 
-const CoursePage = () => {
+const DeleteConfirmModal = ({
+    isOpen,
+    onClose,
+    onConfirm,
+    courseName,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    courseName: string;
+}) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-60">
+            <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-0">
+                <div className="flex items-start justify-between px-6 pt-6">
+                    <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-4">
+                            <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">Xác nhận xóa môn học</h2>
+                            <div className="text-gray-400 text-base font-medium">Hành động không thể hoàn tác</div>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
+                        <FiX size={24} />
+                    </button>
+                </div>
+                <div className="px-6 pb-0 pt-4">
+                    <span className="text-base text-gray-500">
+                        Bạn có chắc chắn muốn xóa môn học <span className="font-bold text-black">{courseName}</span> khỏi hệ thống?
+                    </span>
+                </div>
+                <div className="flex items-center justify-end gap-6 px-6 pb-6 pt-6">
+                    <button
+                        className="rounded-lg border border-gray-400 px-6 py-2 text-black font-semibold text-lg transition hover:bg-gray-100"
+                        onClick={onClose}
+                        type="button"
+                    >
+                        Hủy
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="rounded-lg bg-red-500 px-6 py-2 font-semibold text-white text-lg transition hover:bg-red-600"
+                        type="button"
+                    >
+                        Xóa môn học
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const SubjectPage = () => {
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+    const [modalError, setModalError] = useState('');
+
+    // State cho modal xác nhận xóa
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletingCourse, setDeletingCourse] = useState<Course | null>(null);
+
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [totalPages, setTotalPages] = useState<number>(0);
     const [totalItems, setTotalItems] = useState<number>(0);
     const itemsPerPage = 5;
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+    const showSuccessToast = (message: string) => {
+        toast.success(message, {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+        });
+    };
+
+    const showErrorToast = (message: string) => {
+        toast.error(message, {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+        });
+    };
 
     const fetchCourses = useCallback(async (pageToFetch: number, currentSearchTerm: string) => {
         setLoading(true);
@@ -206,22 +306,37 @@ const CoursePage = () => {
 
     const openAddModal = () => {
         setEditingCourse(null);
+        setModalError('');
         setIsModalOpen(true);
     };
 
     const openEditModal = (course: Course) => {
         setEditingCourse(course);
+        setModalError('');
         setIsModalOpen(true);
     };
 
+    // Mở modal xác nhận xóa
+    const openDeleteModal = (course: Course) => {
+        setDeletingCourse(course);
+        setIsDeleteModalOpen(true);
+    };
+
+    // Đóng modal xác nhận xóa
+    const closeDeleteModal = () => {
+        setDeletingCourse(null);
+        setIsDeleteModalOpen(false);
+    };
+
     const handleFormSubmit = async (data: CoursePayload) => {
+        setModalError('');
         try {
             if (editingCourse) {
                 await updateCourse(editingCourse.id, data);
-                alert('Cập nhật môn học thành công!');
+                showSuccessToast('Cập nhật môn học thành công!');
             } else {
                 await createCourse(data);
-                alert('Thêm môn học thành công!');
+                showSuccessToast('Thêm môn học thành công!');
             }
             setIsModalOpen(false);
             setDebouncedSearchTerm(searchTerm);
@@ -229,43 +344,47 @@ const CoursePage = () => {
             fetchCourses(1, searchTerm);
         } catch (error: any) {
             console.error("API Error:", error.response || error);
-            const serverMessage = error.response?.data?.message;
-            const statusCode = error.response?.status;
-            let displayMessage = `Lỗi: Không thể thực hiện thao tác.`;
-            if (statusCode) {
-                displayMessage += ` (Mã lỗi: ${statusCode})`;
+            const serverMessage = error.response?.data?.message || '';
+
+            // Xử lý lỗi chi tiết
+            if (serverMessage.toLowerCase().includes('duplicate') ||
+                serverMessage.toLowerCase().includes('exist') ||
+                serverMessage.toLowerCase().includes('tồn tại')) {
+                setModalError('Tên môn học đã tồn tại, vui lòng nhập tên khác');
+            } else {
+                setModalError(serverMessage || 'Có lỗi xảy ra, vui lòng thử lại');
             }
-            if (serverMessage) {
-                displayMessage = serverMessage;
-            }
-            alert(displayMessage);
         }
     };
 
-    const handleDeleteCourse = async (id: number) => {
-        if (window.confirm('Bạn có chắc chắn muốn xóa môn học này không?')) {
-            try {
-                await deleteCourse(id);
-                alert('Xóa môn học thành công!');
-                if (courses.length === 1 && currentPage > 1) {
-                    setCurrentPage(currentPage - 1);
-                } else {
-                    fetchCourses(currentPage, debouncedSearchTerm);
-                }
-            } catch (error) {
-                alert('Lỗi: Không thể xóa môn học.');
-                console.error(error);
+    // Xử lý xóa môn học sau khi xác nhận
+    const handleConfirmDelete = async () => {
+        if (!deletingCourse) return;
+
+        try {
+            await deleteCourse(deletingCourse.id);
+            showSuccessToast('Xóa môn học thành công!');
+            closeDeleteModal();
+
+            if (courses.length === 1 && currentPage > 1) {
+                setCurrentPage(currentPage - 1);
+            } else {
+                fetchCourses(currentPage, debouncedSearchTerm);
             }
+        } catch (error) {
+            showErrorToast('Lỗi: Không thể xóa môn học.');
+            console.error(error);
+            closeDeleteModal();
         }
     };
 
     const handleExportExcel = () => {
-        alert('Xuất danh sách môn học ra Excel');
+        showSuccessToast('Xuất danh sách môn học ra Excel');
         // TODO: Implement export functionality
     };
 
     const handleImportExcel = () => {
-        alert('Import môn học từ Excel');
+        showSuccessToast('Import môn học từ Excel');
         // TODO: Implement import functionality
     };
 
@@ -276,21 +395,30 @@ const CoursePage = () => {
     };
 
     const renderPagination = () => {
-        const pageButtons = [];
-        for (let i = 1; i <= totalPages; i++) {
-            pageButtons.push(
-                <button
-                    key={i}
-                    onClick={() => handlePageChange(i)}
-                    className={`px-3 py-1 mx-1 rounded-md text-sm font-medium ${currentPage === i
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                        }`}
-                >
-                    {i}
-                </button>
-            );
+        let pageButtons = [];
+        let pages: number[] = [];
+        if (totalPages <= 3) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else if (currentPage <= 2) {
+            pages = [1, 2, 3];
+        } else if (currentPage >= totalPages - 1) {
+            pages = [totalPages - 2, totalPages - 1, totalPages];
+        } else {
+            pages = [currentPage - 1, currentPage, currentPage + 1];
         }
+
+        pageButtons = pages.map(i => (
+            <button
+                key={i}
+                onClick={() => handlePageChange(i)}
+                className={`px-3 py-1 mx-1 rounded-md text-sm font-medium ${currentPage === i
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+            >
+                {i}
+            </button>
+        ));
 
         const startItem = totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
         const endItem = Math.min(currentPage * itemsPerPage, totalItems);
@@ -323,19 +451,31 @@ const CoursePage = () => {
 
     return (
         <>
+            <ToastContainer />
             <CourseFormModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setModalError('');
+                }}
                 onSubmit={handleFormSubmit}
                 initialData={editingCourse}
+                formError={modalError}
             />
+            <DeleteConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={closeDeleteModal}
+                onConfirm={handleConfirmDelete}
+                courseName={deletingCourse?.courseName || ''}
+            />
+
             <div className="space-y-4">
                 <div className="mb-4">
                     <h1 className="text-2xl font-bold text-[#1E3A8A] mb-2">
                         Quản lý môn học
                     </h1>
                     <p className="text-[#717182] text-xl">
-                        Quản lý thông tin môn học trong Trường Đại Học Thủy Lợi
+                        Quản lý thông tin môn học trong trường Đại học Thủy Lợi
                     </p>
                 </div>
 
@@ -343,30 +483,13 @@ const CoursePage = () => {
                     <div className="relative flex-grow">
                         <input
                             type="text"
-                            placeholder="Tìm kiếm theo tên môn học, tên..."
+                            placeholder="Tìm kiếm theo tên môn học..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                         <FiSearch className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />
                     </div>
-
-
-                    <button
-                        onClick={handleImportExcel}
-                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center font-semibold text-sm"
-                    >
-                        <FiUpload className="mr-2" />
-                        Thêm bằng Excel
-                    </button>
-
-                    <button
-                        onClick={handleExportExcel}
-                        className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center font-semibold text-sm"
-                    >
-                        <FiDownload className="mr-2" />
-                        Xuất dữ liệu
-                    </button>
 
                     <button
                         onClick={openAddModal}
@@ -378,7 +501,7 @@ const CoursePage = () => {
                 </div>
 
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <h2 className="text-lg font-semibold text-gray-700 p-4 border-b border-gray-200">
+                    <h2 className="text-lg font-semibold text-[#1E3A8A] p-4 border-b border-gray-200">
                         Danh sách môn học
                     </h2>
                     {loading ? (
@@ -392,43 +515,45 @@ const CoursePage = () => {
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên môn học</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tín</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số tín chỉ</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {courses.length > 0 ? (
-                                        courses.map((course, index) => (
-                                            <tr key={course.id} className="hover:bg-gray-50">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {(currentPage - 1) * itemsPerPage + index + 1}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {course.courseName}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {course.credits}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                    <div className="flex items-center space-x-4">
-                                                        <button
-                                                            onClick={() => openEditModal(course)}
-                                                            className="text-indigo-600 hover:text-indigo-900"
-                                                            title="Sửa"
-                                                        >
-                                                            <FiEdit size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteCourse(course.id)}
-                                                            className="text-red-600 hover:text-red-900"
-                                                            title="Xóa"
-                                                        >
-                                                            <FiTrash2 size={16} />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
+                                        courses
+                                            .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                                            .map((course, index) => (
+                                                <tr key={course.id} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        {(currentPage - 1) * itemsPerPage + index + 1}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        {course.courseName}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        {course.credits}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                        <div className="flex items-center space-x-4">
+                                                            <button
+                                                                onClick={() => openEditModal(course)}
+                                                                className="text-indigo-600 hover:text-indigo-900"
+                                                                title="Sửa"
+                                                            >
+                                                                <FiEdit size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => openDeleteModal(course)}
+                                                                className="text-red-600 hover:text-red-900"
+                                                                title="Xóa"
+                                                            >
+                                                                <FiTrash2 size={16} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
                                     ) : (
                                         <tr>
                                             <td colSpan={4} className="text-center py-6 text-gray-500">
@@ -447,4 +572,4 @@ const CoursePage = () => {
     );
 };
 
-export default CoursePage;
+export default SubjectPage;
