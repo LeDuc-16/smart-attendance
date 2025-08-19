@@ -6,8 +6,6 @@ import {
     FiSearch,
     FiPlus,
     FiX,
-    FiDownload,
-    FiUpload
 } from 'react-icons/fi';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -210,7 +208,6 @@ const SubjectPage = () => {
     const [editingCourse, setEditingCourse] = useState<Course | null>(null);
     const [modalError, setModalError] = useState('');
 
-    // State cho modal xác nhận xóa
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingCourse, setDeletingCourse] = useState<Course | null>(null);
 
@@ -316,13 +313,12 @@ const SubjectPage = () => {
         setIsModalOpen(true);
     };
 
-    // Mở modal xác nhận xóa
+
     const openDeleteModal = (course: Course) => {
         setDeletingCourse(course);
         setIsDeleteModalOpen(true);
     };
 
-    // Đóng modal xác nhận xóa
     const closeDeleteModal = () => {
         setDeletingCourse(null);
         setIsDeleteModalOpen(false);
@@ -346,7 +342,7 @@ const SubjectPage = () => {
             console.error("API Error:", error.response || error);
             const serverMessage = error.response?.data?.message || '';
 
-            // Xử lý lỗi chi tiết
+
             if (serverMessage.toLowerCase().includes('duplicate') ||
                 serverMessage.toLowerCase().includes('exist') ||
                 serverMessage.toLowerCase().includes('tồn tại')) {
@@ -357,7 +353,6 @@ const SubjectPage = () => {
         }
     };
 
-    // Xử lý xóa môn học sau khi xác nhận
     const handleConfirmDelete = async () => {
         if (!deletingCourse) return;
 
@@ -376,16 +371,6 @@ const SubjectPage = () => {
             console.error(error);
             closeDeleteModal();
         }
-    };
-
-    const handleExportExcel = () => {
-        showSuccessToast('Xuất danh sách môn học ra Excel');
-        // TODO: Implement export functionality
-    };
-
-    const handleImportExcel = () => {
-        showSuccessToast('Import môn học từ Excel');
-        // TODO: Implement import functionality
     };
 
     const handlePageChange = (page: number) => {

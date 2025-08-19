@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getClasses, createClass, updateClass, deleteClass, getLecturerById, addLecturerToClass, type Class, type ClassPayload } from '../api/apiClass';
-import { getAllFaculties } from '../api/apiLecturer';
 import { getLecturers } from '../api/apiLecturer';
 import {
     FiEdit,
@@ -9,9 +8,6 @@ import {
     FiPlus,
     FiX,
     FiUserPlus,
-    FiUsers,
-    FiUpload,
-    FiEye
 } from 'react-icons/fi';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
