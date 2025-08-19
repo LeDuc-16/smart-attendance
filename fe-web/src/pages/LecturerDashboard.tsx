@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
 // Data for the schedule table, updated to match the image
 const scheduleToday = [
@@ -58,6 +59,33 @@ const ChartBarIcon = () => (
 
 
 const LecturerDashboard = () => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Function to handle logout
+  const navigate = useNavigate();
+  const handleLogout = (e: React.MouseEvent) => {
+    e.preventDefault();
+    localStorage.removeItem("token");
+    setIsDropdownOpen(false);
+    navigate("/login", { replace: true });
+  };
+
+  // Effect to close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    // Bind the event listener
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      // Unbind the event listener on clean up
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownRef]);
+
   return (
     <div className="min-h-screen flex bg-gray-100 font-sans">
       {/* Sidebar */}
@@ -102,19 +130,34 @@ const LecturerDashboard = () => {
       <div className="flex-1 flex flex-col">
         {/* Top bar */}
         <header className="flex items-center justify-end px-8 py-4 bg-white">
-          <div className="flex items-center gap-3">
-            <img 
-                src="https://placehold.co/40x40/E2E8F0/4A5568?text=AVT" 
-                alt="Avatar" 
-                className="h-10 w-10 rounded-full border-2 border-gray-200"
-            />
-            <div className="text-right">
-              <div className="font-semibold text-sm text-gray-800">Bùi Đức Lương</div>
-              <div className="text-xs text-gray-500">Giảng viên</div>
-            </div>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
+          <div className="relative" ref={dropdownRef}>
+            <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-3 cursor-pointer">
+              <img 
+                  src="https://placehold.co/40x40/E2E8F0/4A5568?text=AVT" 
+                  alt="Avatar" 
+                  className="h-10 w-10 rounded-full border-2 border-gray-200"
+              />
+              <div className="text-right">
+                <div className="font-semibold text-sm text-gray-800">Bùi Đức Lương</div>
+                <div className="text-xs text-gray-500">Giảng viên</div>
+              </div>
+              <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+            
+            {/* Dropdown Menu */}
+            {isDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 border">
+                <a
+                  href="#"
+                  onClick={handleLogout}
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Đăng xuất
+                </a>
+              </div>
+            )}
           </div>
         </header>
 
