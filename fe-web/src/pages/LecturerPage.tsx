@@ -18,6 +18,7 @@ const LecturerFormModal = ({
     initialData,
     formError,
     faculties,
+    lecturers,
 }: {
     isOpen: boolean;
     onClose: () => void;
@@ -25,6 +26,7 @@ const LecturerFormModal = ({
     initialData: Lecturer | null;
     formError?: string;
     faculties: Faculty[];
+    lecturers: Lecturer[];
 }) => {
     const [formData, setFormData] = useState<LecturerPayload>({
         lecturerCode: "",
@@ -86,7 +88,7 @@ const LecturerFormModal = ({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Validation
+        // Basic validation
         if (!formData.lecturerCode || !formData.name || !formData.facultyId) {
             setInputError("Vui lòng điền đầy đủ thông tin bắt buộc.");
             return;
@@ -96,6 +98,31 @@ const LecturerFormModal = ({
             setInputError("Vui lòng điền đầy đủ thông tin tài khoản.");
             return;
         }
+
+        // Client-side duplicate check chỉ cho lecturerCode (vì chỉ có field này trong lecturers array)
+        if (!initialData) {
+            // Kiểm tra trùng mã giảng viên khi thêm mới
+            const duplicateCode = lecturers.some(l =>
+                l.lecturerCode === formData.lecturerCode
+            );
+            if (duplicateCode) {
+                setInputError("Mã giảng viên đã tồn tại. Vui lòng nhập mã khác.");
+                return;
+            }
+        } else {
+            // Kiểm tra trùng mã giảng viên khi edit (trừ chính record đang edit)
+            const duplicateCode = lecturers.some(l =>
+                l.lecturerCode === formData.lecturerCode && l.id !== initialData.id
+            );
+            if (duplicateCode) {
+                setInputError("Mã giảng viên đã tồn tại. Vui lòng nhập mã khác.");
+                return;
+            }
+        }
+
+        // Lưu ý: Không thể check trùng email và account trên client-side 
+        // vì lecturers array không chứa các field này
+        // Backend sẽ handle validation cho email và account
 
         onSubmit(formData);
     };
@@ -135,7 +162,21 @@ const LecturerFormModal = ({
                                     value={formData.lecturerCode}
                                     onChange={handleChange}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="Ví dụ: LEC-001"
+                                    placeholder="Ví dụ: GV001"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Họ và tên <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Nhập họ và tên"
                                 />
                             </div>
 
@@ -341,6 +382,41 @@ const LecturerPage = () => {
         });
     };
 
+    // Hàm xử lý thông báo lỗi chi tiết
+    const getErrorMessage = (serverMessage: string): string => {
+        const message = serverMessage.toLowerCase();
+        console.log('Analyzing server error:', serverMessage); // Debug log
+
+        // Kiểm tra từng trường cụ thể - chặt chẽ hơn
+        if (message.includes('account') || message.includes('username') || message.includes('tài khoản')) {
+            return 'Tài khoản đã tồn tại. Vui lòng chọn tài khoản khác.';
+        }
+
+        if (message.includes('email')) {
+            return 'Email đã tồn tại trong hệ thống. Vui lòng sử dụng email khác.';
+        }
+
+        if (message.includes('lecturer_code') || message.includes('lecturercode') ||
+            message.includes('mã giảng viên') || message.includes('lecturer code')) {
+            return 'Mã giảng viên đã tồn tại. Vui lòng nhập mã khác.';
+        }
+
+        // Với name thì chỉ cảnh báo, không chặn
+        if (message.includes('name') && message.includes('tên') &&
+            (message.includes('duplicate') || message.includes('exist') || message.includes('tồn tại'))) {
+            return 'Tên giảng viên đã tồn tại. Vui lòng kiểm tra để tránh trùng lặp.';
+        }
+
+        // Nếu có từ khóa duplicate/exist/already/tồn tại nhưng không xác định được trường
+        if (message.includes('duplicate') || message.includes('exist') ||
+            message.includes('already') || message.includes('tồn tại')) {
+            return serverMessage || 'Dữ liệu đã tồn tại trong hệ thống.';
+        }
+
+        // Trả về thông báo gốc từ server hoặc thông báo mặc định
+        return serverMessage || 'Có lỗi xảy ra. Vui lòng thử lại.';
+    };
+
     // Lấy danh sách giảng viên
     const fetchLecturers = useCallback(async () => {
         setLoading(true);
@@ -432,17 +508,12 @@ const LecturerPage = () => {
         } catch (error: any) {
             console.error("API Error:", error.response || error);
 
-            const serverMessage = error.response?.data?.message || '';
+            const serverMessage = error.response?.data?.message || error.message || '';
+            console.log('Full error response:', error.response); // Debug full response
 
-            // Kiểm tra lỗi trùng tên
-            if (serverMessage.includes("tồn tại") ||
-                serverMessage.toLowerCase().includes("existed") ||
-                serverMessage.toLowerCase().includes("already") ||
-                serverMessage.toLowerCase().includes("duplicate")) {
-                setModalError('Mã giảng viên đã tồn tại, vui lòng nhập mã khác');
-            } else {
-                setModalError('Có lỗi xảy ra, vui lòng thử lại');
-            }
+            // Sử dụng hàm xử lý lỗi mới
+            const errorMessage = getErrorMessage(serverMessage);
+            setModalError(errorMessage);
         }
     };
 
@@ -544,6 +615,7 @@ const LecturerPage = () => {
                 initialData={editingLecturer}
                 formError={modalError}
                 faculties={faculties}
+                lecturers={lecturers}
             />
             <DeleteConfirmModal
                 isOpen={isDeleteModalOpen}
