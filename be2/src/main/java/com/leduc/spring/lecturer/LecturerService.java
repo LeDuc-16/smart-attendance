@@ -33,6 +33,11 @@ public class LecturerService {
             throw new DuplicateResourceException("Lecturer code already exists");
         }
 
+        // ✅ Kiểm tra trùng lặp account
+        if (userRepository.existsByAccount(request.getAccount())) {
+            throw new DuplicateResourceException("Account already exists");
+        }
+
         // Kiểm tra trùng lặp email
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("Email already exists");
