@@ -56,5 +56,5 @@ aws:
     mock: false
     buckets:
       student: leducdev
-  rekognition:
-    collection-id: students_collection
+
+

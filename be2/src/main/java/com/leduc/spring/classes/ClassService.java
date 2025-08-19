@@ -43,6 +43,17 @@ public class ClassService {
         return ApiResponse.success(responses, "List of classes", servletRequest.getRequestURI());
     }
 
+    public ApiResponse<Object> countStudentsInClass(HttpServletRequest servletRequest, Long classId) {
+        ClassEntity classEntity = classRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Class not found with id: [%s]".formatted(classId)));
+
+        int studentCount = (classEntity.getStudents() != null) ? classEntity.getStudents().size() : 0;
+
+        return ApiResponse.success(studentCount,
+                "Number of students in class " + classEntity.getClassName(),
+                servletRequest.getRequestURI());
+    }
+
     // Cập nhật lớp
     public ApiResponse<Object> updateClass(HttpServletRequest servletRequest, Long classId, UpdateClassRequest request) {
         ClassEntity classEntity = classRepository.findById(classId)

@@ -50,7 +50,8 @@ public class SecurityConfiguration {
                 "/api/v1/students/**",
                 "api/v1/courses/**",
                 "/api/v1/schedules/**",
-                "/api/faces/**"
+                "/api/v1/student-faces/**"
+
         };
 
         private final JwtAuthenticationFilter jwtAuthFilter;

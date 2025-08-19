@@ -1,6 +1,7 @@
 package com.leduc.spring.student;
 
 import com.leduc.spring.exception.ApiResponse;
+import com.leduc.spring.student_face_data.StudentFaceDataService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import java.io.IOException;
 @SecurityRequirement(name = "bearerAuth")
 public class StudentController {
 
+    private final StudentFaceDataService studentFaceDataService;
     private final StudentService studentService;
 
     @PostMapping
@@ -90,5 +92,6 @@ public class StudentController {
         ApiResponse<Object> response = studentService.deleteStudent(studentId, servletRequest);
         return ResponseEntity.ok(response);
     }
+
 
 }

@@ -30,6 +30,16 @@ public class ClassController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @GetMapping("/{classId}/students/count")
+    @Operation(summary = "Đếm số sinh viên trong lớp")
+    public ResponseEntity<ApiResponse<Object>> countStudents(
+            @PathVariable Long classId,
+            HttpServletRequest servletRequest) {
+        ApiResponse<Object> response = classService.countStudentsInClass(servletRequest, classId);
+        return ResponseEntity.ok(response);
+    }
+
+
     @GetMapping
     @Operation(summary = "Lấy danh sách lớp học", description = "Admin và giảng viên có quyền xem danh sách lớp học")
     public ResponseEntity<ApiResponse<Object>> listClasses(
