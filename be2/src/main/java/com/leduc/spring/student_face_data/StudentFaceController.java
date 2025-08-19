@@ -48,4 +48,17 @@ public class StudentFaceController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping(
+            value = "/compare",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    @Operation(summary = "So sánh khuôn mặt", description = "So sánh ảnh khuôn mặt với collection để tìm sinh viên khớp, yêu cầu ≥ 90% độ tương đồng")
+    public ResponseEntity<ApiResponse<FaceCompareResponse>> compareFace(
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest servletRequest
+    ) {
+        ApiResponse<FaceCompareResponse> response = studentFaceDataService.compareFace(file, servletRequest);
+        return ResponseEntity.ok(response);
+    }
+
 }
