@@ -38,5 +38,14 @@ public class StudentFaceController {
         return ResponseEntity.ok(response);
     }
 
+    @DeleteMapping("/{faceId}")
+    @Operation(summary = "Xoá khuôn mặt sinh viên", description = "Xoá một faceId khỏi AWS Rekognition collection")
+    public ResponseEntity<ApiResponse<String>> deleteFace(
+            @PathVariable("faceId") String faceId,
+            HttpServletRequest servletRequest
+    ) {
+        ApiResponse<String> response = studentFaceDataService.deleteFace(faceId, servletRequest);
+        return ResponseEntity.ok(response);
+    }
 
 }
