@@ -2,8 +2,8 @@ package com.leduc.spring;
 
 import com.leduc.spring.auth.AuthenticationService;
 import com.leduc.spring.auth.RegisterRequest;
-import com.leduc.spring.aws.s3.S3Buckets;
-import com.leduc.spring.aws.s3.S3Service;
+import com.leduc.spring.aws.S3Buckets;
+import com.leduc.spring.aws.S3Service;
 import com.leduc.spring.user.Role;
 import com.leduc.spring.user.UserRepository;
 import org.springframework.boot.CommandLineRunner;

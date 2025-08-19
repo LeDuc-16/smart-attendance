@@ -1,4 +1,4 @@
-package com.leduc.spring.aws.s3;
+package com.leduc.spring.aws;
 
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.ResponseInputStream;

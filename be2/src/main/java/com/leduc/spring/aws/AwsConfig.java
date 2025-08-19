@@ -1,4 +1,4 @@
-package com.leduc.spring.aws.s3;
+package com.leduc.spring.aws;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
