@@ -1,4 +1,4 @@
-package com.leduc.spring.s3;
+package com.leduc.spring.aws;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;

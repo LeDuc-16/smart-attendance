@@ -11,6 +11,7 @@ public class StudentMapper {
                 .facultyName(student.getFaculty() != null ? student.getFaculty().getFacultyName() : null)
                 .account(student.getUser() != null ? student.getUser().getAccount() : null)
                 .email(student.getUser() != null ? student.getUser().getEmail() : null)
+                .role(student.getUser() != null ? student.getUser().getRole() : null)
                 .build();
     }
 }

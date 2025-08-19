@@ -10,8 +10,9 @@ import com.leduc.spring.faculty.Faculty;
 import com.leduc.spring.faculty.FacultyRepository;
 import com.leduc.spring.major.Major;
 import com.leduc.spring.major.MajorRepository;
-import com.leduc.spring.s3.S3Buckets;
-import com.leduc.spring.s3.S3Service;
+import com.leduc.spring.aws.S3Buckets;
+import com.leduc.spring.aws.S3Service;
+import com.leduc.spring.student_face_data.StudentFaceData;
 import com.leduc.spring.user.Role;
 import com.leduc.spring.user.User;
 import com.leduc.spring.user.UserRepository;
@@ -27,9 +28,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.rekognition.RekognitionClient;
+import software.amazon.awssdk.services.rekognition.model.*;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -46,6 +51,9 @@ public class StudentService {
     private final PasswordEncoder passwordEncoder;
     private final S3Service s3Service;
     private final S3Buckets s3Buckets;
+    private final RekognitionClient rekognitionClient;
+    // Thêm RekognitionClient
+    private static final String FACE_COLLECTION_ID = "student_faces";
 
     // Thêm một sinh viên
     public ApiResponse<Object> addStudent(CreateStudentRequest request, HttpServletRequest servletRequest) {
@@ -326,7 +334,4 @@ public class StudentService {
 
         return ApiResponse.success(null, "Student deleted successfully", servletRequest.getRequestURI());
     }
-
-
-
 }
