@@ -185,4 +185,34 @@ public class StudentFaceDataService {
         FaceRegisterResponse response = mapper.toFaceRegisterResponse(studentId, faceId, profileImageId, LocalDateTime.now());
         return ApiResponse.success(response, "Student face registered successfully", servletRequest.getRequestURI());
     }
+
+    // Xoá faceId khỏi AWS Rekognition collection
+    @Transactional
+    public ApiResponse<String> deleteFace(String faceId, HttpServletRequest servletRequest) {
+        try {
+            DeleteFacesRequest deleteFacesRequest = DeleteFacesRequest.builder()
+                    .collectionId(FACE_COLLECTION_ID)
+                    .faceIds(faceId)
+                    .build();
+
+            DeleteFacesResponse response = rekognitionClient.deleteFaces(deleteFacesRequest);
+
+            if (response.deletedFaces().isEmpty()) {
+                throw new ResourceNotFoundException("FaceId [%s] not found in collection".formatted(faceId));
+            }
+
+            logger.info("Deleted faceId: {} from collection {}", faceId, FACE_COLLECTION_ID);
+
+            return ApiResponse.success(
+                    "FaceId deleted: " + response.deletedFaces(),
+                    "Deleted successfully",
+                    servletRequest.getRequestURI()
+            );
+
+        } catch (RekognitionException e) {
+            logger.error("Failed to delete faceId {}: {}", faceId, e.getMessage(), e);
+            throw new RuntimeException("Failed to delete faceId: " + e.getMessage(), e);
+        }
+    }
+
 }

@@ -37,4 +37,6 @@ public class StudentFaceController {
         ApiResponse<FaceRegisterResponse> response = studentFaceDataService.registerStudentFace(request, servletRequest);
         return ResponseEntity.ok(response);
     }
+
+
 }
