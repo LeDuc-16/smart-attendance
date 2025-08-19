@@ -129,7 +129,7 @@ const DeleteConfirmModal = ({
                             </svg>
                         </div>
                         <div>
-                            <h2 className="text-xl font text-gray-900">Xác nhận xóa khoa</h2>
+                            <h2 className="text-xl font-bold text-gray-900">Xác nhận xóa khoa</h2>
                             <div className="text-gray-400 text-base font-medium">Hành động không thể hoàn tác</div>
                         </div>
                     </div>

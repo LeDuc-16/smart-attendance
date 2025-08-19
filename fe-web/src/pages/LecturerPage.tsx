@@ -8,15 +8,24 @@ import {
     deleteLecturer,
     getAllFaculties,
 } from "../api/apiLecturer";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-const LecturerPage = () => {
-    const [lecturers, setLecturers] = useState<Lecturer[]>([]);
-    const [faculties, setFaculties] = useState<Faculty[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingLecturer, setEditingLecturer] = useState<Lecturer | null>(null);
+const LecturerFormModal = ({
+    isOpen,
+    onClose,
+    onSubmit,
+    initialData,
+    formError,
+    faculties,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onSubmit: (data: LecturerPayload) => void;
+    initialData: Lecturer | null;
+    formError?: string;
+    faculties: Faculty[];
+}) => {
     const [formData, setFormData] = useState<LecturerPayload>({
         lecturerCode: "",
         academicRank: "",
@@ -26,14 +35,7 @@ const LecturerPage = () => {
         name: "",
         facultyId: 0,
     });
-    const [formError, setFormError] = useState("");
-
-    const [searchTerm, setSearchTerm] = useState("");
-    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
-    const [totalPages, setTotalPages] = useState(1);
+    const [inputError, setInputError] = useState('');
 
     // Danh sách học hàm/học vị
     const academicRanks = [
@@ -44,6 +46,300 @@ const LecturerPage = () => {
         "Kỹ sư",
         "Cử nhân"
     ];
+
+    useEffect(() => {
+        if (isOpen) {
+            if (initialData) {
+                setFormData({
+                    lecturerCode: initialData.lecturerCode,
+                    academicRank: initialData.academicRank || "",
+                    account: "", // Không hiển thị account cũ
+                    email: "",   // Không hiển thị email cũ
+                    password: "", // Không hiển thị password
+                    name: initialData.name,
+                    facultyId: initialData.facultyId || 0,
+                });
+            } else {
+                setFormData({
+                    lecturerCode: "",
+                    academicRank: "",
+                    account: "",
+                    email: "",
+                    password: "",
+                    name: "",
+                    facultyId: 0,
+                });
+            }
+            setInputError('');
+        }
+    }, [isOpen, initialData]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({
+            ...prev,
+            [name]: name === "facultyId" ? Number(value) : value,
+        }));
+        setInputError('');
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        // Validation
+        if (!formData.lecturerCode || !formData.name || !formData.facultyId) {
+            setInputError("Vui lòng điền đầy đủ thông tin bắt buộc.");
+            return;
+        }
+
+        if (!initialData && (!formData.account || !formData.email || !formData.password)) {
+            setInputError("Vui lòng điền đầy đủ thông tin tài khoản.");
+            return;
+        }
+
+        onSubmit(formData);
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-start p-4">
+                    <div>
+                        <h3 className="text-xl font-semibold text-[#1E3A8A]">
+                            {initialData ? 'Chỉnh sửa giảng viên' : 'Thêm mới'}
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                            {initialData
+                                ? 'Sửa thông tin giảng viên.'
+                                : 'Tạo tài khoản và thông tin giảng viên mới.'}
+                        </p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
+                        <FiX size={24} />
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit}>
+                    <div className="p-6">
+                        <div className="bg-blue-50 p-4 rounded-lg space-y-4">
+                            <h4 className="font-semibold">Thông tin giảng viên</h4>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Mã giảng viên <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="lecturerCode"
+                                    value={formData.lecturerCode}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Ví dụ: LEC-001"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Học hàm/Học vị
+                                </label>
+                                <select
+                                    name="academicRank"
+                                    value={formData.academicRank}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="">-- Chọn học hàm/học vị --</option>
+                                    {academicRanks.map((rank) => (
+                                        <option key={rank} value={rank}>
+                                            {rank}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Chọn khoa <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    name="facultyId"
+                                    value={formData.facultyId}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value={0}>-- Chọn khoa --</option>
+                                    {faculties.map((f) => (
+                                        <option key={f.id} value={f.id}>
+                                            {f.facultyName}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Chỉ hiển thị thông tin tài khoản khi thêm mới */}
+                            {!initialData && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Tài khoản <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="account"
+                                            value={formData.account}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Tên đăng nhập"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Email <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            value={formData.email}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="example@email.com"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Mật khẩu <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="password"
+                                            name="password"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Mật khẩu"
+                                        />
+                                    </div>
+                                </>
+                            )}
+
+                            {(inputError || formError) && (
+                                <p className="text-red-500 text-sm mt-2">{inputError || formError}</p>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex justify-end p-4">
+                        <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-semibold">
+                            {initialData ? 'Lưu thay đổi' : 'Thêm giảng viên mới'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+const DeleteConfirmModal = ({
+    isOpen,
+    onClose,
+    onConfirm,
+    lecturerName,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    lecturerName: string;
+}) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-60">
+            <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-0">
+                <div className="flex items-start justify-between px-6 pt-6">
+                    <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-4">
+                            <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">Xác nhận xóa giảng viên</h2>
+                            <div className="text-gray-400 text-base font-medium">Hành động không thể hoàn tác</div>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
+                        <FiX size={24} />
+                    </button>
+                </div>
+                <div className="px-6 pb-0 pt-4">
+                    <span className="text-base text-gray-500">
+                        Bạn có chắc chắn muốn xóa giảng viên <span className="font-bold text-black">{lecturerName}</span> khỏi hệ thống?
+                    </span>
+                </div>
+                <div className="flex items-center justify-end gap-6 px-6 pb-6 pt-6">
+                    <button
+                        className="rounded-lg border border-gray-400 px-6 py-2 text-black font-semibold text-lg transition hover:bg-gray-100"
+                        onClick={onClose}
+                        type="button"
+                    >
+                        Hủy
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="rounded-lg bg-red-500 px-6 py-2 font-semibold text-white text-lg transition hover:bg-red-600"
+                        type="button"
+                    >
+                        Xóa giảng viên
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const LecturerPage = () => {
+    const [lecturers, setLecturers] = useState<Lecturer[]>([]);
+    const [faculties, setFaculties] = useState<Faculty[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingLecturer, setEditingLecturer] = useState<Lecturer | null>(null);
+    const [modalError, setModalError] = useState('');
+
+    // State cho modal xác nhận xóa
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletingLecturer, setDeletingLecturer] = useState<Lecturer | null>(null);
+
+    const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
+    const [totalPages, setTotalPages] = useState(1);
+
+    const showSuccessToast = (message: string) => {
+        toast.success(message, {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+        });
+    };
+
+    const showErrorToast = (message: string) => {
+        toast.error(message, {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+        });
+    };
 
     // Lấy danh sách giảng viên
     const fetchLecturers = useCallback(async () => {
@@ -92,97 +388,142 @@ const LecturerPage = () => {
 
     const openAddModal = () => {
         setEditingLecturer(null);
-        setFormData({
-            lecturerCode: "",
-            academicRank: "",
-            account: "",
-            email: "",
-            password: "",
-            name: "",
-            facultyId: 0,
-        });
-        setFormError("");
+        setModalError('');
         setIsModalOpen(true);
     };
 
     const openEditModal = (lecturer: Lecturer) => {
         setEditingLecturer(lecturer);
-        setFormData({
-            lecturerCode: lecturer.lecturerCode,
-            academicRank: lecturer.academicRank || "",
-            account: "", // Không hiển thị account cũ
-            email: "",   // Không hiển thị email cũ
-            password: "", // Không hiển thị password
-            name: lecturer.name,
-            facultyId: lecturer.facultyId || 0,
-        });
-        setFormError("");
+        setModalError('');
         setIsModalOpen(true);
     };
 
-    const handleFormChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-    ) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: name === "facultyId" ? Number(value) : value,
-        }));
+    // Mở modal xác nhận xóa
+    const openDeleteModal = (lecturer: Lecturer) => {
+        setDeletingLecturer(lecturer);
+        setIsDeleteModalOpen(true);
     };
 
-    const handleFormSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    // Đóng modal xác nhận xóa
+    const closeDeleteModal = () => {
+        setDeletingLecturer(null);
+        setIsDeleteModalOpen(false);
+    };
 
-        // Validation
-        if (!formData.lecturerCode || !formData.name || !formData.facultyId) {
-            setFormError("Vui lòng điền đầy đủ thông tin bắt buộc.");
-            return;
-        }
-
-        if (!editingLecturer && (!formData.account || !formData.email || !formData.password)) {
-            setFormError("Vui lòng điền đầy đủ thông tin tài khoản.");
-            return;
-        }
-
+    const handleFormSubmit = async (data: LecturerPayload) => {
+        setModalError('');
         try {
             if (editingLecturer) {
                 // Chỉ gửi các trường cần thiết khi sửa
                 const updatePayload = {
-                    lecturerCode: formData.lecturerCode,
-                    name: formData.name,
-                    academicRank: formData.academicRank,
-                    facultyId: formData.facultyId,
+                    lecturerCode: data.lecturerCode,
+                    name: data.name,
+                    academicRank: data.academicRank,
+                    facultyId: data.facultyId,
                 };
                 await updateLecturer(editingLecturer.id, updatePayload);
-                alert("Cập nhật giảng viên thành công!");
+                showSuccessToast("Cập nhật giảng viên thành công!");
             } else {
-                await createLecturer(formData);
-                alert("Thêm giảng viên thành công!");
+                await createLecturer(data);
+                showSuccessToast("Thêm giảng viên thành công!");
             }
             setIsModalOpen(false);
             fetchLecturers();
-        } catch (err: any) {
-            console.error(err);
-            const errorMessage = err.response?.data?.message || "Không thể thực hiện thao tác.";
-            alert(`Lỗi: ${errorMessage}`);
+        } catch (error: any) {
+            console.error("API Error:", error.response || error);
+
+            const serverMessage = error.response?.data?.message || '';
+
+            // Kiểm tra lỗi trùng tên
+            if (serverMessage.includes("tồn tại") ||
+                serverMessage.toLowerCase().includes("existed") ||
+                serverMessage.toLowerCase().includes("already") ||
+                serverMessage.toLowerCase().includes("duplicate")) {
+                setModalError('Mã giảng viên đã tồn tại, vui lòng nhập mã khác');
+            } else {
+                setModalError('Có lỗi xảy ra, vui lòng thử lại');
+            }
         }
     };
 
-    const handleDeleteLecturer = async (id: number) => {
-        if (window.confirm("Bạn có chắc chắn muốn xóa giảng viên này không?")) {
-            try {
-                await deleteLecturer(id);
-                alert("Xóa giảng viên thành công!");
+    // Xử lý xóa giảng viên sau khi xác nhận
+    const handleConfirmDelete = async () => {
+        if (!deletingLecturer) return;
+
+        try {
+            await deleteLecturer(deletingLecturer.id);
+            showSuccessToast('Xóa giảng viên thành công!');
+            closeDeleteModal();
+
+            if (lecturers.length === 1 && currentPage > 1) {
+                setCurrentPage(currentPage - 1);
+            } else {
                 fetchLecturers();
-            } catch (err) {
-                console.error(err);
-                alert("Lỗi: Không thể xóa giảng viên.");
             }
+        } catch (error) {
+            showErrorToast('Lỗi: Không thể xóa giảng viên.');
+            console.error(error);
+            closeDeleteModal();
         }
     };
 
     const handlePageChange = (page: number) => {
         if (page >= 1 && page <= totalPages) setCurrentPage(page);
+    };
+
+    const renderPagination = () => {
+        let pageButtons = [];
+        let pages: number[] = [];
+        if (totalPages <= 3) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else if (currentPage <= 2) {
+            pages = [1, 2, 3];
+        } else if (currentPage >= totalPages - 1) {
+            pages = [totalPages - 2, totalPages - 1, totalPages];
+        } else {
+            pages = [currentPage - 1, currentPage, currentPage + 1];
+        }
+
+        pageButtons = pages.map(i => (
+            <button
+                key={i}
+                onClick={() => handlePageChange(i)}
+                className={`px-3 py-1 mx-1 rounded-md text-sm font-medium ${currentPage === i
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+            >
+                {i}
+            </button>
+        ));
+
+        const startItem = lecturers.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
+        const endItem = Math.min(currentPage * itemsPerPage, lecturers.length);
+
+        return (
+            <div className="flex items-center justify-between mt-4 px-4 py-3">
+                <span className="text-sm text-gray-600">
+                    Hiển thị {startItem} - {endItem} của {lecturers.length} giảng viên
+                </span>
+                <div className="flex items-center">
+                    <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 mx-1 rounded-md bg-white text-gray-700 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    >
+                        &lt; Trước
+                    </button>
+                    {pageButtons}
+                    <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1 mx-1 rounded-md bg-white text-gray-700 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    >
+                        Tiếp &gt;
+                    </button>
+                </div>
+            </div>
+        );
     };
 
     const paginatedLecturers = lecturers.slice(
@@ -192,145 +533,24 @@ const LecturerPage = () => {
 
     return (
         <>
-            {/* Modal Form */}
-            {isModalOpen && (
-                <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-                        <div className="flex justify-between items-center p-4 border-b">
-                            <h3 className="text-xl font-semibold">
-                                {editingLecturer ? "Chỉnh sửa giảng viên" : "Thêm giảng viên mới"}
-                            </h3>
-                            <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-800">
-                                <FiX size={24} />
-                            </button>
-                        </div>
-                        <form onSubmit={handleFormSubmit}>
-                            <div className="p-6 space-y-4">
-                                <div>
-                                    <label className="block mb-1 font-medium">
-                                        Mã giảng viên <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="lecturerCode"
-                                        value={formData.lecturerCode}
-                                        onChange={handleFormChange}
-                                        className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Ví dụ: LEC-001"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block mb-1 font-medium">
-                                        Họ và tên <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleFormChange}
-                                        className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Nhập họ và tên"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block mb-1 font-medium">Học hàm/Học vị</label>
-                                    <select
-                                        name="academicRank"
-                                        value={formData.academicRank}
-                                        onChange={handleFormChange}
-                                        className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="">-- Chọn học hàm/học vị --</option>
-                                        {academicRanks.map((rank) => (
-                                            <option key={rank} value={rank}>
-                                                {rank}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block mb-1 font-medium">
-                                        Chọn khoa <span className="text-red-500">*</span>
-                                    </label>
-                                    <select
-                                        name="facultyId"
-                                        value={formData.facultyId}
-                                        onChange={handleFormChange}
-                                        className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value={0}>-- Chọn khoa --</option>
-                                        {faculties.map((f) => (
-                                            <option key={f.id} value={f.id}>
-                                                {f.facultyName}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {/* Chỉ hiển thị thông tin tài khoản khi thêm mới */}
-                                {!editingLecturer && (
-                                    <>
-                                        <div>
-                                            <label className="block mb-1 font-medium">
-                                                Tài khoản <span className="text-red-500">*</span>
-                                            </label>
-                                            <input
-                                                type="text"
-                                                name="account"
-                                                value={formData.account}
-                                                onChange={handleFormChange}
-                                                className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                placeholder="Tên đăng nhập"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block mb-1 font-medium">
-                                                Email <span className="text-red-500">*</span>
-                                            </label>
-                                            <input
-                                                type="email"
-                                                name="email"
-                                                value={formData.email}
-                                                onChange={handleFormChange}
-                                                className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                placeholder="example@email.com"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block mb-1 font-medium">
-                                                Mật khẩu <span className="text-red-500">*</span>
-                                            </label>
-                                            <input
-                                                type="password"
-                                                name="password"
-                                                value={formData.password}
-                                                onChange={handleFormChange}
-                                                className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                placeholder="Mật khẩu"
-                                            />
-                                        </div>
-                                    </>
-                                )}
-
-                                {formError && <p className="text-red-500 text-sm">{formError}</p>}
-                            </div>
-                            <div className="flex justify-end p-4 border-t">
-                                <button
-                                    type="submit"
-                                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-semibold"
-                                >
-                                    {editingLecturer ? "Lưu thay đổi" : "Thêm giảng viên"}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <ToastContainer />
+            <LecturerFormModal
+                isOpen={isModalOpen}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setModalError('');
+                }}
+                onSubmit={handleFormSubmit}
+                initialData={editingLecturer}
+                formError={modalError}
+                faculties={faculties}
+            />
+            <DeleteConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={closeDeleteModal}
+                onConfirm={handleConfirmDelete}
+                lecturerName={deletingLecturer?.name || ''}
+            />
 
             {/* Page Content */}
             <div className="space-y-4">
@@ -347,7 +567,7 @@ const LecturerPage = () => {
                     <div className="relative flex-grow">
                         <input
                             type="text"
-                            placeholder="Tìm kiếm theo mã giảng viên..."
+                            placeholder="Tìm kiếm theo mã giảng viên hoặc tên..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -363,7 +583,7 @@ const LecturerPage = () => {
                 </div>
 
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <h2 className="text-lg font-semibold text-gray-700 p-4 border-b border-gray-200">
+                    <h2 className="text-lg font-semibold text-[#1E3A8A] p-4 border-b border-gray-200">
                         Danh sách giảng viên
                     </h2>
                     {loading ? (
@@ -375,6 +595,9 @@ const LecturerPage = () => {
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            STT
+                                        </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Mã GV
                                         </th>
@@ -394,8 +617,11 @@ const LecturerPage = () => {
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {paginatedLecturers.length > 0 ? (
-                                        paginatedLecturers.map((lecturer) => (
+                                        paginatedLecturers.map((lecturer, index) => (
                                             <tr key={lecturer.id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                    {(currentPage - 1) * itemsPerPage + index + 1}
+                                                </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                                     {lecturer.lecturerCode}
                                                 </td>
@@ -415,14 +641,14 @@ const LecturerPage = () => {
                                                             className="text-indigo-600 hover:text-indigo-900"
                                                             title="Sửa"
                                                         >
-                                                            <FiEdit />
+                                                            <FiEdit size={16} />
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDeleteLecturer(lecturer.id)}
+                                                            onClick={() => openDeleteModal(lecturer)}
                                                             className="text-red-600 hover:text-red-900"
                                                             title="Xóa"
                                                         >
-                                                            <FiTrash2 />
+                                                            <FiTrash2 size={16} />
                                                         </button>
                                                     </div>
                                                 </td>
@@ -430,7 +656,7 @@ const LecturerPage = () => {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={5} className="text-center py-6 text-gray-500">
+                                            <td colSpan={6} className="text-center py-6 text-gray-500">
                                                 Không tìm thấy giảng viên nào.
                                             </td>
                                         </tr>
@@ -439,41 +665,7 @@ const LecturerPage = () => {
                             </table>
                         </div>
                     )}
-                    {totalPages > 1 && (
-                        <div className="flex items-center justify-between mt-4 px-4 py-3">
-                            <span className="text-sm text-gray-600">
-                                Hiển thị {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, lecturers.length)} của {lecturers.length} giảng viên
-                            </span>
-                            <div className="flex items-center">
-                                <button
-                                    onClick={() => handlePageChange(currentPage - 1)}
-                                    disabled={currentPage === 1}
-                                    className="px-3 py-1 mx-1 rounded-md bg-white text-gray-700 border border-gray-300 disabled:opacity-50 text-sm"
-                                >
-                                    &lt; Trước
-                                </button>
-                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                                    <button
-                                        key={page}
-                                        onClick={() => handlePageChange(page)}
-                                        className={`px-3 py-1 mx-1 rounded-md text-sm font-medium ${currentPage === page
-                                                ? "bg-blue-600 text-white"
-                                                : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-                                            }`}
-                                    >
-                                        {page}
-                                    </button>
-                                ))}
-                                <button
-                                    onClick={() => handlePageChange(currentPage + 1)}
-                                    disabled={currentPage === totalPages}
-                                    className="px-3 py-1 mx-1 rounded-md bg-white text-gray-700 border border-gray-300 disabled:opacity-50 text-sm"
-                                >
-                                    Tiếp &gt;
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                    {totalPages > 0 && renderPagination()}
                 </div>
             </div>
         </>
