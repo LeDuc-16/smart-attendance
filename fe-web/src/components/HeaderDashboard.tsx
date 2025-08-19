@@ -2,7 +2,7 @@ import Dropdown from "./Dropdown";
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import avt from '../assets/icons/avt.png';
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const pageTitles: { [key: string]: string } = {
     '/dashboard': 'Tổng quan',
@@ -16,15 +16,60 @@ const pageTitles: { [key: string]: string } = {
     '/dashboard/classroom': 'Quản lý phòng học',
     '/dashboard/teaching': 'Quản lý giảng dạy',
     '/dashboard/attendance': 'Quản lý điểm danh',
-    // Thêm các trang khác nếu có
 };
 
 const HeaderDashboard = () => {
     const [currentTime, setCurrentTime] = useState(new Date());
-
     const location = useLocation();
-
+    const navigate = useNavigate();
     const currentTitle = pageTitles[location.pathname] || 'Trang không xác định';
+
+    // Kiểm tra token và xử lý back button
+    useEffect(() => {
+        const checkAuth = () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                navigate('/login', { replace: true });
+                return false;
+            }
+            return true;
+        };
+
+        // Kiểm tra ban đầu
+        checkAuth();
+
+        // Xử lý khi trang được hiển thị lại (bao gồm cả back button)
+        const handlePageShow = (event: PageTransitionEvent) => {
+            // Kiểm tra nếu trang được load từ cache
+            if (event.persisted) {
+                checkAuth();
+            }
+        };
+
+        // Xử lý khi focus lại vào trang
+        const handleFocus = () => {
+            checkAuth();
+        };
+
+        // Xử lý back/forward button
+        const handlePopState = () => {
+            setTimeout(() => {
+                checkAuth();
+            }, 100);
+        };
+
+        // Thêm event listeners
+        window.addEventListener('pageshow', handlePageShow);
+        window.addEventListener('focus', handleFocus);
+        window.addEventListener('popstate', handlePopState);
+
+        // Cleanup
+        return () => {
+            window.removeEventListener('pageshow', handlePageShow);
+            window.removeEventListener('focus', handleFocus);
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, [navigate]);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -41,6 +86,32 @@ const HeaderDashboard = () => {
         const month = date.getMonth() + 1;
         const year = date.getFullYear();
         return `${day}, ${dateNum} tháng ${month} năm ${year}`;
+    };
+
+    // Hàm xử lý đăng xuất được cải thiện
+    const handleLogout = () => {
+        // Xóa tất cả thông tin đăng nhập
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('refreshToken');
+
+        // Xóa session storage nếu có
+        sessionStorage.clear();
+
+        // Thay thế history entry hiện tại để ngăn back button
+        window.history.replaceState(null, '', '/login');
+
+        // Navigate đến login page
+        navigate('/login', { replace: true });
+
+        // Thêm entry mới để ngăn back button
+        setTimeout(() => {
+            window.history.pushState(null, '', '/login');
+        }, 100);
+    };
+
+    const handleProfile = () => {
+        console.log('Mở hồ sơ cá nhân');
     };
 
     return (
@@ -69,18 +140,18 @@ const HeaderDashboard = () => {
                         }
                     >
                         <div className="py-2">
-                            <a
-                                href="#"
-                                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            <button
+                                onClick={handleProfile}
+                                className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                             >
                                 Hồ sơ cá nhân
-                            </a>
-                            <a
-                                href="/login"
-                                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            </button>
+                            <button
+                                onClick={handleLogout}
+                                className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                             >
                                 Đăng xuất
-                            </a>
+                            </button>
                         </div>
                     </Dropdown>
                 </div>

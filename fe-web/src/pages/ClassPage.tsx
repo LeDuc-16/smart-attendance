@@ -74,7 +74,7 @@ const ClassFormModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
                 <div className="flex justify-between items-start p-4">
                     <div>
@@ -167,7 +167,7 @@ const SelectLecturerModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
                 <div className="flex justify-between items-start p-4">
                     <div>
@@ -240,7 +240,7 @@ const DeleteConfirmModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-60">
             <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-0">
                 <div className="flex items-start justify-between px-6 pt-6">
                     <div className="flex items-center">
@@ -294,11 +294,9 @@ const ClassPage = () => {
     const [editingClass, setEditingClass] = useState<Class | null>(null);
     const [modalError, setModalError] = useState('');
 
-    // State cho modal xác nhận xóa
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingClass, setDeletingClass] = useState<Class | null>(null);
 
-    // State cho modal chọn giảng viên
     const [isSelectLecturerModalOpen, setIsSelectLecturerModalOpen] = useState(false);
     const [selectedClassId, setSelectedClassId] = useState<number>(0);
 
@@ -360,10 +358,9 @@ const ClassPage = () => {
                     classData = response.data.content;
                 }
 
-                // Lấy thông tin giảng viên cho từng lớp
                 const classesWithLecturer = await Promise.all(
                     classData.map(async (classItem: Class) => {
-                        const lecturerId = classItem.advisor;  // advisor là ID giảng viên
+                        const lecturerId = classItem.advisor;
                         if (lecturerId) {
                             try {
                                 const lecturer = await getLecturerById(lecturerId);
@@ -436,13 +433,11 @@ const ClassPage = () => {
         setIsModalOpen(true);
     };
 
-    // Mở modal xác nhận xóa
     const openDeleteModal = (classItem: Class) => {
         setDeletingClass(classItem);
         setIsDeleteModalOpen(true);
     };
 
-    // Đóng modal xác nhận xóa
     const closeDeleteModal = () => {
         setDeletingClass(null);
         setIsDeleteModalOpen(false);
@@ -500,13 +495,11 @@ const ClassPage = () => {
         }
     };
 
-    // Mở modal chọn giảng viên
     const handleAddTeacher = (classId: number) => {
         setSelectedClassId(classId);
         setIsSelectLecturerModalOpen(true);
     };
 
-    // Xử lý thêm giảng viên sau khi chọn
     const handleSelectLecturer = async (lecturerId: number) => {
         try {
             console.log('Calling API with:', { classId: selectedClassId, lecturerId });
@@ -515,12 +508,9 @@ const ClassPage = () => {
 
             console.log('API Response:', response);
 
-            // Kiểm tra response chi tiết hơn
             if (response && (response.statusCode === 200 || response.status === 200)) {
-                // Lấy thông tin giảng viên
                 const lecturer = await getLecturerById(lecturerId);
 
-                // Cập nhật state local ngay lập tức
                 setClasses(prevClasses =>
                     prevClasses.map(classItem =>
                         classItem.id === selectedClassId
@@ -535,7 +525,6 @@ const ClassPage = () => {
 
                 showSuccessToast('Thêm giảng viên thành công!');
 
-                // Refresh data từ server để đảm bảo
                 await fetchClasses(currentPage, debouncedSearchTerm);
             } else {
                 console.error('API returned unexpected response:', response);
@@ -546,21 +535,6 @@ const ClassPage = () => {
             console.error('Error details:', error.response?.data);
             showErrorToast(`Lỗi: ${error.response?.data?.message || 'Không thể thêm giảng viên'}`);
         }
-    };
-
-    const handleAddStudent = (classId: number) => {
-        showSuccessToast(`Thêm sinh viên vào lớp ID: ${classId}`);
-        // TODO: Implement add student functionality
-    };
-
-    const handleImportStudents = (classId: number) => {
-        showSuccessToast(`Import sinh viên cho lớp ID: ${classId}`);
-        // TODO: Implement import students functionality
-    };
-
-    const handleViewDetails = (classId: number) => {
-        showSuccessToast(`Xem chi tiết lớp ID: ${classId}`);
-        // TODO: Implement view details functionality
     };
 
     const handlePageChange = (page: number) => {
@@ -697,7 +671,7 @@ const ClassPage = () => {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên lớp</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giảng viên</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sức chứa</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng hiện tại</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng sinh viên hiện tại </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
                                     </tr>
                                 </thead>

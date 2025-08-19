@@ -288,13 +288,11 @@ const MajorPage = () => {
         setIsModalOpen(true);
     };
 
-    // Mở modal xác nhận xóa
     const openDeleteModal = (major: Major) => {
         setDeletingMajor(major);
         setIsDeleteModalOpen(true);
     };
 
-    // Đóng modal xác nhận xóa
     const closeDeleteModal = () => {
         setDeletingMajor(null);
         setIsDeleteModalOpen(false);

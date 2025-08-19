@@ -55,9 +55,9 @@ const LecturerFormModal = ({
                 setFormData({
                     lecturerCode: initialData.lecturerCode,
                     academicRank: initialData.academicRank || "",
-                    account: "", // Không hiển thị account cũ
-                    email: "",   // Không hiển thị email cũ
-                    password: "", // Không hiển thị password
+                    account: "",
+                    email: "",
+                    password: "",
                     name: initialData.name,
                     facultyId: initialData.facultyId || 0,
                 });
@@ -88,7 +88,7 @@ const LecturerFormModal = ({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Basic validation
+
         if (!formData.lecturerCode || !formData.name || !formData.facultyId) {
             setInputError("Vui lòng điền đầy đủ thông tin bắt buộc.");
             return;
@@ -99,7 +99,6 @@ const LecturerFormModal = ({
             return;
         }
 
-        // Client-side duplicate check chỉ cho lecturerCode (vì chỉ có field này trong lecturers array)
         if (!initialData) {
             // Kiểm tra trùng mã giảng viên khi thêm mới
             const duplicateCode = lecturers.some(l =>
@@ -110,7 +109,6 @@ const LecturerFormModal = ({
                 return;
             }
         } else {
-            // Kiểm tra trùng mã giảng viên khi edit (trừ chính record đang edit)
             const duplicateCode = lecturers.some(l =>
                 l.lecturerCode === formData.lecturerCode && l.id !== initialData.id
             );
@@ -119,10 +117,6 @@ const LecturerFormModal = ({
                 return;
             }
         }
-
-        // Lưu ý: Không thể check trùng email và account trên client-side 
-        // vì lecturers array không chứa các field này
-        // Backend sẽ handle validation cho email và account
 
         onSubmit(formData);
     };
@@ -218,7 +212,6 @@ const LecturerFormModal = ({
                                 </select>
                             </div>
 
-                            {/* Chỉ hiển thị thông tin tài khoản khi thêm mới */}
                             {!initialData && (
                                 <>
                                     <div>
@@ -385,9 +378,8 @@ const LecturerPage = () => {
     // Hàm xử lý thông báo lỗi chi tiết
     const getErrorMessage = (serverMessage: string): string => {
         const message = serverMessage.toLowerCase();
-        console.log('Analyzing server error:', serverMessage); // Debug log
+        console.log('Analyzing server error:', serverMessage);
 
-        // Kiểm tra từng trường cụ thể - chặt chẽ hơn
         if (message.includes('account') || message.includes('username') || message.includes('tài khoản')) {
             return 'Tài khoản đã tồn tại. Vui lòng chọn tài khoản khác.';
         }
@@ -401,19 +393,16 @@ const LecturerPage = () => {
             return 'Mã giảng viên đã tồn tại. Vui lòng nhập mã khác.';
         }
 
-        // Với name thì chỉ cảnh báo, không chặn
         if (message.includes('name') && message.includes('tên') &&
             (message.includes('duplicate') || message.includes('exist') || message.includes('tồn tại'))) {
             return 'Tên giảng viên đã tồn tại. Vui lòng kiểm tra để tránh trùng lặp.';
         }
 
-        // Nếu có từ khóa duplicate/exist/already/tồn tại nhưng không xác định được trường
         if (message.includes('duplicate') || message.includes('exist') ||
             message.includes('already') || message.includes('tồn tại')) {
             return serverMessage || 'Dữ liệu đã tồn tại trong hệ thống.';
         }
 
-        // Trả về thông báo gốc từ server hoặc thông báo mặc định
         return serverMessage || 'Có lỗi xảy ra. Vui lòng thử lại.';
     };
 
@@ -490,7 +479,6 @@ const LecturerPage = () => {
         setModalError('');
         try {
             if (editingLecturer) {
-                // Chỉ gửi các trường cần thiết khi sửa
                 const updatePayload = {
                     lecturerCode: data.lecturerCode,
                     name: data.name,
@@ -509,9 +497,9 @@ const LecturerPage = () => {
             console.error("API Error:", error.response || error);
 
             const serverMessage = error.response?.data?.message || error.message || '';
-            console.log('Full error response:', error.response); // Debug full response
+            console.log('Full error response:', error.response);
 
-            // Sử dụng hàm xử lý lỗi mới
+
             const errorMessage = getErrorMessage(serverMessage);
             setModalError(errorMessage);
         }
@@ -624,7 +612,6 @@ const LecturerPage = () => {
                 lecturerName={deletingLecturer?.name || ''}
             />
 
-            {/* Page Content */}
             <div className="space-y-4">
                 <div className="mb-4">
                     <h1 className="text-2xl font-bold text-[#1E3A8A] mb-2">
