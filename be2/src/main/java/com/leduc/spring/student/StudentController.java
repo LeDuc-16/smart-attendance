@@ -1,6 +1,7 @@
 package com.leduc.spring.student;
 
 import com.leduc.spring.exception.ApiResponse;
+import com.leduc.spring.student_face_data.StudentFaceDataService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import java.io.IOException;
 @SecurityRequirement(name = "bearerAuth")
 public class StudentController {
 
+    private final StudentFaceDataService studentFaceDataService;
     private final StudentService studentService;
 
     @PostMapping
@@ -91,18 +93,5 @@ public class StudentController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(
-            value = "/{studentId}/face-registration",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
-    )
-    @Operation(summary = "Đăng ký ảnh khuôn mặt sinh viên", description = "Đăng ký ảnh khuôn mặt cho sinh viên theo ID, sử dụng AWS Rekognition")
-    public ResponseEntity<ApiResponse<Object>> registerStudentFace(
-            @PathVariable("studentId") Long studentId,
-            @RequestParam("file") MultipartFile file,
-            HttpServletRequest servletRequest
-    ) {
-        ApiResponse<Object> response = studentService.registerStudentFace(studentId, file, servletRequest);
-        return ResponseEntity.ok(response);
-    }
 
 }
