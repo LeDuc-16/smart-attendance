@@ -20,6 +20,11 @@ const LoginPage = () => {
 
       // Kiểm tra access_token trực tiếp từ response
       if (response && response.access_token) {
+        // Chặn quyền sinh viên
+        if (response.user?.role === "STUDENT") {
+          setMessage("Bạn không có quyền truy cập hệ thống này!");
+          return;
+        }
         setMessage("Đăng nhập thành công!");
         localStorage.setItem("token", response.access_token);
 
