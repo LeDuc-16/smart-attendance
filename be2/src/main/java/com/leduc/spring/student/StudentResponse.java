@@ -1,5 +1,6 @@
 package com.leduc.spring.student;
 
+import com.leduc.spring.user.Role;
 import lombok.Builder;
 import lombok.Data;
 
@@ -14,4 +15,5 @@ public class StudentResponse {
     private String facultyName;
     private String account;
     private String email;
+    private Role role;
 }
