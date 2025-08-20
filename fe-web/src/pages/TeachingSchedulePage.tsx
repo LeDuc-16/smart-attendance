@@ -3,9 +3,11 @@ import SidebarLecturer from "../components/SidebarLecturer";
 import HeaderLecturer from "../components/HeaderLecturer";
 import { getSchedulesByDate } from "../api/apiTeaching";
 import type { TeachingSchedule } from "../api/apiTeaching";
+import { getCourses } from "../api/apiCourse";
+import { getClassRooms } from "../api/apiClassRoom";
+import { getClasses } from "../api/apiClass";
 
 const TeachingSchedulePage = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [date, setDate] = useState("2025-08-05");
   const [activeTab, setActiveTab] = useState("teaching-schedule");
@@ -14,16 +16,51 @@ const TeachingSchedulePage = () => {
 
   useEffect(() => {
     setLoading(true);
-    getSchedulesByDate(date)
-      .then(data => {
-        console.log('Lich giang day API:', data);
-        setScheduleData(data);
-      })
-      .catch(() => setScheduleData([]))
-      .finally(() => setLoading(false));
+    (async () => {
+      try {
+        const schedules = await getSchedulesByDate(date);
+        // Lấy tất cả courses, rooms, classes một lần
+        const coursesRes = await getCourses();
+        const rooms = await getClassRooms();
+        const classesRes = await getClasses();
+        console.log("coursesRes:", coursesRes);
+        console.log("classesRes:", classesRes);
+  const courses: any[] = (coursesRes as any).data;
+  const classes: any[] = (classesRes as any).data;
+
+        // Lọc lịch theo ngày được chọn
+        const filteredSchedules = schedules.filter((item) =>
+          item.weeks.some((week) =>
+            week.studyDays.some((day) => day.date === date)
+          )
+        );
+        // Map lại dữ liệu lịch giảng dạy
+        const enriched = filteredSchedules.map((item) => {
+          const course = courses.find((c: any) => c.id === item.courseId);
+          const room = rooms.find((r: any) => r.id === item.roomId);
+          const classInfo = classes.find((cl: any) => cl.id === item.classId);
+          return {
+            ...item,
+            // Môn học là className, tên lớp là courseName
+            className: classInfo?.className || '',
+            courseName: course?.courseName || '',
+            roomCode: room?.roomCode || '',
+            capacityStudent: classInfo?.capacityStudent,
+          };
+        });
+        console.log("courses:", courses);
+        console.log("classes:", classes);
+        console.log("enriched:", enriched);
+        setScheduleData(enriched);
+      } catch (err) {
+        setScheduleData([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [date]);
 
-// --- Main Teaching Schedule Page Component ---
+  // --- Main Teaching Schedule Page Component ---
 
   const formattedDate = new Date(date).toLocaleDateString("vi-VN", {
     day: "2-digit",
@@ -39,8 +76,12 @@ const TeachingSchedulePage = () => {
         <main className="flex-1 p-8 overflow-y-auto">
           <div className="mb-6">
             <h1
-              className={`text-2xl font-bold cursor-pointer ${activeTab === 'teaching-schedule' ? 'text-blue-700' : 'text-gray-800'}`}
-              onClick={() => setActiveTab('teaching-schedule')}
+              className={`text-2xl font-bold cursor-pointer ${
+                activeTab === "teaching-schedule"
+                  ? "text-blue-700"
+                  : "text-gray-800"
+              }`}
+              onClick={() => setActiveTab("teaching-schedule")}
             >
               Lịch giảng dạy
             </h1>
@@ -103,7 +144,7 @@ const TeachingSchedulePage = () => {
                     <th className="py-3 px-4 font-semibold">Tên lớp</th>
                     <th className="py-3 px-4 font-semibold">Thời gian</th>
                     <th className="py-3 px-4 font-semibold">Phòng</th>
-                    <th className="py-3 px-4 font-semibold">Sinh viên</th>
+                    <th className="py-3 px-4 font-semibold">Số lượng SV</th>
                     <th className="py-3 px-4 font-semibold text-center">
                       Trạng thái
                     </th>
@@ -111,22 +152,40 @@ const TeachingSchedulePage = () => {
                 </thead>
                 <tbody className="text-gray-700">
                   {loading ? (
-                    <tr><td colSpan={6} className="text-center py-6">Đang tải dữ liệu...</td></tr>
+                    <tr>
+                      <td colSpan={6} className="text-center py-6">
+                        Đang tải dữ liệu...
+                      </td>
+                    </tr>
                   ) : scheduleData.length === 0 ? (
-                    <tr><td colSpan={6} className="text-center py-6">Không có dữ liệu lịch giảng dạy</td></tr>
+                    <tr>
+                      <td colSpan={6} className="text-center py-6">
+                        Không có dữ liệu lịch giảng dạy
+                      </td>
+                    </tr>
                   ) : (
                     scheduleData
-                      .filter(item =>
-                        (item.courseName?.toLowerCase().includes(search.toLowerCase()) ||
-                        item.roomCode?.toLowerCase().includes(search.toLowerCase()))
+                      .filter(
+                        (item) =>
+                          item.courseName
+                            ?.toLowerCase()
+                            .includes(search.toLowerCase()) ||
+                          item.roomCode
+                            ?.toLowerCase()
+                            .includes(search.toLowerCase())
                       )
                       .map((item, idx) => (
-                        <tr key={idx} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
+                        <tr
+                          key={idx}
+                          className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50"
+                        >
                           <td className="py-3 px-4">{item.courseName}</td>
                           <td className="py-3 px-4">{item.className}</td>
-                          <td className="py-3 px-4">{item.startTime} - {item.endTime}</td>
+                          <td className="py-3 px-4">
+                            {item.startTime} - {item.endTime}
+                          </td>
                           <td className="py-3 px-4">{item.roomCode}</td>
-                          <td className="py-3 px-4">-</td>
+                          <td className="py-3 px-4">{item.capacityStudent !== undefined ? item.capacityStudent : '-'}</td>
                           <td className="py-3 px-4 flex justify-center">
                             <button
                               className="text-blue-600 hover:text-blue-800 p-2 rounded-full focus:outline-none"
