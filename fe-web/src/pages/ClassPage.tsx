@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getClasses, createClass, updateClass, deleteClass, getLecturerById, addLecturerToClass, type Class, type ClassPayload } from '../api/apiClass';
+import {
+    getClasses,
+    createClass,
+    updateClass,
+    deleteClass,
+    getLecturerById,
+    addLecturerToClass,
+    getStudentCountByClass,
+    type Class,
+    type ClassPayload
+} from '../api/apiClass';
 import { getLecturers } from '../api/apiLecturer';
 import {
     FiEdit,
@@ -70,7 +80,7 @@ const ClassFormModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
                 <div className="flex justify-between items-start p-4">
                     <div>
@@ -163,7 +173,7 @@ const SelectLecturerModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
                 <div className="flex justify-between items-start p-4">
                     <div>
@@ -236,7 +246,7 @@ const DeleteConfirmModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
             <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-0">
                 <div className="flex items-start justify-between px-6 pt-6">
                     <div className="flex items-center">
@@ -354,30 +364,39 @@ const ClassPage = () => {
                     classData = response.data.content;
                 }
 
-                const classesWithLecturer = await Promise.all(
+                // Lấy thông tin giảng viên và số lượng sinh viên
+                const classesWithDetails = await Promise.all(
                     classData.map(async (classItem: Class) => {
-                        const lecturerId = classItem.advisor;
-                        if (lecturerId) {
+                        // Lấy thông tin giảng viên
+                        let lecturerName = "Chưa có giảng viên";
+                        if (classItem.advisor) {
                             try {
-                                const lecturer = await getLecturerById(lecturerId);
-                                return {
-                                    ...classItem,
-                                    lecturerName: lecturer.lecturerCode || `${lecturerId}`,
-                                };
+                                const lecturer = await getLecturerById(classItem.advisor);
+                                lecturerName = lecturer.lecturerCode || `${classItem.advisor}`;
                             } catch (error) {
-                                return {
-                                    ...classItem,
-                                    lecturerName: `${lecturerId}`,
-                                };
+                                lecturerName = `${classItem.advisor}`;
                             }
                         }
-                        return classItem;
+
+                        // Lấy số lượng sinh viên hiện tại
+                        let currentStudents = 0;
+                        try {
+                            currentStudents = await getStudentCountByClass(classItem.className);
+                        } catch (error) {
+                            console.error('Error getting student count for class:', classItem.className, error);
+                        }
+
+                        return {
+                            ...classItem,
+                            lecturerName,
+                            currentStudents
+                        };
                     })
                 );
 
                 const filteredData = currentSearchTerm
-                    ? classesWithLecturer.filter(c => c.className.toLowerCase().includes(currentSearchTerm.toLowerCase()))
-                    : classesWithLecturer;
+                    ? classesWithDetails.filter(c => c.className.toLowerCase().includes(currentSearchTerm.toLowerCase()))
+                    : classesWithDetails;
 
                 setClasses(filteredData);
                 setTotalItems(filteredData.length);
@@ -667,7 +686,7 @@ const ClassPage = () => {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên lớp</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giảng viên</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sức chứa</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng sinh viên hiện tại </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng sinh viên hiện tại</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
                                     </tr>
                                 </thead>
@@ -689,8 +708,18 @@ const ClassPage = () => {
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                                         {classItem.capacityStudent}
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                        0 / {classItem.capacityStudent}
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                        <span className={`font-medium ${(classItem.currentStudents || 0) >= classItem.capacityStudent
+                                                                ? 'text-red-600'
+                                                                : 'text-gray-700'
+                                                            }`}>
+                                                            {classItem.currentStudents || 0} / {classItem.capacityStudent}
+                                                        </span>
+                                                        {(classItem.currentStudents || 0) >= classItem.capacityStudent && (
+                                                            <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                                Đầy
+                                                            </span>
+                                                        )}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                         <div className="flex items-center space-x-2">
