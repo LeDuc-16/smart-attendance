@@ -30,6 +30,7 @@ public class ClassController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    //gv, admin , sv
     @GetMapping("/{classId}/students/count")
     @Operation(summary = "Đếm số sinh viên trong lớp")
     public ResponseEntity<ApiResponse<Object>> countStudents(
@@ -39,6 +40,7 @@ public class ClassController {
         return ResponseEntity.ok(response);
     }
 
+    //admin , gv
     @GetMapping
     @Operation(summary = "Lấy danh sách lớp học", description = "Admin và giảng viên có quyền xem danh sách lớp học")
     public ResponseEntity<ApiResponse<Object>> listClasses(
@@ -48,6 +50,7 @@ public class ClassController {
         return ResponseEntity.ok(response);
     }
 
+    //admin
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật lớp học", description = "Chỉ admin có quyền cập nhật lớp học")
     public ResponseEntity<ApiResponse<Object>> updateClass(
@@ -59,6 +62,7 @@ public class ClassController {
         return ResponseEntity.ok(response);
     }
 
+    //admin
     @DeleteMapping("/{id}")
     @Operation(summary = "Xóa lớp học", description = "Chỉ admin có quyền xóa lớp học")
     public ResponseEntity<ApiResponse<Object>> deleteClass(

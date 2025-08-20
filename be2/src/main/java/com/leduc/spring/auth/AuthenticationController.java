@@ -21,18 +21,21 @@ public class AuthenticationController {
 
   private final AuthenticationService service;
 
+  //chi admin duoc tao tai khoan
   @PostMapping("/create-account")
   public ResponseEntity<ApiResponse<AuthenticationResponse>> createAccount(@RequestBody RegisterRequest request) {
     ApiResponse<AuthenticationResponse> response = service.createAccount(request);
     return ResponseEntity.status(response.getStatusCode()).body(response);
   }
 
+  //ai cung co the login
   @PostMapping("/login")
   public ResponseEntity<ApiResponse<AuthenticationResponse>> authenticate(@RequestBody AuthenticationRequest request) {
     ApiResponse<AuthenticationResponse> response = service.login(request);
     return ResponseEntity.status(response.getStatusCode()).body(response);
   }
 
+  //chi admin
   @PostMapping("/refresh-token")
   public void refreshToken(HttpServletRequest request, HttpServletResponse response) throws IOException {
     service.refreshToken(request, response);
