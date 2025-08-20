@@ -20,6 +20,8 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -56,29 +58,29 @@ public class StudentFaceDataService {
         }
     }
 
-    private String indexFace(FaceRegisterRequest request) throws IOException {
+    private String indexFace(MultipartFile file, Long studentId) throws IOException {
         Image awsImage = Image.builder()
-                .bytes(SdkBytes.fromByteArray(request.getFile().getBytes()))
+                .bytes(SdkBytes.fromByteArray(file.getBytes()))
                 .build();
 
         IndexFacesRequest indexFacesRequest = IndexFacesRequest.builder()
                 .image(awsImage)
                 .collectionId(FACE_COLLECTION_ID)
-                .externalImageId(request.getStudentId().toString())
+                .externalImageId(studentId.toString())
                 .detectionAttributes(Attribute.ALL)
                 .build();
 
         try {
             IndexFacesResponse response = rekognitionClient.indexFaces(indexFacesRequest);
             if (response.faceRecords().isEmpty() || response.faceRecords().size() > 1) {
-                logger.warn("Invalid face detection: {} faces found for studentId {}", response.faceRecords().size(), request.getStudentId());
+                logger.warn("Invalid face detection: {} faces found for studentId {}", response.faceRecords().size(), studentId);
                 return null;
             }
             String faceId = response.faceRecords().get(0).face().faceId();
-            logger.info("Indexed face with faceId: {} for studentId: {}", faceId, request.getStudentId());
+            logger.info("Indexed face with faceId: {} for studentId: {}", faceId, studentId);
             return faceId;
         } catch (RekognitionException e) {
-            logger.error("Failed to index face for studentId {}: {}", request.getStudentId(), e.getMessage(), e);
+            logger.error("Failed to index face for studentId {}: {}", studentId, e.getMessage(), e);
             throw new RuntimeException("Failed to index face: " + e.getMessage(), e);
         }
     }
@@ -102,44 +104,74 @@ public class StudentFaceDataService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Student with id [%s] not found".formatted(studentId)));
 
-        String profileImageId = UUID.randomUUID().toString();
-        String s3Key = "profile-images/students/%s/%s".formatted(studentId, profileImageId);
+        List<MultipartFile> files = request.getFiles();
+        if (files == null || files.size() != 5) {
+            throw new IllegalArgumentException("Exactly 5 images (top, bottom, left, right, center) are required");
+        }
+
+        List<String> profileImageIds = new ArrayList<>();
+        List<String> faceIds = new ArrayList<>();
+        List<String> s3Keys = new ArrayList<>();
 
         try {
-            s3Service.putObject(
-                    s3Buckets.getStudent(),
-                    s3Key,
-                    request.getFile().getBytes(),
-                    request.getFile().getContentType()
-            );
-            logger.info("Uploaded image to S3 with key: {}", s3Key);
+            for (int i = 0; i < files.size(); i++) {
+                MultipartFile file = files.get(i);
+                String profileImageId = UUID.randomUUID().toString();
+                String s3Key = "profile-images/students/%s/%s".formatted(studentId, profileImageId);
 
-            s3Service.headObject(s3Buckets.getStudent(), s3Key);
-            logger.info("Verified S3 object exists after upload: {}", s3Key);
+                // Upload ảnh lên S3
+                s3Service.putObject(
+                        s3Buckets.getStudent(),
+                        s3Key,
+                        file.getBytes(),
+                        file.getContentType()
+                );
+                logger.info("Uploaded image {} to S3 with key: {}", i + 1, s3Key);
 
-            if (!detectFace(request.getFile())) {
-                s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
-                throw new ResourceNotFoundException("Face detection failed: must have exactly 1 face");
+                // Kiểm tra object tồn tại
+                s3Service.headObject(s3Buckets.getStudent(), s3Key);
+                logger.info("Verified S3 object exists for image {}: {}", i + 1, s3Key);
+
+                // Kiểm tra có đúng 1 khuôn mặt
+                if (!detectFace(file)) {
+                    s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
+                    throw new ResourceNotFoundException("Face detection failed for image %d: must have exactly 1 face".formatted(i + 1));
+                }
+
+                // Trích xuất đặc trưng khuôn mặt
+                String faceId = indexFace(file, studentId);
+                if (faceId == null) {
+                    s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
+                    throw new ResourceNotFoundException("Failed to extract face features for image %d".formatted(i + 1));
+                }
+
+                profileImageIds.add(profileImageId);
+                faceIds.add(faceId);
+                s3Keys.add(s3Key);
             }
 
-            String faceId = indexFace(request);
-            if (faceId == null) {
-                s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
-                throw new ResourceNotFoundException("Failed to extract face features");
+            // Cập nhật profileImageId và lưu face data
+            studentRepository.updateProfileImageId(profileImageIds.get(0), studentId); // Lưu ảnh đầu tiên làm profile chính
+            for (String faceId : faceIds) {
+                saveFaceData(student, faceId);
             }
 
-            studentRepository.updateProfileImageId(profileImageId, studentId);
-            saveFaceData(student, faceId);
-
-            FaceRegisterResponse response = mapper.toFaceRegisterResponse(studentId, faceId, profileImageId, LocalDateTime.now());
-            return ApiResponse.success(response, "Student face registered successfully", servletRequest.getRequestURI());
+            // Tạo response với thông tin sinh viên
+            FaceRegisterResponse response = mapper.toFaceRegisterResponse(student, faceIds.get(0), profileImageIds.get(0), LocalDateTime.now());
+            return ApiResponse.success(response, "Student faces registered successfully", servletRequest.getRequestURI());
         } catch (IOException e) {
-            logger.error("Failed to upload image to S3 for studentId {}: {}", studentId, e.getMessage(), e);
-            s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
-            throw new RuntimeException("Failed to upload profile image", e);
+            // Rollback: Xóa tất cả ảnh đã upload nếu có lỗi
+            for (String s3Key : s3Keys) {
+                s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
+            }
+            logger.error("Failed to process images for studentId {}: {}", studentId, e.getMessage(), e);
+            throw new RuntimeException("Failed to process images", e);
         } catch (S3Exception e) {
+            // Rollback: Xóa tất cả ảnh đã upload nếu có lỗi
+            for (String s3Key : s3Keys) {
+                s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
+            }
             logger.error("Failed to verify S3 object for studentId {}: {}", studentId, e.getMessage(), e);
-            s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
             throw new RuntimeException("Failed to verify S3 object: " + e.getMessage(), e);
         }
     }
@@ -170,12 +202,17 @@ public class StudentFaceDataService {
     }
 
     @Transactional(readOnly = true)
-    public ApiResponse<FaceCompareResponse> compareFace(MultipartFile file, HttpServletRequest servletRequest) {
+    public ApiResponse<FaceCompareResponse> compareFace(Long studentId, MultipartFile file, HttpServletRequest servletRequest) {
         try {
             // Kiểm tra có đúng 1 khuôn mặt
             if (!detectFace(file)) {
                 throw new ResourceNotFoundException("Face detection failed: must have exactly 1 face");
             }
+
+            // Kiểm tra sinh viên tồn tại
+            Student student = studentRepository.findById(studentId)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Student with id [%s] not found".formatted(studentId)));
 
             // Tạo Image từ MultipartFile
             Image awsImage = Image.builder()
@@ -193,34 +230,32 @@ public class StudentFaceDataService {
             SearchFacesByImageResponse response = rekognitionClient.searchFacesByImage(request);
 
             if (response.faceMatches().isEmpty()) {
-                throw new ResourceNotFoundException("No matching faces found in collection");
+                throw new ResourceNotFoundException("No matching faces found in collection for studentId [%s]".formatted(studentId));
             }
 
-            // Tìm face khớp đầu tiên với similarity ≥ 90%
+            // Tìm face khớp với studentId
             for (FaceMatch faceMatch : response.faceMatches()) {
                 String faceId = faceMatch.face().faceId();
                 Float similarity = faceMatch.similarity();
                 String externalImageId = faceMatch.face().externalImageId();
 
                 try {
-                    Long studentId = Long.parseLong(externalImageId);
-                    Student student = studentRepository.findById(studentId)
-                            .orElseThrow(() -> new ResourceNotFoundException(
-                                    "Student with id [%s] not found".formatted(studentId)));
-
-                    FaceCompareResponse compareResponse = mapper.toFaceCompareResponse(student, faceId, similarity);
-                    return ApiResponse.success(compareResponse, "Face matched successfully", servletRequest.getRequestURI());
+                    Long matchedStudentId = Long.parseLong(externalImageId);
+                    if (matchedStudentId.equals(studentId)) {
+                        FaceCompareResponse compareResponse = mapper.toFaceCompareResponse(student, faceId, similarity);
+                        return ApiResponse.success(compareResponse, "Face matched successfully", servletRequest.getRequestURI());
+                    }
                 } catch (NumberFormatException e) {
                     logger.warn("Invalid externalImageId format: {}", externalImageId);
                 }
             }
 
-            throw new ResourceNotFoundException("No valid student match found");
+            throw new ResourceNotFoundException("No matching face found for studentId [%s]".formatted(studentId));
         } catch (IOException e) {
-            logger.error("Failed to process image: {}", e.getMessage(), e);
+            logger.error("Failed to process image for studentId {}: {}", studentId, e.getMessage(), e);
             throw new RuntimeException("Failed to process image", e);
         } catch (RekognitionException e) {
-            logger.error("Failed to compare face: {}", e.getMessage(), e);
+            logger.error("Failed to compare face for studentId {}: {}", studentId, e.getMessage(), e);
             throw new RuntimeException("Failed to compare face: " + e.getMessage(), e);
         }
     }
