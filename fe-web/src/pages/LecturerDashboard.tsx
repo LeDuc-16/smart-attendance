@@ -1,43 +1,88 @@
 import HeaderLecturer from "../components/HeaderLecturer";
 import SidebarLecturer from "../components/SidebarLecturer";
+import { useEffect, useState } from "react";
+import { getSchedulesByDate } from "../api/apiTeaching";
+import { getCourses } from "../api/apiCourse";
+import { getClassRooms } from "../api/apiClassRoom";
+import { getClasses } from "../api/apiClass";
 
-// Data for the schedule table, updated to match the image
-const scheduleToday = [
-  {
-    subject: "Quản trị dự án",
-    className: "64KTPM3",
-    time: "07:00 - 09:25",
-    room: "205-B5",
-    students: 40,
-    status: "Đang diễn ra",
-    statusType: "active",
-  },
-  {
-    subject: "Lập trình web",
-    className: "64KTPM3",
-    time: "09:35 - 11:50",
-    room: "205-B5",
-    students: 40,
-    status: "Sắp tới",
-    statusType: "upcoming",
-  },
-  {
-    subject: "Cấu trúc dữ liệu và giải thuật",
-    className: "64DHKHMT",
-    time: "12:00 - 14:25",
-    room: "205-B5",
-    students: 40,
-    status: "Đang diễn ra",
-    statusType: "active",
-  },
-];
+// Lấy ngày hiện tại dạng YYYY-MM-DD
+// Format ngày hiện tại sang tiếng Việt: Thứ, ngày tháng năm
+function getTodayLabel() {
+  const today = new Date();
+  const days = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+  const dayOfWeek = days[today.getDay()];
+  const dd = String(today.getDate()).padStart(2, '0');
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const yyyy = today.getFullYear();
+  return `${dayOfWeek} Ngày ${dd}/${mm}/${yyyy}`;
+}
+
+function getTodayString() {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
 
 
-import React, { useState } from "react";
 // ...existing code...
 
 const LecturerDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [scheduleToday, setScheduleToday] = useState<any[]>([]);
+  const todayStr = getTodayString();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const schedules = await getSchedulesByDate(todayStr);
+        const coursesRes = await getCourses();
+        const rooms = await getClassRooms();
+        const classesRes = await getClasses();
+        const courses: any[] = (coursesRes as any).data;
+        const classes: any[] = (classesRes as any).data;
+        // Lọc lịch theo ngày hiện tại
+        const filteredSchedules = schedules.filter((item: any) =>
+          item.weeks.some((week: any) =>
+            week.studyDays.some((day: any) => day.date === todayStr)
+          )
+        );
+        // Map lại dữ liệu cho bảng hôm nay
+        const enriched = filteredSchedules.map((item: any) => {
+          const course = courses.find((c: any) => c.id === item.courseId);
+          const room = rooms.find((r: any) => r.id === item.roomId);
+          const classInfo = classes.find((cl: any) => cl.id === item.classId);
+          // Xác định trạng thái
+          const now = new Date();
+          const start = new Date(item.startTime);
+          const end = new Date(item.endTime);
+          let status = "Sắp tới";
+          let statusType = "upcoming";
+          if (now >= start && now <= end) {
+            status = "Đang diễn ra";
+            statusType = "active";
+          } else if (now > end) {
+            status = "Đã kết thúc";
+            statusType = "ended";
+          }
+          return {
+            subject: course?.courseName || "",
+            className: classInfo?.className || "",
+            time: `${item.startTime.slice(11,16)} - ${item.endTime.slice(11,16)}`,
+            room: room?.roomCode || "",
+            students: classInfo?.capacityStudent || "-",
+            status,
+            statusType,
+          };
+        });
+        setScheduleToday(enriched);
+      } catch {
+        setScheduleToday([]);
+      }
+    })();
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -56,7 +101,7 @@ const LecturerDashboard = () => {
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="mb-4">
                 <h2 className="text-lg font-bold text-blue-700">Lịch học hôm nay</h2>
-                <p className="text-sm text-gray-500">Thứ 2, 15 Tháng 1, 2025</p>
+                <p className="text-sm text-gray-500">{getTodayLabel()}</p>
             </div>
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50 text-gray-600">

@@ -144,7 +144,7 @@ const TeachingSchedulePage = () => {
                     <th className="py-3 px-4 font-semibold">Tên lớp</th>
                     <th className="py-3 px-4 font-semibold">Thời gian</th>
                     <th className="py-3 px-4 font-semibold">Phòng</th>
-                    <th className="py-3 px-4 font-semibold">Số lượng SV</th>
+                    <th className="py-3 px-4 font-semibold">Sĩ số</th>
                     <th className="py-3 px-4 font-semibold text-center">
                       Trạng thái
                     </th>
