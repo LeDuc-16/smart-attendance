@@ -21,6 +21,7 @@ public class ScheduleController {
     private final ScheduleService scheduleService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Tạo lịch học mới", description = "Chỉ admin có quyền tạo lịch học mới")
     public ResponseEntity<ApiResponse<CreateScheduleResponse>> createSchedule(
             @RequestBody CreateScheduleRequest request,
@@ -31,12 +32,14 @@ public class ScheduleController {
     }
 
     @GetMapping
-    @Operation(summary = "Lấy danh sách lịch học", description = "Admin và giảng viên có quyền xem danh sách lịch học")
+    @PreAuthorize("hasAnyRole('ADMIN','LECTURER','STUDENT')")
+    @Operation(summary = "Lấy danh sách lịch học", description = "ai cung xem duoc ds lich hoc ")
     public ResponseEntity<ApiResponse<Object>> listSchedules(HttpServletRequest servletRequest) {
         return ResponseEntity.ok(scheduleService.listSchedules(servletRequest));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Cập nhật lịch học", description = "Chỉ admin có quyền cập nhật thông tin lịch học")
     public ResponseEntity<ApiResponse<Object>> updateSchedule(
             @PathVariable("id") Long id,
@@ -47,6 +50,7 @@ public class ScheduleController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Xóa lịch học", description = "Chỉ admin có quyền xóa lịch học")
     public ResponseEntity<ApiResponse<Object>> deleteSchedule(
             @PathVariable("id") Long id,
