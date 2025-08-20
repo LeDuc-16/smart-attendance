@@ -1,64 +1,29 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import SidebarLecturer from "../components/SidebarLecturer";
 import HeaderLecturer from "../components/HeaderLecturer";
-
-// Data for the schedule table
-const scheduleData = [
-  {
-    subject: "Cơ sở dữ liệu",
-    className: "64KTPM3",
-    time: "08:00 - 09:30",
-    room: "205-B5",
-    students: 40,
-  },
-  {
-    subject: "Lập trình Web",
-    className: "64KTPM3",
-    time: "09:35 - 11:30",
-    room: "206-B5",
-    students: 40,
-  },
-  {
-    subject: "Cấu trúc dữ liệu và giải thuật",
-    className: "64KTPM3",
-    time: "11:35 - 12:55",
-    room: "207-B5",
-    students: 40,
-  },
-  {
-    subject: "Cấu trúc dữ liệu và giải thuật",
-    className: "64KTPM3",
-    time: "11:35 - 12:55",
-    room: "209-B5",
-    students: 40,
-  },
-  {
-    subject: "Cấu trúc dữ liệu và giải thuật",
-    className: "64KTPM3",
-    time: "11:35 - 12:55",
-    room: "210-B5",
-    students: 40,
-  },
-  {
-    subject: "Cấu trúc dữ liệu và giải thuật",
-    className: "64KTPM3",
-    time: "11:35 - 12:55",
-    room: "202-B5",
-    students: 40,
-  },
-];
-
-// --- Main Teaching Schedule Page Component ---
+import { getSchedulesByDate } from "../api/apiTeaching";
+import type { TeachingSchedule } from "../api/apiTeaching";
 
 const TeachingSchedulePage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [date, setDate] = useState("2025-08-05");
   const [activeTab, setActiveTab] = useState("teaching-schedule");
+  const [scheduleData, setScheduleData] = useState<TeachingSchedule[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
+  useEffect(() => {
+    setLoading(true);
+    getSchedulesByDate(date)
+      .then(data => {
+        console.log('Lich giang day API:', data);
+        setScheduleData(data);
+      })
+      .catch(() => setScheduleData([]))
+      .finally(() => setLoading(false));
+  }, [date]);
+
+// --- Main Teaching Schedule Page Component ---
 
   const formattedDate = new Date(date).toLocaleDateString("vi-VN", {
     day: "2-digit",
@@ -123,7 +88,7 @@ const TeachingSchedulePage = () => {
           {/* Schedule Table */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="mb-4">
-              <h2 className="text-lg font-bold text-gray-800">
+              <h2 className="text-lg font-bold text-blue-700 ">
                 Lịch giảng dạy
               </h2>
               <p className="text-sm text-gray-500">
@@ -145,35 +110,34 @@ const TeachingSchedulePage = () => {
                   </tr>
                 </thead>
                 <tbody className="text-gray-700">
-                  {scheduleData
-                    .filter(
-                      (item) =>
-                        item.subject
-                          .toLowerCase()
-                          .includes(search.toLowerCase()) ||
-                        item.room.toLowerCase().includes(search.toLowerCase())
-                    )
-                    .map((item, idx) => (
-                      <tr
-                        key={idx}
-                        className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50"
-                      >
-                        <td className="py-3 px-4">{item.subject}</td>
-                        <td className="py-3 px-4">{item.className}</td>
-                        <td className="py-3 px-4">{item.time}</td>
-                        <td className="py-3 px-4">{item.room}</td>
-                        <td className="py-3 px-4">{item.students}</td>
-                        {/* === DÒNG ĐÃ SỬA: Thêm "flex justify-center" để căn giữa icon === */}
-                        <td className="py-3 px-4 flex justify-center">
-                          <button
-                            className="text-blue-600 hover:text-blue-800 p-2 rounded-full focus:outline-none"
-                            title="Chỉnh sửa"
-                          >
-                            <span className="material-icons">edit</span>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                  {loading ? (
+                    <tr><td colSpan={6} className="text-center py-6">Đang tải dữ liệu...</td></tr>
+                  ) : scheduleData.length === 0 ? (
+                    <tr><td colSpan={6} className="text-center py-6">Không có dữ liệu lịch giảng dạy</td></tr>
+                  ) : (
+                    scheduleData
+                      .filter(item =>
+                        (item.courseName?.toLowerCase().includes(search.toLowerCase()) ||
+                        item.roomCode?.toLowerCase().includes(search.toLowerCase()))
+                      )
+                      .map((item, idx) => (
+                        <tr key={idx} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
+                          <td className="py-3 px-4">{item.courseName}</td>
+                          <td className="py-3 px-4">{item.className}</td>
+                          <td className="py-3 px-4">{item.startTime} - {item.endTime}</td>
+                          <td className="py-3 px-4">{item.roomCode}</td>
+                          <td className="py-3 px-4">-</td>
+                          <td className="py-3 px-4 flex justify-center">
+                            <button
+                              className="text-blue-600 hover:text-blue-800 p-2 rounded-full focus:outline-none"
+                              title="Chỉnh sửa"
+                            >
+                              <span className="material-icons">edit</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                  )}
                 </tbody>
               </table>
             </div>

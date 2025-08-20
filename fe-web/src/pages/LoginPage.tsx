@@ -23,13 +23,16 @@ const LoginPage = () => {
         // Chặn quyền sinh viên
         if (response.user?.role === "STUDENT") {
           setMessage("Bạn không có quyền truy cập hệ thống này!");
+          setIsLoading(false);
           return;
         }
         setMessage("Đăng nhập thành công!");
         localStorage.setItem("token", response.access_token);
+        localStorage.setItem("refresh_token", response.refresh_token);
+        localStorage.setItem("user", JSON.stringify(response.user));
 
-        const lecturerCode = response.user?.lecturerCode;
-        if (lecturerCode && lecturerCode.startsWith("LEC-")) {
+        // Điều hướng cho giảng viên
+        if (response.user?.role === "LECTURER") {
           navigate("/lecturer-dashboard");
         } else {
           navigate("/dashboard");
