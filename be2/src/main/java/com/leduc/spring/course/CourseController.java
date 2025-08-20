@@ -20,8 +20,9 @@ public class CourseController {
 
     private final CourseService courseService;
 
-    //addmin
+    // admin
     @PostMapping
+    @PreAuthorize("hasAuthority('admin:create')")
     @Operation(summary = "Tạo khóa học mới", description = "Chỉ admin có quyền tạo khóa học mới")
     public ResponseEntity<ApiResponse<Object>> createCourse(
             @RequestBody CreateCourseRequest request,
@@ -31,15 +32,17 @@ public class CourseController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    //admin , gv
+    // admin, lecturer
     @GetMapping
+    @PreAuthorize("hasAnyAuthority('admin:read','teacher:read')")
     @Operation(summary = "Lấy danh sách khóa học", description = "Admin và giảng viên có quyền xem danh sách khóa học")
     public ResponseEntity<ApiResponse<Object>> listCourses(HttpServletRequest servletRequest) {
         return ResponseEntity.ok(courseService.listCourses(servletRequest));
     }
 
-    //admin
+    // admin
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('admin:update')")
     @Operation(summary = "Cập nhật khóa học", description = "Chỉ admin có quyền cập nhật thông tin khóa học")
     public ResponseEntity<ApiResponse<Object>> updateCourse(
             @PathVariable("id") Long id,
@@ -49,8 +52,9 @@ public class CourseController {
         return ResponseEntity.ok(courseService.updateCourse(servletRequest, id, request));
     }
 
-    //admin
+    // admin
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('admin:delete')")
     @Operation(summary = "Xóa khóa học", description = "Chỉ admin có quyền xóa khóa học")
     public ResponseEntity<ApiResponse<Object>> deleteCourse(
             @PathVariable("id") Long id,
