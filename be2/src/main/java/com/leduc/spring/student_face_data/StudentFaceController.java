@@ -30,6 +30,7 @@ public class StudentFaceController {
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
 
+    //chi student
     @PostMapping(
             value = "/{studentId}/face-registration",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
@@ -52,6 +53,7 @@ public class StudentFaceController {
         return ResponseEntity.ok(response);
     }
 
+    //chi admin va giang vien
     @DeleteMapping("/{faceId}")
     @Operation(summary = "Xoá khuôn mặt sinh viên", description = "Xoá một faceId khỏi AWS Rekognition collection")
     public ResponseEntity<ApiResponse<String>> deleteFace(
@@ -62,6 +64,8 @@ public class StudentFaceController {
         return ResponseEntity.ok(response);
     }
 
+
+    //chi student
     @PostMapping(
             value = "/compare",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
