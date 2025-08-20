@@ -98,8 +98,7 @@ public class StudentFaceDataService {
     }
 
     @Transactional
-    public ApiResponse<FaceRegisterResponse> registerStudentFace(FaceRegisterRequest request, HttpServletRequest servletRequest) {
-        Long studentId = request.getStudentId();
+    public ApiResponse<FaceRegisterResponse> registerStudentFace(FaceRegisterRequest request, Long studentId, HttpServletRequest servletRequest) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Student with id [%s] not found".formatted(studentId)));
