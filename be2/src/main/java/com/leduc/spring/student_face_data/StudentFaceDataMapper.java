@@ -7,13 +7,15 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 
-@Builder
-@Getter
 @Component
 public class StudentFaceDataMapper {
-    public FaceRegisterResponse toFaceRegisterResponse(Long studentId, String faceId, String profileImageId, LocalDateTime registeredAt) {
+
+    public FaceRegisterResponse toFaceRegisterResponse(Student student, String faceId, String profileImageId, LocalDateTime registeredAt) {
         return FaceRegisterResponse.builder()
-                .studentId(studentId)
+                .studentId(student.getId())
+                .studentName(student.getUser().getName())
+                .studentCode(student.getStudentCode())
+                .studentClass(student.getClasses().getClassName())
                 .faceId(faceId)
                 .profileImageId(profileImageId)
                 .registeredAt(registeredAt)
@@ -27,6 +29,7 @@ public class StudentFaceDataMapper {
                 .similarity(similarity)
                 .studentName(student.getUser().getName())
                 .studentCode(student.getStudentCode())
+                .studentClass(student.getClasses().getClassName())
                 .build();
     }
 }
