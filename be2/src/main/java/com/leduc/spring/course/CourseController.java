@@ -20,6 +20,7 @@ public class CourseController {
 
     private final CourseService courseService;
 
+    //addmin
     @PostMapping
     @Operation(summary = "Tạo khóa học mới", description = "Chỉ admin có quyền tạo khóa học mới")
     public ResponseEntity<ApiResponse<Object>> createCourse(
@@ -30,12 +31,14 @@ public class CourseController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    //admin , gv
     @GetMapping
     @Operation(summary = "Lấy danh sách khóa học", description = "Admin và giảng viên có quyền xem danh sách khóa học")
     public ResponseEntity<ApiResponse<Object>> listCourses(HttpServletRequest servletRequest) {
         return ResponseEntity.ok(courseService.listCourses(servletRequest));
     }
 
+    //admin
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật khóa học", description = "Chỉ admin có quyền cập nhật thông tin khóa học")
     public ResponseEntity<ApiResponse<Object>> updateCourse(
@@ -46,6 +49,7 @@ public class CourseController {
         return ResponseEntity.ok(courseService.updateCourse(servletRequest, id, request));
     }
 
+    //admin
     @DeleteMapping("/{id}")
     @Operation(summary = "Xóa khóa học", description = "Chỉ admin có quyền xóa khóa học")
     public ResponseEntity<ApiResponse<Object>> deleteCourse(
