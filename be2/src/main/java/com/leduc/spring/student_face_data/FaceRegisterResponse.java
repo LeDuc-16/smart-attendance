@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Builder
 @Getter
@@ -12,7 +13,7 @@ public class FaceRegisterResponse {
     private String studentName;
     private String studentCode;
     private String studentClass;
-    private String faceId;
-    private String profileImageId;
+    private List<String> faceIds; // Sửa thành List<String> để chứa 5 faceId
+    private List<String> profileImageIds; // Sửa thành List<String> để chứa 5 profileImageId
     private LocalDateTime registeredAt;
 }
