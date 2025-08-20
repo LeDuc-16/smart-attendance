@@ -1,9 +1,11 @@
 package com.leduc.spring.student;
 
+import com.leduc.spring.classes.ClassEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface StudentRepository extends JpaRepository<Student, Long> {
@@ -15,5 +17,7 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     @Query("UPDATE Student s SET s.profileImageId = :profileImageId WHERE s.id = :studentId")
     void updateProfileImageId(String profileImageId, Long studentId);
     Optional<Student> findByUserId(Long userId);
+
+    Optional<List<Student>> findByClasses(ClassEntity classEntity);
 
 }
