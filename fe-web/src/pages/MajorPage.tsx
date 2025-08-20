@@ -200,7 +200,8 @@ const MajorPage = () => {
     const [editingMajor, setEditingMajor] = useState<Major | null>(null);
     const [modalError, setModalError] = useState('');
 
-    // State cho modal xác nhận xóa
+
+
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingMajor, setDeletingMajor] = useState<Major | null>(null);
 

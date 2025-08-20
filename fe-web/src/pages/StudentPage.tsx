@@ -11,7 +11,6 @@ import {
     updateStudent,
     deleteStudent,
     uploadStudentImage,
-    getStudentImage,
     importStudentsFromExcel,
     getAllFaculties,
     getAllMajors,
@@ -25,6 +24,7 @@ import {
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// Function để chuyển đổi lỗi sang tiếng Việt
 const getErrorMessageVN = (errorMessage: string): string => {
     const errorMap: { [key: string]: string } = {
         'Class capacity exceeded for class': 'Lớp đã đầy, không thể thêm thêm sinh viên',
@@ -49,7 +49,6 @@ const getErrorMessageVN = (errorMessage: string): string => {
         }
     }
 
-
     if (errorMessage.includes('capacity exceeded')) {
         const classMatch = errorMessage.match(/for class:\s*\[(.+?)\]/);
         const className = classMatch ? classMatch[1] : '';
@@ -58,6 +57,9 @@ const getErrorMessageVN = (errorMessage: string): string => {
 
     return 'Có lỗi xảy ra. Vui lòng thử lại.';
 };
+
+// Student Card Component - ĐƠN GIẢN, KHÔNG DÙNG USEEFFECT
+// Student Card Component - Với force reload ảnh
 const StudentCard = ({
     student,
     onEdit,
@@ -69,38 +71,51 @@ const StudentCard = ({
     onDelete: () => void;
     onUpload: () => void;
 }) => {
-    const [imageUrl, setImageUrl] = useState<string>('https://via.placeholder.com/150x150/cccccc/ffffff?text=Avatar');
+    // Ảnh mặc định đơn giản bằng CSS
+    const placeholderStyle = {
+        width: '80px',
+        height: '80px',
+        borderRadius: '50%',
+        backgroundColor: '#e5e7eb',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#6b7280',
+        fontSize: '12px',
+        fontWeight: 'bold',
+        border: '4px solid #dbeafe'
+    };
 
-    useEffect(() => {
-        const loadStudentImage = async () => {
-            if (student.avatar) {
-                setImageUrl(student.avatar);
-            } else {
-                try {
-                    const url = await getStudentImage(student.id);
-                    setImageUrl(url);
-                } catch (error) {
-                    setImageUrl('https://via.placeholder.com/150x150/cccccc/ffffff?text=Avatar');
-                }
-            }
-        };
-
-        loadStudentImage();
-    }, [student.id, student.avatar]);
+    // Thêm timestamp để force reload ảnh
+    const getImageUrl = (avatarUrl: string) => {
+        return `${avatarUrl}?t=${Date.now()}`;
+    };
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
             <div className="flex flex-col items-center">
-                <div className="relative">
-                    <img
-                        src={imageUrl}
-                        alt={`${student.studentName} avatar`}
-                        className="w-20 h-20 rounded-full object-cover border-4 border-blue-100 mb-3"
-                        onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = 'https://via.placeholder.com/150x150/cccccc/ffffff?text=Avatar';
+                <div className="relative mb-3">
+                    {student.avatar ? (
+                        <img
+                            src={getImageUrl(student.avatar)}
+                            alt={`${student.studentName} avatar`}
+                            className="w-20 h-20 rounded-full object-cover border-4 border-blue-100"
+                            onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (placeholder) placeholder.style.display = 'flex';
+                            }}
+                        />
+                    ) : null}
+
+                    <div
+                        style={{
+                            ...placeholderStyle,
+                            display: student.avatar ? 'none' : 'flex'
                         }}
-                    />
+                    >
+                        Avatar
+                    </div>
 
                     <button
                         onClick={onUpload}
@@ -148,6 +163,9 @@ const StudentCard = ({
     );
 };
 
+
+
+// Modal Form Component
 const StudentFormModal = ({
     isOpen,
     onClose,
@@ -174,7 +192,7 @@ const StudentFormModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-start p-4">
                     <div>
@@ -348,6 +366,7 @@ const StudentFormModal = ({
     );
 };
 
+// Delete Confirmation Modal
 const DeleteConfirmModal = ({
     isOpen,
     onClose,
@@ -362,7 +381,7 @@ const DeleteConfirmModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
             <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-0">
                 <div className="flex items-start justify-between px-6 pt-6">
                     <div className="flex items-center">
@@ -406,6 +425,7 @@ const DeleteConfirmModal = ({
     );
 };
 
+// Import Excel Modal
 const ImportExcelModal = ({
     isOpen,
     onClose,
@@ -438,7 +458,7 @@ const ImportExcelModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-start p-4">
                     <div>
@@ -512,11 +532,13 @@ const ImportExcelModal = ({
     );
 };
 
+// Main StudentPage Component
 const StudentPage = () => {
     const [students, setStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Dropdown data
     const [faculties, setFaculties] = useState<Faculty[]>([]);
     const [allMajors, setAllMajors] = useState<Major[]>([]);
     const [filteredMajors, setFilteredMajors] = useState<Major[]>([]);
@@ -526,11 +548,11 @@ const StudentPage = () => {
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
     const [modalError, setModalError] = useState('');
 
-
+    // Delete modal states
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingStudent, setDeletingStudent] = useState<Student | null>(null);
 
-
+    // Import modal states
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     const [formData, setFormData] = useState<StudentPayload>({
@@ -550,7 +572,7 @@ const StudentPage = () => {
     const itemsPerPage = 6;
     const [totalPages, setTotalPages] = useState(1);
 
-    const showSuccessToast = (message: string) => {
+    const showSuccessToast = useCallback((message: string) => {
         toast.success(message, {
             position: "top-right",
             autoClose: 3000,
@@ -559,9 +581,9 @@ const StudentPage = () => {
             pauseOnHover: true,
             draggable: true,
         });
-    };
+    }, []);
 
-    const showErrorToast = (message: string) => {
+    const showErrorToast = useCallback((message: string) => {
         toast.error(message, {
             position: "top-right",
             autoClose: 3000,
@@ -570,57 +592,63 @@ const StudentPage = () => {
             pauseOnHover: true,
             draggable: true,
         });
-    };
-
-    const fetchDropdownOptions = useCallback(async () => {
-        try {
-            const [facultiesData, majorsData, classesData] = await Promise.all([
-                getAllFaculties(),
-                getAllMajors(),
-                getAllClasses()
-            ]);
-
-            setFaculties(facultiesData);
-            setAllMajors(majorsData);
-            setClasses(classesData);
-        } catch (err: any) {
-            console.error("Error fetching dropdown options:", err);
-            const serverError = err.response?.data?.message || err.message || 'Không thể tải dữ liệu dropdown';
-            const errorMessageVN = getErrorMessageVN(serverError);
-            showErrorToast(errorMessageVN);
-        }
     }, []);
 
-    const fetchStudents = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            let data: Student[] = await getStudents();
-            if (debouncedSearchTerm) {
-                data = data.filter(
-                    (s) =>
-                        s.studentCode.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-                        s.studentName.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-                );
-            }
-            setStudents(data);
-            setTotalPages(Math.ceil(data.length / itemsPerPage));
-        } catch (err: any) {
-            console.error("Error fetching students:", err);
-            const serverError = err.response?.data?.message || err.message || 'Không tải được danh sách sinh viên';
-            const errorMessageVN = getErrorMessageVN(serverError);
-            setError(errorMessageVN);
-            showErrorToast(errorMessageVN);
-        } finally {
-            setLoading(false);
-        }
-    }, [debouncedSearchTerm]);
-
+    // Fetch dropdown options - chạy một lần duy nhất
     useEffect(() => {
-        fetchStudents();
-        fetchDropdownOptions();
-    }, [fetchStudents, fetchDropdownOptions]);
+        const fetchDropdownOptions = async () => {
+            try {
+                const [facultiesData, majorsData, classesData] = await Promise.all([
+                    getAllFaculties(),
+                    getAllMajors(),
+                    getAllClasses()
+                ]);
 
+                setFaculties(facultiesData);
+                setAllMajors(majorsData);
+                setClasses(classesData);
+            } catch (err: any) {
+                console.error("Error fetching dropdown options:", err);
+                const serverError = err.response?.data?.message || err.message || 'Không thể tải dữ liệu dropdown';
+                const errorMessageVN = getErrorMessageVN(serverError);
+                showErrorToast(errorMessageVN);
+            }
+        };
+
+        fetchDropdownOptions();
+    }, [showErrorToast]);
+
+    // Fetch students - phụ thuộc vào debouncedSearchTerm
+    useEffect(() => {
+        const fetchStudents = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                let data: Student[] = await getStudents();
+                if (debouncedSearchTerm) {
+                    data = data.filter(
+                        (s) =>
+                            s.studentCode.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                            s.studentName.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+                    );
+                }
+                setStudents(data);
+                setTotalPages(Math.ceil(data.length / itemsPerPage));
+            } catch (err: any) {
+                console.error("Error fetching students:", err);
+                const serverError = err.response?.data?.message || err.message || 'Không tải được danh sách sinh viên';
+                const errorMessageVN = getErrorMessageVN(serverError);
+                setError(errorMessageVN);
+                showErrorToast(errorMessageVN);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStudents();
+    }, [debouncedSearchTerm, showErrorToast]);
+
+    // Debounced search
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearchTerm(searchTerm);
@@ -629,8 +657,9 @@ const StudentPage = () => {
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
+    // Major filtering - LOẠI BỎ formData.majorName
     useEffect(() => {
-        if (formData.facultyName && allMajors.length > 0) {
+        if (formData.facultyName && allMajors.length > 0 && faculties.length > 0) {
             const selectedFaculty = faculties.find(f => f.facultyName === formData.facultyName);
             if (selectedFaculty) {
                 const majorsForSelectedFaculty = allMajors.filter(
@@ -638,6 +667,7 @@ const StudentPage = () => {
                 );
                 setFilteredMajors(majorsForSelectedFaculty);
 
+                // Chỉ reset khi major không hợp lệ
                 const currentMajorValid = majorsForSelectedFaculty.some(
                     major => major.majorName === formData.majorName
                 );
@@ -647,11 +677,8 @@ const StudentPage = () => {
             }
         } else {
             setFilteredMajors([]);
-            if (formData.majorName) {
-                setFormData(prev => ({ ...prev, majorName: "" }));
-            }
         }
-    }, [formData.facultyName, allMajors, faculties, formData.majorName]);
+    }, [formData.facultyName, allMajors, faculties]);
 
     const openAddModal = () => {
         setEditingStudent(null);
@@ -730,7 +757,10 @@ const StudentPage = () => {
                 showSuccessToast("Thêm sinh viên thành công!");
             }
             setIsModalOpen(false);
-            fetchStudents();
+
+            // Trigger re-fetch bằng cách reset search
+            setDebouncedSearchTerm(prev => prev + " ");
+            setTimeout(() => setDebouncedSearchTerm(searchTerm), 100);
         } catch (err: any) {
             console.error("Error submitting form:", err);
             const serverError = err.response?.data?.message || err.message || 'Không thể thực hiện thao tác.';
@@ -750,9 +780,11 @@ const StudentPage = () => {
 
             if (students.length === 1 && currentPage > 1) {
                 setCurrentPage(currentPage - 1);
-            } else {
-                fetchStudents();
             }
+
+            // Trigger re-fetch bằng cách reset search
+            setDebouncedSearchTerm(prev => prev + " ");
+            setTimeout(() => setDebouncedSearchTerm(searchTerm), 100);
         } catch (error: any) {
             console.error("Error deleting student:", error);
             const serverError = error.response?.data?.message || error.message || 'Không thể xóa sinh viên.';
@@ -778,7 +810,23 @@ const StudentPage = () => {
             try {
                 await uploadStudentImage(student.id, file);
                 showSuccessToast("Tải ảnh thành công!");
-                fetchStudents();
+
+                // FORCE UPDATE: Reload toàn bộ danh sách sinh viên để lấy URL ảnh mới
+                const updatedStudents = await getStudents();
+
+                // Filter nếu có search term
+                let filteredData = updatedStudents;
+                if (debouncedSearchTerm) {
+                    filteredData = updatedStudents.filter(
+                        (s) =>
+                            s.studentCode.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                            s.studentName.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+                    );
+                }
+
+                setStudents(filteredData);
+                setTotalPages(Math.ceil(filteredData.length / itemsPerPage));
+
             } catch (err: any) {
                 console.error("Error uploading image:", err);
                 const serverError = err.response?.data?.message || err.message || 'Lỗi khi tải ảnh';
@@ -789,13 +837,17 @@ const StudentPage = () => {
         input.click();
     };
 
+
     const handleImportExcel = async (file: File, className: string) => {
         try {
             setLoading(true);
             await importStudentsFromExcel(file, className);
             showSuccessToast("Import sinh viên từ Excel thành công!");
             setIsImportModalOpen(false);
-            fetchStudents();
+
+            // Trigger re-fetch bằng cách reset search
+            setDebouncedSearchTerm(prev => prev + " ");
+            setTimeout(() => setDebouncedSearchTerm(searchTerm), 100);
         } catch (err: any) {
             console.error("Error importing Excel:", err);
             const serverError = err.response?.data?.message || err.message || 'Lỗi khi import Excel';
@@ -906,7 +958,6 @@ const StudentPage = () => {
                 classes={classes}
             />
 
-            {/* Page Content */}
             <div className="space-y-6">
                 <div className="mb-6">
                     <h1 className="text-2xl font-bold text-[#1E3A8A] mb-2">

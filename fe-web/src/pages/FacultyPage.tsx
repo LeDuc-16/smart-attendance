@@ -172,7 +172,6 @@ const FacultyPage = () => {
     const [editingFaculty, setEditingFaculty] = useState<Faculty | null>(null);
     const [modalError, setModalError] = useState('');
 
-    // State cho modal xác nhận xóa
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingFaculty, setDeletingFaculty] = useState<Faculty | null>(null);
 
@@ -277,13 +276,12 @@ const FacultyPage = () => {
         setIsModalOpen(true);
     };
 
-    // Mở modal xác nhận xóa
     const openDeleteModal = (faculty: Faculty) => {
         setDeletingFaculty(faculty);
         setIsDeleteModalOpen(true);
     };
 
-    // Đóng modal xác nhận xóa
+
     const closeDeleteModal = () => {
         setDeletingFaculty(null);
         setIsDeleteModalOpen(false);
@@ -320,7 +318,7 @@ const FacultyPage = () => {
         }
     };
 
-    // Xử lý xóa khoa sau khi xác nhận
+
     const handleConfirmDelete = async () => {
         if (!deletingFaculty) return;
 

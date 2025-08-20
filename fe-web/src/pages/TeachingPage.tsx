@@ -81,6 +81,48 @@ const validateScheduleData = (formData: TeachingSchedulePayload): string[] => {
     return errors;
 };
 
+const checkScheduleConflict = (newSchedule: TeachingSchedulePayload, existingSchedules: any[]): string[] => {
+    const conflicts: string[] = [];
+
+    const timeToMinutes = (time: string): number => {
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+    };
+
+    const newStartMinutes = timeToMinutes(newSchedule.startTime.substring(0, 5));
+    const newEndMinutes = timeToMinutes(newSchedule.endTime.substring(0, 5));
+
+    newSchedule.dayOfWeek.forEach(dayOfWeek => {
+        existingSchedules.forEach(existing => {
+            if (existing.dayOfWeek !== dayOfWeek) return;
+
+            const existingStartMinutes = timeToMinutes(existing.startTime.substring(0, 5));
+            const existingEndMinutes = timeToMinutes(existing.endTime.substring(0, 5));
+
+
+            const hasTimeOverlap = (newStartMinutes < existingEndMinutes) && (existingStartMinutes < newEndMinutes);
+
+            if (!hasTimeOverlap) return;
+
+            const dayLabel = DAYS_OF_WEEK.find(d => d.value === dayOfWeek)?.label || dayOfWeek;
+
+            if (existing.lecturerId === newSchedule.lecturerId) {
+                conflicts.push(`Giảng viên đã có lịch dạy vào ${dayLabel} từ ${existing.startTime} đến ${existing.endTime}`);
+            }
+
+            if (existing.roomId === newSchedule.roomId) {
+                conflicts.push(`Phòng ${existing.roomCode} đã được sử dụng vào ${dayLabel} từ ${existing.startTime} đến ${existing.endTime}`);
+            }
+
+            if (existing.classId === newSchedule.classId) {
+                conflicts.push(`Lớp ${existing.className} đã có lịch học vào ${dayLabel} từ ${existing.startTime} đến ${existing.endTime}`);
+            }
+        });
+    });
+
+    return [...new Set(conflicts)];
+};
+
 const TeachingScheduleModal = ({
     isOpen,
     onClose,
@@ -118,13 +160,12 @@ const TeachingScheduleModal = ({
     useEffect(() => {
         if (isOpen) {
             if (initialData) {
-                // Khi edit, cần convert từ data response
                 setFormData({
                     startDate: initialData.weeks[0]?.startDate || "",
                     endDate: initialData.weeks[initialData.weeks.length - 1]?.endDate || "",
                     dayOfWeek: initialData.weeks[0]?.studyDays.map(day => day.dayOfWeek) || [],
-                    startTime: initialData.startTime.substring(0, 5), // Chỉ lấy HH:mm
-                    endTime: initialData.endTime.substring(0, 5), // Chỉ lấy HH:mm
+                    startTime: initialData.startTime.substring(0, 5),
+                    endTime: initialData.endTime.substring(0, 5),
                     courseId: initialData.courseId,
                     lecturerId: initialData.lecturerId,
                     classId: initialData.classId,
@@ -169,7 +210,6 @@ const TeachingScheduleModal = ({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-
         if (!formData.startDate) {
             setInputError("Vui lòng chọn ngày bắt đầu.");
             return;
@@ -213,7 +253,6 @@ const TeachingScheduleModal = ({
             return;
         }
 
-        // Thêm :00 vào cuối nếu chỉ có HH:mm
         const formatTime = (time: string) => {
             if (time && time.length === 5) {
                 return time + ':00';
@@ -233,7 +272,7 @@ const TeachingScheduleModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-start p-4">
                     <div>
@@ -256,7 +295,6 @@ const TeachingScheduleModal = ({
                             <h4 className="font-semibold">Thông tin lịch giảng dạy</h4>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Ngày bắt đầu */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Ngày bắt đầu <span className="text-red-500">*</span>
@@ -270,7 +308,6 @@ const TeachingScheduleModal = ({
                                     />
                                 </div>
 
-                                {/* Ngày kết thúc */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Ngày kết thúc <span className="text-red-500">*</span>
@@ -280,12 +317,11 @@ const TeachingScheduleModal = ({
                                         name="endDate"
                                         value={formData.endDate}
                                         onChange={handleChange}
-                                        min={formData.startDate} // Đảm bảo endDate >= startDate
+                                        min={formData.startDate}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                     />
                                 </div>
 
-                                {/* Thời gian bắt đầu */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Thời gian bắt đầu <span className="text-red-500">*</span>
@@ -302,7 +338,6 @@ const TeachingScheduleModal = ({
                                     <p className="text-xs text-gray-500 mt-1">Chỉ trong khoảng 07:00 - 21:30</p>
                                 </div>
 
-                                {/* Thời gian kết thúc */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Thời gian kết thúc <span className="text-red-500">*</span>
@@ -319,7 +354,6 @@ const TeachingScheduleModal = ({
                                     <p className="text-xs text-gray-500 mt-1">Chỉ trong khoảng 07:00 - 21:30</p>
                                 </div>
 
-                                {/* Môn học */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Môn học <span className="text-red-500">*</span>
@@ -339,7 +373,6 @@ const TeachingScheduleModal = ({
                                     </select>
                                 </div>
 
-                                {/* Giảng viên */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Giảng viên <span className="text-red-500">*</span>
@@ -359,7 +392,6 @@ const TeachingScheduleModal = ({
                                     </select>
                                 </div>
 
-                                {/* Lớp học */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Lớp học <span className="text-red-500">*</span>
@@ -379,7 +411,6 @@ const TeachingScheduleModal = ({
                                     </select>
                                 </div>
 
-                                {/* Phòng học */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Phòng học <span className="text-red-500">*</span>
@@ -400,7 +431,6 @@ const TeachingScheduleModal = ({
                                 </div>
                             </div>
 
-                            {/* Ngày trong tuần */}
                             <div className="mt-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Ngày trong tuần <span className="text-red-500">*</span>
@@ -453,7 +483,7 @@ const DeleteConfirmModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
             <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-0">
                 <div className="flex items-start justify-between px-6 pt-6">
                     <div className="flex items-center">
@@ -499,6 +529,7 @@ const DeleteConfirmModal = ({
 
 const TeachingPage = () => {
     const [schedules, setSchedules] = useState<TeachingSchedule[]>([]);
+    const [allSchedulesForConflictCheck, setAllSchedulesForConflictCheck] = useState<any[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -564,43 +595,48 @@ const TeachingPage = () => {
             let data: TeachingSchedule[];
 
             try {
-                data = await getSchedulesByDate(date);
-            } catch (dateApiError) {
-                console.log('Date API failed, fallback to get all schedules');
                 const allSchedules = await getTeachingSchedules();
-
-                data = allSchedules.filter(schedule =>
-                    schedule.weeks.some(week =>
-                        week.studyDays.some(day => day.date === date)
-                    )
-                );
+                data = allSchedules;
+            } catch (dateApiError) {
+                console.log('Error fetching all schedules:', dateApiError);
+                data = [];
             }
+
             const flattenedData: any[] = [];
+            const allFlattenedData: any[] = [];
+
             data.forEach(schedule => {
                 schedule.weeks.forEach(week => {
                     week.studyDays.forEach(day => {
+                        const scheduleItem = {
+                            id: `${schedule.id}-${week.weekNumber}-${day.dayOfWeek}`,
+                            scheduleId: schedule.id,
+                            startTime: schedule.startTime,
+                            endTime: schedule.endTime,
+                            courseId: schedule.courseId,
+                            courseName: courses.find(c => c.value === schedule.courseId)?.label || `Course ${schedule.courseId}`,
+                            lecturerId: schedule.lecturerId,
+                            lecturerName: lecturers.find(l => l.value === schedule.lecturerId)?.label || `Lecturer ${schedule.lecturerId}`,
+                            classId: schedule.classId,
+                            className: classes.find(c => c.value === schedule.classId)?.label || `Class ${schedule.classId}`,
+                            roomId: schedule.roomId,
+                            roomCode: rooms.find(r => r.value === schedule.roomId)?.label || `Room ${schedule.roomId}`,
+                            date: day.date,
+                            dayOfWeek: day.dayOfWeek,
+                            weekNumber: week.weekNumber
+                        };
+
+                        allFlattenedData.push(scheduleItem);
+
                         if (day.date === date) {
-                            flattenedData.push({
-                                id: `${schedule.id}-${week.weekNumber}-${day.dayOfWeek}`,
-                                scheduleId: schedule.id,
-                                startTime: schedule.startTime,
-                                endTime: schedule.endTime,
-                                courseId: schedule.courseId,
-                                courseName: courses.find(c => c.value === schedule.courseId)?.label || `Course ${schedule.courseId}`,
-                                lecturerId: schedule.lecturerId,
-                                lecturerName: lecturers.find(l => l.value === schedule.lecturerId)?.label || `Lecturer ${schedule.lecturerId}`,
-                                classId: schedule.classId,
-                                className: classes.find(c => c.value === schedule.classId)?.label || `Class ${schedule.classId}`,
-                                roomId: schedule.roomId,
-                                roomCode: rooms.find(r => r.value === schedule.roomId)?.label || `Room ${schedule.roomId}`,
-                                date: day.date,
-                                dayOfWeek: day.dayOfWeek,
-                                weekNumber: week.weekNumber
-                            });
+                            flattenedData.push(scheduleItem);
                         }
                     });
                 });
             });
+
+            setSchedules(data);
+            setAllSchedulesForConflictCheck(allFlattenedData);
 
             let filtered = flattenedData;
             if (searchTerm) {
@@ -612,7 +648,7 @@ const TeachingPage = () => {
             }
 
             setFilteredSchedules(filtered);
-            setSchedules(data);
+
         } catch (err) {
             console.error(err);
             setError("Không tải được lịch giảng dạy.");
@@ -649,7 +685,6 @@ const TeachingPage = () => {
         setIsDeleteModalOpen(true);
     };
 
-
     const closeDeleteModal = () => {
         setDeletingSchedule(null);
         setIsDeleteModalOpen(false);
@@ -657,6 +692,11 @@ const TeachingPage = () => {
 
     const handleFormSubmit = async (data: TeachingSchedulePayload) => {
         setModalError('');
+        const conflictErrors = checkScheduleConflict(data, allSchedulesForConflictCheck);
+        if (conflictErrors.length > 0) {
+            setModalError(conflictErrors[0]);
+        }
+
         try {
             if (editingSchedule) {
                 await updateTeachingSchedule(editingSchedule.id, data);
@@ -698,7 +738,9 @@ const TeachingPage = () => {
 
     const formatDateVietnamese = (dateString: string) => {
         const date = new Date(dateString);
-        return `Thứ ${date.getDay() === 0 ? 'Chủ nhật' : date.getDay() + 1}, ${date.getDate()} tháng ${date.getMonth() + 1} năm ${date.getFullYear()}`;
+        const dayOfWeek = date.getDay();
+        const dayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+        return `${dayNames[dayOfWeek]}, ${date.getDate()} tháng ${date.getMonth() + 1} năm ${date.getFullYear()}`;
     };
 
     return (
@@ -735,7 +777,6 @@ const TeachingPage = () => {
                     </p>
                 </div>
 
-                {/* Filter Section */}
                 <div className="bg-white p-4 rounded-lg shadow-sm">
                     <div className="flex flex-col md:flex-row gap-4 items-end">
                         <div className="relative flex-grow">
@@ -769,7 +810,6 @@ const TeachingPage = () => {
                     </div>
                 </div>
 
-                {/* Schedule Table */}
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                     <h2 className="text-lg font-semibold text-[#1E3A8A] p-4 border-b border-gray-200">
                         Thống kê lịch giảng dạy - {formatDateVietnamese(selectedDate)}
