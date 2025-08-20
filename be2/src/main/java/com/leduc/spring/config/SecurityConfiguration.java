@@ -1,11 +1,8 @@
 package com.leduc.spring.config;
 
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.servers.Server;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -30,7 +27,8 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 public class SecurityConfiguration {
 
         private static final String[] WHITE_LIST_URL = {
-                "/api/v1/auth/**",
+                "/api/v1/auth/**",       // login, register
+                "/api/v1/otp/**",        // otp gửi mail/sms
                 "/v2/api-docs",
                 "/v3/api-docs",
                 "/v3/api-docs/**",
@@ -40,18 +38,7 @@ public class SecurityConfiguration {
                 "/configuration/security",
                 "/swagger-ui/**",
                 "/webjars/**",
-                "/swagger-ui.html",
-                "/api/v1/otp/**",
-                "/api/v1/faculties/**",
-                "/api/v1/majors/**",
-                "/api/v1/classes/**",
-                "/api/v1/lecturers/**",
-                "/api/v1/rooms/**",
-                "/api/v1/students/**",
-                "api/v1/courses/**",
-                "/api/v1/schedules/**",
-                "/api/v1/student-faces/**"
-
+                "/swagger-ui.html"
         };
 
         private final JwtAuthenticationFilter jwtAuthFilter;
@@ -62,10 +49,10 @@ public class SecurityConfiguration {
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
                         .csrf(AbstractHttpConfigurer::disable)
-                        .cors(c -> {}) // Kích hoạt cấu hình CORS
+                        .cors(c -> {}) // kích hoạt CORS
                         .authorizeHttpRequests(req -> req
-                                .requestMatchers(WHITE_LIST_URL).permitAll()
-                                .anyRequest().authenticated()
+                                .requestMatchers(WHITE_LIST_URL).permitAll() // API public
+                                .anyRequest().authenticated() // còn lại phải login
                         )
                         .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
                         .authenticationProvider(authenticationProvider)
@@ -81,20 +68,17 @@ public class SecurityConfiguration {
                 return http.build();
         }
 
-
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration config = new CorsConfiguration();
-                config.setAllowedOriginPatterns(List.of("*")); // Cho phép tất cả origin
+                config.setAllowedOriginPatterns(List.of("*"));
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                 config.setAllowedHeaders(List.of("*"));
-                config.setExposedHeaders(List.of("Content-Disposition")); // Nếu cần download file sau này
+                config.setExposedHeaders(List.of("Content-Disposition"));
                 config.setAllowCredentials(true);
 
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/**", config);
                 return source;
         }
-
-
 }

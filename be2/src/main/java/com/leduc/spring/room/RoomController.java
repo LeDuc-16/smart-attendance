@@ -20,6 +20,8 @@ public class RoomController {
 
     private final RoomService roomService;
 
+    // chỉ admin
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     @Operation(summary = "Tạo phòng học", description = "Chỉ admin có quyền tạo phòng học")
     public ResponseEntity<ApiResponse<Object>> createRoom(
@@ -30,6 +32,8 @@ public class RoomController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    // admin + giảng viên
+    @PreAuthorize("hasAnyRole('ADMIN','LECTURER')")
     @GetMapping
     @Operation(summary = "Lấy danh sách phòng học", description = "Admin và giảng viên có quyền xem danh sách phòng học")
     public ResponseEntity<ApiResponse<Object>> listRooms(
@@ -39,6 +43,8 @@ public class RoomController {
         return ResponseEntity.ok(response);
     }
 
+    // chỉ admin
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật phòng học", description = "Chỉ admin có quyền cập nhật phòng học")
     public ResponseEntity<ApiResponse<Object>> updateRoom(
@@ -50,6 +56,8 @@ public class RoomController {
         return ResponseEntity.ok(response);
     }
 
+    // chỉ admin
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Xóa phòng học", description = "Chỉ admin có quyền xóa phòng học")
     public ResponseEntity<ApiResponse<Object>> deleteRoom(

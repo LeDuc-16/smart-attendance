@@ -9,6 +9,9 @@ import java.time.LocalDateTime;
 @Getter
 public class FaceRegisterResponse {
     private Long studentId;
+    private String studentName;
+    private String studentCode;
+    private String studentClass;
     private String faceId;
     private String profileImageId;
     private LocalDateTime registeredAt;
