@@ -98,8 +98,7 @@ public class StudentFaceDataService {
     }
 
     @Transactional
-    public ApiResponse<FaceRegisterResponse> registerStudentFace(FaceRegisterRequest request, HttpServletRequest servletRequest) {
-        Long studentId = request.getStudentId();
+    public ApiResponse<FaceRegisterResponse> registerStudentFace(FaceRegisterRequest request, Long studentId, HttpServletRequest servletRequest) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Student with id [%s] not found".formatted(studentId)));
@@ -156,8 +155,8 @@ public class StudentFaceDataService {
                 saveFaceData(student, faceId);
             }
 
-            // Tạo response với thông tin sinh viên
-            FaceRegisterResponse response = mapper.toFaceRegisterResponse(student, faceIds.get(0), profileImageIds.get(0), LocalDateTime.now());
+            // Tạo response với thông tin sinh viên và tất cả faceIds, profileImageIds
+            FaceRegisterResponse response = mapper.toFaceRegisterResponse(student, faceIds, profileImageIds, LocalDateTime.now());
             return ApiResponse.success(response, "Student faces registered successfully", servletRequest.getRequestURI());
         } catch (IOException e) {
             // Rollback: Xóa tất cả ảnh đã upload nếu có lỗi
