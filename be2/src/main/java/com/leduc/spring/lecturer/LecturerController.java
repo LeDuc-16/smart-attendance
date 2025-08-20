@@ -20,6 +20,8 @@ public class LecturerController {
 
     private final LecturerService lecturerService;
 
+    // chỉ admin
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     @Operation(summary = "Tạo giảng viên", description = "Chỉ admin có quyền tạo giảng viên")
     public ResponseEntity<ApiResponse<Object>> createLecturer(
@@ -30,6 +32,8 @@ public class LecturerController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    // admin, giảng viên
+    @PreAuthorize("hasAnyRole('ADMIN','LECTURER')")
     @GetMapping
     @Operation(summary = "Lấy danh sách giảng viên", description = "Admin và giảng viên có quyền xem danh sách giảng viên")
     public ResponseEntity<ApiResponse<Object>> getAllLecturers(
@@ -39,6 +43,8 @@ public class LecturerController {
         return ResponseEntity.ok(response);
     }
 
+    // admin, giảng viên
+    @PreAuthorize("hasAnyRole('ADMIN','LECTURER')")
     @GetMapping("/{id}")
     @Operation(summary = "Lấy chi tiết giảng viên", description = "Admin và giảng viên có quyền xem chi tiết giảng viên")
     public ResponseEntity<ApiResponse<Object>> getLecturerById(
@@ -49,8 +55,9 @@ public class LecturerController {
         return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/{id}")
+    // chỉ admin
     @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
     @Operation(summary = "Cập nhật giảng viên", description = "Chỉ admin có quyền cập nhật giảng viên")
     public ResponseEntity<ApiResponse<Object>> updateLecturer(
             @PathVariable("id") Long id,
@@ -61,6 +68,8 @@ public class LecturerController {
         return ResponseEntity.ok(response);
     }
 
+    // chỉ admin
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Xóa giảng viên", description = "Chỉ admin có quyền xóa giảng viên")
     public ResponseEntity<ApiResponse<Object>> deleteLecturer(

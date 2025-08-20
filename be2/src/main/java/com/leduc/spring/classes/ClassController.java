@@ -22,6 +22,7 @@ public class ClassController {
 
     @PostMapping
     @Operation(summary = "Tạo lớp học", description = "Chỉ admin có quyền tạo lớp học")
+    @PreAuthorize("hasAuthority('admin:create')")
     public ResponseEntity<ApiResponse<Object>> createClass(
             @RequestBody CreateClassRequest request,
             HttpServletRequest servletRequest
@@ -30,8 +31,10 @@ public class ClassController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    // gv, admin, sv
     @GetMapping("/{classId}/students/count")
     @Operation(summary = "Đếm số sinh viên trong lớp")
+    @PreAuthorize("hasAnyAuthority('teacher:read', 'admin:read', 'student:read')")
     public ResponseEntity<ApiResponse<Object>> countStudents(
             @PathVariable Long classId,
             HttpServletRequest servletRequest) {
@@ -39,8 +42,10 @@ public class ClassController {
         return ResponseEntity.ok(response);
     }
 
+    // admin, gv
     @GetMapping
     @Operation(summary = "Lấy danh sách lớp học", description = "Admin và giảng viên có quyền xem danh sách lớp học")
+    @PreAuthorize("hasAnyAuthority('admin:read', 'teacher:read')")
     public ResponseEntity<ApiResponse<Object>> listClasses(
             HttpServletRequest servletRequest
     ) {
@@ -48,8 +53,10 @@ public class ClassController {
         return ResponseEntity.ok(response);
     }
 
+    // admin
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật lớp học", description = "Chỉ admin có quyền cập nhật lớp học")
+    @PreAuthorize("hasAuthority('admin:update')")
     public ResponseEntity<ApiResponse<Object>> updateClass(
             @PathVariable("id") Long id,
             @RequestBody UpdateClassRequest request,
@@ -59,8 +66,10 @@ public class ClassController {
         return ResponseEntity.ok(response);
     }
 
+    // admin
     @DeleteMapping("/{id}")
     @Operation(summary = "Xóa lớp học", description = "Chỉ admin có quyền xóa lớp học")
+    @PreAuthorize("hasAuthority('admin:delete')")
     public ResponseEntity<ApiResponse<Object>> deleteClass(
             @PathVariable("id") Long id,
             HttpServletRequest servletRequest
@@ -69,8 +78,10 @@ public class ClassController {
         return ResponseEntity.ok(response);
     }
 
+    // admin
     @PostMapping("/add-lecturer-to-class")
     @Operation(summary = "Gán giảng viên chủ nhiệm cho lớp", description = "Chỉ admin có quyền gán giảng viên chủ nhiệm")
+    @PreAuthorize("hasAuthority('admin:update')")
     public ResponseEntity<ApiResponse<Object>> addLecturerToClass(
             @RequestBody AddLecturerToClassRequest request,
             HttpServletRequest servletRequest

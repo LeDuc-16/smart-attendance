@@ -20,6 +20,8 @@ public class MajorController {
 
     private final MajorService majorService;
 
+    // chỉ admin
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     @Operation(summary = "Tạo ngành học mới", description = "Chỉ admin có quyền tạo ngành học mới")
     public ResponseEntity<ApiResponse<Object>> addMajor(
@@ -30,6 +32,8 @@ public class MajorController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    // chỉ admin
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Xóa ngành học", description = "Chỉ admin có quyền xóa ngành học")
     public ResponseEntity<ApiResponse<Object>> deleteMajor(
@@ -39,6 +43,8 @@ public class MajorController {
         return ResponseEntity.ok(majorService.deleteMajor(id, servletRequest));
     }
 
+    // chỉ admin
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật ngành học", description = "Chỉ admin có quyền cập nhật thông tin ngành học")
     public ResponseEntity<ApiResponse<Object>> updateMajor(
@@ -49,6 +55,8 @@ public class MajorController {
         return ResponseEntity.ok(majorService.updateMajor(id, request, servletRequest));
     }
 
+    // admin + giảng viên
+    @PreAuthorize("hasAnyRole('ADMIN','LECTURER')")
     @GetMapping("/faculty/{name}")
     @Operation(summary = "Tìm ngành học theo tên khoa", description = "Admin và giảng viên có quyền tìm ngành học theo tên khoa")
     public ResponseEntity<ApiResponse<Object>> findByFacultyName(
@@ -58,6 +66,8 @@ public class MajorController {
         return ResponseEntity.ok(majorService.findByFacultyName(name, servletRequest));
     }
 
+    // admin + giảng viên
+    @PreAuthorize("hasAnyRole('ADMIN','LECTURER')")
     @GetMapping("/list")
     @Operation(summary = "Lấy danh sách ngành học", description = "Admin và giảng viên có quyền xem danh sách ngành học")
     public ResponseEntity<ApiResponse<Object>> listMajors(

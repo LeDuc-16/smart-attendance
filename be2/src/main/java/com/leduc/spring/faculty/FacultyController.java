@@ -20,6 +20,8 @@ public class FacultyController {
 
     private final FacultyService facultyService;
 
+    // chỉ admin
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     @Operation(summary = "Tạo khoa mới", description = "Chỉ admin có quyền tạo khoa mới")
     public ResponseEntity<ApiResponse<Object>> createFaculty(
@@ -30,12 +32,16 @@ public class FacultyController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    // admin, giảng viên
+    @PreAuthorize("hasAnyRole('ADMIN','LECTURER')")
     @GetMapping
     @Operation(summary = "Lấy danh sách khoa", description = "Admin và giảng viên có quyền xem danh sách khoa")
     public ResponseEntity<ApiResponse<Object>> listFaculties(HttpServletRequest servletRequest) {
         return ResponseEntity.ok(facultyService.listFaculties(servletRequest));
     }
 
+    // chỉ admin
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật khoa", description = "Chỉ admin có quyền cập nhật thông tin khoa")
     public ResponseEntity<ApiResponse<Object>> updateFaculty(
@@ -46,6 +52,8 @@ public class FacultyController {
         return ResponseEntity.ok(facultyService.updateFaculty(servletRequest, id, request));
     }
 
+    // chỉ admin
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Xóa khoa", description = "Chỉ admin có quyền xóa khoa")
     public ResponseEntity<ApiResponse<Object>> deleteFaculty(

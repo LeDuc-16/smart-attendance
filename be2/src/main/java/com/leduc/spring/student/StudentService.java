@@ -37,6 +37,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -106,6 +107,38 @@ public class StudentService {
 
         return ApiResponse.success(null, "Student added successfully", servletRequest.getRequestURI());
     }
+
+    //lay ds sinh vien theo ten lop
+    public ApiResponse<Object> getStudentsByClassName(String className, HttpServletRequest servletRequest) {
+        // Kiểm tra class tồn tại
+        ClassEntity classEntity = classRepository.findByClassName(className)
+                .orElseThrow(() -> new ResourceNotFoundException("Class not found with name: [%s]".formatted(className)));
+
+        List<Student> students = studentRepository.findByClasses(classEntity)
+                .orElseThrow(() -> new ResourceNotFoundException("No students found in class: [%s]".formatted(className)));
+
+        List<StudentResponse> responseList = students.stream()
+                .map(student -> StudentResponse.builder()
+                        .id(student.getId())
+                        .studentCode(student.getStudentCode())
+                        .studentName(student.getUser().getName())
+                        .className(student.getClasses() != null ? student.getClasses().getClassName() : "N/A")
+                        .majorName(student.getMajor() != null ? student.getMajor().getMajorName() : null)
+                        .facultyName(student.getFaculty() != null ? student.getFaculty().getFacultyName() : null)
+                        .account(student.getUser().getAccount())
+                        .email(student.getUser().getEmail())
+                        .build()
+                )
+                .toList();
+
+        return ApiResponse.success(
+                responseList,
+                "List of students in class [%s] retrieved successfully".formatted(className),
+                servletRequest.getRequestURI()
+        );
+    }
+
+
 
     // Import danh sách sinh viên từ file Excel
     public ApiResponse<Object> importStudentsFromExcel(String className, MultipartFile file, HttpServletRequest servletRequest) throws IOException {
@@ -270,6 +303,7 @@ public class StudentService {
         return ApiResponse.success(null, "Student profile image uploaded successfully", servletRequest.getRequestURI());
     }
 
+    //lay anh cua sinh vien
     public ApiResponse<Object> getStudentProfileImage(Long studentId, HttpServletRequest servletRequest) {
         // Check if student exists
         Student student = studentRepository.findById(studentId)
@@ -291,6 +325,7 @@ public class StudentService {
         return ApiResponse.success(profileImage, "Student profile image retrieved successfully", servletRequest.getRequestURI());
     }
 
+    //lay tat ca ds sinh vien
     public ApiResponse<Object> listStudents(HttpServletRequest servletRequest) {
         List<Student> students = studentRepository.findAll();
         if (students.isEmpty()) {
@@ -312,6 +347,7 @@ public class StudentService {
         return ApiResponse.success(responseList, "List of students retrieved successfully", servletRequest.getRequestURI());
     }
 
+    //xoa student
     @Transactional
     public ApiResponse<Object> deleteStudent(Long studentId, HttpServletRequest servletRequest) {
         // Tìm student

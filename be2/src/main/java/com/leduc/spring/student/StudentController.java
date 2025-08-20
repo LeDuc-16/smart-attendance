@@ -28,6 +28,7 @@ public class StudentController {
     private final StudentService studentService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Thêm sinh viên", description = "Chỉ admin có quyền thêm sinh viên")
     public ResponseEntity<ApiResponse<Object>> addStudent(
             @Valid @RequestBody CreateStudentRequest request,
@@ -38,6 +39,7 @@ public class StudentController {
     }
 
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Import danh sách sinh viên từ file Excel", description = "Chỉ admin có quyền import sinh viên")
     public ResponseEntity<ApiResponse<Object>> importStudents(
             @RequestParam("className") String className,
@@ -52,7 +54,8 @@ public class StudentController {
             value = "/{studentId}/profile-image",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
-    @Operation(summary = "Tải lên ảnh hồ sơ sinh viên", description = "Tải lên ảnh hồ sơ cho sinh viên theo ID")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @Operation(summary = "Tải lên ảnh hồ sơ sinh viên", description = "Tải lên ảnh hồ sơ cho sinh viên theo ID, chỉ admin và giảng viên")
     public ResponseEntity<ApiResponse<Object>> uploadStudentProfileImage(
             @PathVariable("studentId") Long studentId,
             @RequestParam("file") MultipartFile file,
@@ -66,7 +69,8 @@ public class StudentController {
             value = "/{studentId}/profile-image",
             produces = MediaType.IMAGE_JPEG_VALUE
     )
-    @Operation(summary = "Lấy ảnh hồ sơ sinh viên", description = "Lấy ảnh hồ sơ của sinh viên theo ID")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @Operation(summary = "Lấy ảnh hồ sơ sinh viên", description = "Lấy ảnh hồ sơ của sinh viên theo ID (ai cũng có thể xem nếu có quyền truy cập)")
     public ResponseEntity<byte[]> getStudentProfileImage(
             @PathVariable("studentId") Long studentId,
             HttpServletRequest servletRequest
@@ -78,12 +82,14 @@ public class StudentController {
     }
 
     @GetMapping
-    @Operation(summary = "Lấy danh sách sinh viên", description = "Lấy danh sách tất cả sinh viên")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Lấy danh sách sinh viên", description = "Lấy danh sách tất cả sinh viên, chỉ admin")
     public ResponseEntity<ApiResponse<Object>> listStudents(HttpServletRequest servletRequest) {
         return ResponseEntity.ok(studentService.listStudents(servletRequest));
     }
 
     @DeleteMapping("/{studentId}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Xóa sinh viên", description = "Chỉ admin có quyền xóa sinh viên")
     public ResponseEntity<ApiResponse<Object>> deleteStudent(
             @PathVariable("studentId") Long studentId,
@@ -93,5 +99,14 @@ public class StudentController {
         return ResponseEntity.ok(response);
     }
 
-
+    @GetMapping("/by-class/{className}")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @Operation(summary = "Lấy danh sách sinh viên theo tên lớp", description = "Chỉ admin và giảng viên có quyền xem")
+    public ResponseEntity<ApiResponse<Object>> getStudentsByClassName(
+            @PathVariable("className") String className,
+            HttpServletRequest servletRequest
+    ) {
+        ApiResponse<Object> response = studentService.getStudentsByClassName(className, servletRequest);
+        return ResponseEntity.ok(response);
+    }
 }
