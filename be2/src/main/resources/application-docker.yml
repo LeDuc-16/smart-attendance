@@ -63,3 +63,4 @@ aws:
       student: leducdev
   rekognition:
     collection: students-faces
+

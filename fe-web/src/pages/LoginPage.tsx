@@ -16,13 +16,29 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await login(account, password); // Dùng account
-      setMessage("Đăng nhập thành công!");
+      const response = await login(account, password);
 
-      if (response.access_token) {
+      // Kiểm tra access_token trực tiếp từ response
+      if (response && response.access_token) {
+        // Chặn quyền sinh viên
+        if (response.user?.role === "STUDENT") {
+          setMessage("Bạn không có quyền truy cập hệ thống này!");
+          setIsLoading(false);
+          return;
+        }
+        setMessage("Đăng nhập thành công!");
         localStorage.setItem("token", response.access_token);
-        navigate("/dashboard");
+        localStorage.setItem("refresh_token", response.refresh_token);
+        localStorage.setItem("user", JSON.stringify(response.user));
+
+        // Điều hướng cho giảng viên
+        if (response.user?.role === "LECTURER") {
+          navigate("/lecturer-dashboard");
+        } else {
+          navigate("/dashboard");
+        }
       } else {
+        console.log("API response:", response); // Thêm dòng này để debug
         setMessage("Không tìm thấy access_token trong phản hồi!");
       }
     } catch (error) {
