@@ -342,7 +342,6 @@ const LecturerPage = () => {
     const [editingLecturer, setEditingLecturer] = useState<Lecturer | null>(null);
     const [modalError, setModalError] = useState('');
 
-    // State cho modal xác nhận xóa
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingLecturer, setDeletingLecturer] = useState<Lecturer | null>(null);
 
@@ -375,7 +374,6 @@ const LecturerPage = () => {
         });
     };
 
-    // Hàm xử lý thông báo lỗi chi tiết
     const getErrorMessage = (serverMessage: string): string => {
         const message = serverMessage.toLowerCase();
         console.log('Analyzing server error:', serverMessage);
@@ -463,13 +461,11 @@ const LecturerPage = () => {
         setIsModalOpen(true);
     };
 
-    // Mở modal xác nhận xóa
     const openDeleteModal = (lecturer: Lecturer) => {
         setDeletingLecturer(lecturer);
         setIsDeleteModalOpen(true);
     };
 
-    // Đóng modal xác nhận xóa
     const closeDeleteModal = () => {
         setDeletingLecturer(null);
         setIsDeleteModalOpen(false);
@@ -505,7 +501,6 @@ const LecturerPage = () => {
         }
     };
 
-    // Xử lý xóa giảng viên sau khi xác nhận
     const handleConfirmDelete = async () => {
         if (!deletingLecturer) return;
 

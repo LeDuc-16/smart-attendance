@@ -25,7 +25,39 @@ import {
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// Student Card Component
+const getErrorMessageVN = (errorMessage: string): string => {
+    const errorMap: { [key: string]: string } = {
+        'Class capacity exceeded for class': 'Lớp đã đầy, không thể thêm thêm sinh viên',
+        'Unauthorized': 'Bạn không có quyền truy cập',
+        'Forbidden': 'Hành động bị cấm',
+        'Not Found': 'Không tìm thấy tài nguyên',
+        'ValidationError': 'Dữ liệu không hợp lệ',
+        'Bad Request': 'Yêu cầu không hợp lệ',
+        'Internal Server Error': 'Lỗi máy chủ nội bộ',
+        'Network Error': 'Lỗi kết nối mạng',
+        'Request failed': 'Yêu cầu thất bại',
+        'timeout': 'Hết thời gian chờ',
+        'duplicate': 'Dữ liệu đã tồn tại',
+        'already exists': 'Đã tồn tại',
+        'invalid': 'Không hợp lệ',
+        'required': 'Trường bắt buộc'
+    };
+
+    for (const [key, value] of Object.entries(errorMap)) {
+        if (errorMessage.toLowerCase().includes(key.toLowerCase())) {
+            return value;
+        }
+    }
+
+
+    if (errorMessage.includes('capacity exceeded')) {
+        const classMatch = errorMessage.match(/for class:\s*\[(.+?)\]/);
+        const className = classMatch ? classMatch[1] : '';
+        return `Lớp ${className} đã đầy, không thể thêm thêm sinh viên`;
+    }
+
+    return 'Có lỗi xảy ra. Vui lòng thử lại.';
+};
 const StudentCard = ({
     student,
     onEdit,
@@ -39,7 +71,6 @@ const StudentCard = ({
 }) => {
     const [imageUrl, setImageUrl] = useState<string>('https://via.placeholder.com/150x150/cccccc/ffffff?text=Avatar');
 
-    // Load ảnh sinh viên khi component mount
     useEffect(() => {
         const loadStudentImage = async () => {
             if (student.avatar) {
@@ -59,7 +90,6 @@ const StudentCard = ({
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
-            {/* Avatar */}
             <div className="flex flex-col items-center">
                 <div className="relative">
                     <img
@@ -72,7 +102,6 @@ const StudentCard = ({
                         }}
                     />
 
-                    {/* Upload button overlay */}
                     <button
                         onClick={onUpload}
                         className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-1 hover:bg-blue-700 transition-colors"
@@ -82,7 +111,6 @@ const StudentCard = ({
                     </button>
                 </div>
 
-                {/* Student Info */}
                 <div className="text-center mb-4">
                     <h3 className="text-lg font-bold text-[#1E3A8A] mb-1">
                         {student.studentCode}
@@ -99,21 +127,20 @@ const StudentCard = ({
                     </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex space-x-2 w-full">
                     <button
                         onClick={onEdit}
                         className="flex-1 px-3 py-2 border border-indigo-600 text-indigo-600 rounded-md hover:bg-indigo-50 transition-colors text-sm font-medium"
                         title="Chỉnh sửa"
                     >
-                        Update
+                        Sửa
                     </button>
                     <button
                         onClick={onDelete}
                         className="flex-1 px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium"
                         title="Xóa"
                     >
-                        Delete
+                        Xóa
                     </button>
                 </div>
             </div>
@@ -121,7 +148,6 @@ const StudentCard = ({
     );
 };
 
-// Modal Form Component
 const StudentFormModal = ({
     isOpen,
     onClose,
@@ -148,7 +174,7 @@ const StudentFormModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-start p-4">
                     <div>
@@ -322,7 +348,6 @@ const StudentFormModal = ({
     );
 };
 
-// Delete Confirmation Modal
 const DeleteConfirmModal = ({
     isOpen,
     onClose,
@@ -337,7 +362,7 @@ const DeleteConfirmModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-60">
             <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-0">
                 <div className="flex items-start justify-between px-6 pt-6">
                     <div className="flex items-center">
@@ -381,7 +406,6 @@ const DeleteConfirmModal = ({
     );
 };
 
-// Import Excel Modal được cập nhật hoàn chỉnh
 const ImportExcelModal = ({
     isOpen,
     onClose,
@@ -414,7 +438,7 @@ const ImportExcelModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-start p-4">
                     <div>
@@ -488,13 +512,11 @@ const ImportExcelModal = ({
     );
 };
 
-// Main StudentPage Component
 const StudentPage = () => {
     const [students, setStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Dropdown data
     const [faculties, setFaculties] = useState<Faculty[]>([]);
     const [allMajors, setAllMajors] = useState<Major[]>([]);
     const [filteredMajors, setFilteredMajors] = useState<Major[]>([]);
@@ -504,11 +526,11 @@ const StudentPage = () => {
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
     const [modalError, setModalError] = useState('');
 
-    // Delete modal states
+
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingStudent, setDeletingStudent] = useState<Student | null>(null);
 
-    // Import modal states
+
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     const [formData, setFormData] = useState<StudentPayload>({
@@ -525,7 +547,7 @@ const StudentPage = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 20;
+    const itemsPerPage = 6;
     const [totalPages, setTotalPages] = useState(1);
 
     const showSuccessToast = (message: string) => {
@@ -550,7 +572,6 @@ const StudentPage = () => {
         });
     };
 
-    // Fetch dropdown options
     const fetchDropdownOptions = useCallback(async () => {
         try {
             const [facultiesData, majorsData, classesData] = await Promise.all([
@@ -562,9 +583,11 @@ const StudentPage = () => {
             setFaculties(facultiesData);
             setAllMajors(majorsData);
             setClasses(classesData);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error fetching dropdown options:", err);
-            showErrorToast("Không thể tải dữ liệu dropdown");
+            const serverError = err.response?.data?.message || err.message || 'Không thể tải dữ liệu dropdown';
+            const errorMessageVN = getErrorMessageVN(serverError);
+            showErrorToast(errorMessageVN);
         }
     }, []);
 
@@ -582,10 +605,12 @@ const StudentPage = () => {
             }
             setStudents(data);
             setTotalPages(Math.ceil(data.length / itemsPerPage));
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error fetching students:", err);
-            setError("Không tải được danh sách sinh viên.");
-            showErrorToast("Không tải được danh sách sinh viên");
+            const serverError = err.response?.data?.message || err.message || 'Không tải được danh sách sinh viên';
+            const errorMessageVN = getErrorMessageVN(serverError);
+            setError(errorMessageVN);
+            showErrorToast(errorMessageVN);
         } finally {
             setLoading(false);
         }
@@ -604,7 +629,6 @@ const StudentPage = () => {
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
-    // Logic cascade: Khi chọn khoa, filter ngành theo khoa đó
     useEffect(() => {
         if (formData.facultyName && allMajors.length > 0) {
             const selectedFaculty = faculties.find(f => f.facultyName === formData.facultyName);
@@ -709,9 +733,10 @@ const StudentPage = () => {
             fetchStudents();
         } catch (err: any) {
             console.error("Error submitting form:", err);
-            const errorMessage = err.response?.data?.message || "Không thể thực hiện thao tác.";
-            setModalError(errorMessage);
-            showErrorToast(errorMessage);
+            const serverError = err.response?.data?.message || err.message || 'Không thể thực hiện thao tác.';
+            const errorMessageVN = getErrorMessageVN(serverError);
+            setModalError(errorMessageVN);
+            showErrorToast(errorMessageVN);
         }
     };
 
@@ -730,8 +755,9 @@ const StudentPage = () => {
             }
         } catch (error: any) {
             console.error("Error deleting student:", error);
-            const errorMessage = error.response?.data?.message || 'Không thể xóa sinh viên.';
-            showErrorToast(errorMessage);
+            const serverError = error.response?.data?.message || error.message || 'Không thể xóa sinh viên.';
+            const errorMessageVN = getErrorMessageVN(serverError);
+            showErrorToast(errorMessageVN);
             closeDeleteModal();
         }
     };
@@ -744,7 +770,6 @@ const StudentPage = () => {
             const file = e.target.files[0];
             if (!file) return;
 
-            // Kiểm tra kích thước file (giới hạn 5MB)
             if (file.size > 5 * 1024 * 1024) {
                 showErrorToast("Kích thước ảnh không được vượt quá 5MB");
                 return;
@@ -756,14 +781,15 @@ const StudentPage = () => {
                 fetchStudents();
             } catch (err: any) {
                 console.error("Error uploading image:", err);
-                const errorMessage = err.response?.data?.message || "Lỗi khi tải ảnh";
-                showErrorToast(errorMessage);
+                const serverError = err.response?.data?.message || err.message || 'Lỗi khi tải ảnh';
+                const errorMessageVN = getErrorMessageVN(serverError);
+                showErrorToast(errorMessageVN);
             }
         };
         input.click();
     };
 
-    const handleImportExcel = async (file: File, className?: string) => {
+    const handleImportExcel = async (file: File, className: string) => {
         try {
             setLoading(true);
             await importStudentsFromExcel(file, className);
@@ -772,8 +798,9 @@ const StudentPage = () => {
             fetchStudents();
         } catch (err: any) {
             console.error("Error importing Excel:", err);
-            const errorMessage = err.response?.data?.message || "Lỗi khi import Excel";
-            showErrorToast(errorMessage);
+            const serverError = err.response?.data?.message || err.message || 'Lỗi khi import Excel';
+            const errorMessageVN = getErrorMessageVN(serverError);
+            showErrorToast(errorMessageVN);
         } finally {
             setLoading(false);
         }
@@ -784,55 +811,60 @@ const StudentPage = () => {
     };
 
     const renderPagination = () => {
-        let pageButtons = [];
+        if (totalPages <= 1) return null;
         let pages: number[] = [];
-        if (totalPages <= 3) {
-            for (let i = 1; i <= totalPages; i++) pages.push(i);
-        } else if (currentPage <= 2) {
-            pages = [1, 2, 3];
-        } else if (currentPage >= totalPages - 1) {
-            pages = [totalPages - 2, totalPages - 1, totalPages];
-        } else {
-            pages = [currentPage - 1, currentPage, currentPage + 1];
-        }
 
-        pageButtons = pages.map(i => (
-            <button
-                key={i}
-                onClick={() => handlePageChange(i)}
-                className={`px-3 py-1 mx-1 rounded-md text-sm font-medium ${currentPage === i
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                    }`}
-            >
-                {i}
-            </button>
-        ));
+        if (totalPages <= 5) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else if (currentPage <= 3) {
+            pages = [1, 2, 3, 4, 5];
+        } else if (currentPage >= totalPages - 2) {
+            pages = [totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+        } else {
+            pages = [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
+        }
 
         const startItem = students.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
         const endItem = Math.min(currentPage * itemsPerPage, students.length);
 
         return (
-            <div className="flex items-center justify-between mt-6 px-4 py-3">
-                <span className="text-sm text-gray-600">
-                    Hiển thị {startItem} - {endItem} của {students.length} sinh viên
-                </span>
-                <div className="flex items-center">
-                    <button
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="px-3 py-1 mx-1 rounded-md bg-white text-gray-700 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                    >
-                        &lt; Trước
-                    </button>
-                    {pageButtons}
-                    <button
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="px-3 py-1 mx-1 rounded-md bg-white text-gray-700 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                    >
-                        Tiếp &gt;
-                    </button>
+            <div className="bg-white border-t border-gray-200 px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between">
+                <div className="mb-2 md:mb-0">
+                    <p className="text-sm text-gray-700">
+                        Hiển thị <span className="font-medium">{startItem}</span> đến{' '}
+                        <span className="font-medium">{endItem}</span> trong{' '}
+                        <span className="font-medium">{students.length}</span> kết quả
+                    </p>
+                </div>
+                <div>
+                    <nav className="inline-flex gap-1" aria-label="Pagination">
+                        <button
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className="border px-3 py-1 rounded-l-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <span aria-hidden="true">&lt;</span>
+                        </button>
+                        {pages.map((page) => (
+                            <button
+                                key={page}
+                                onClick={() => handlePageChange(page)}
+                                className={`border px-3 py-1 ${currentPage === page
+                                    ? 'bg-blue-600 text-white border-blue-600'
+                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                    }`}
+                            >
+                                {page}
+                            </button>
+                        ))}
+                        <button
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className="border px-3 py-1 rounded-r-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <span aria-hidden="true">&gt;</span>
+                        </button>
+                    </nav>
                 </div>
             </div>
         );
@@ -932,7 +964,7 @@ const StudentPage = () => {
                     ) : paginatedStudents.length > 0 ? (
                         <>
                             <div className="p-6">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                                     {paginatedStudents.map((student) => (
                                         <StudentCard
                                             key={student.id}
@@ -944,7 +976,7 @@ const StudentPage = () => {
                                     ))}
                                 </div>
                             </div>
-                            {totalPages > 1 && renderPagination()}
+                            {renderPagination()}
                         </>
                     ) : (
                         <p className="p-8 text-center text-gray-500">Không tìm thấy sinh viên nào.</p>

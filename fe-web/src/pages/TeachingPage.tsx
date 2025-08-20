@@ -52,8 +52,8 @@ const validateScheduleData = (formData: TeachingSchedulePayload): string[] => {
     }
 
     // 2. Thời gian trong khoảng 07:00 - 21:30
-    const MIN_TIME = 7 * 60; // 07:00 = 420 minutes
-    const MAX_TIME = 21 * 60 + 30; // 21:30 = 1290 minutes
+    const MIN_TIME = 7 * 60;
+    const MAX_TIME = 21 * 60 + 30;
 
     if (formData.startTime) {
         const startMinutes = timeToMinutes(formData.startTime);
@@ -209,7 +209,7 @@ const TeachingScheduleModal = ({
 
         const validationErrors = validateScheduleData(formData);
         if (validationErrors.length > 0) {
-            setInputError(validationErrors[0]); // Hiển thị lỗi đầu tiên
+            setInputError(validationErrors[0]);
             return;
         }
 
@@ -563,21 +563,18 @@ const TeachingPage = () => {
         try {
             let data: TeachingSchedule[];
 
-            // Thử gọi API theo date trước, nếu lỗi thì gọi API lấy tất cả
             try {
                 data = await getSchedulesByDate(date);
             } catch (dateApiError) {
                 console.log('Date API failed, fallback to get all schedules');
                 const allSchedules = await getTeachingSchedules();
-                // Filter schedules có chứa ngày được chọn
+
                 data = allSchedules.filter(schedule =>
                     schedule.weeks.some(week =>
                         week.studyDays.some(day => day.date === date)
                     )
                 );
             }
-
-            // Flatten data để hiển thị trong bảng
             const flattenedData: any[] = [];
             data.forEach(schedule => {
                 schedule.weeks.forEach(week => {
