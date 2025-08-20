@@ -370,4 +370,66 @@ public class StudentService {
 
         return ApiResponse.success(null, "Student deleted successfully", servletRequest.getRequestURI());
     }
+
+    @Transactional
+    public ApiResponse<Object> updateStudent(Long studentId, CreateStudentRequest request, HttpServletRequest servletRequest) {
+        // 1. Tìm student
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Student with id [%s] not found".formatted(studentId)));
+
+        User user = student.getUser();
+
+        // 2. Kiểm tra class
+        ClassEntity classEntity = classRepository.findByClassName(request.getClassName())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Class not found with name: [%s]".formatted(request.getClassName())));
+
+        // 3. Kiểm tra major
+        Major major = majorRepository.findByMajorName(request.getMajorName())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Major not found with name: [%s]".formatted(request.getMajorName())));
+
+        // 4. Kiểm tra faculty
+        Faculty faculty = facultyRepository.findByFacultyName(request.getFacultyName())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Faculty not found with name: [%s]".formatted(request.getFacultyName())));
+
+        // 5. Kiểm tra trùng studentCode
+        if (!student.getStudentCode().equals(request.getStudentCode())
+                && studentRepository.existsByStudentCode(request.getStudentCode())) {
+            throw new DuplicateResourceException("Student code already exists");
+        }
+
+        // 6. Kiểm tra trùng account
+        if (!user.getAccount().equals(request.getAccount())
+                && userRepository.existsByAccount(request.getAccount())) {
+            throw new DuplicateResourceException("Account already exists");
+        }
+
+        // 7. Kiểm tra trùng email
+        if (!user.getEmail().equals(request.getEmail())
+                && userRepository.existsByEmail(request.getEmail())) {
+            throw new DuplicateResourceException("Email already exists");
+        }
+
+        // 8. Cập nhật User
+        user.setName(request.getStudentName());
+        user.setAccount(request.getAccount());
+        user.setEmail(request.getEmail());
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+        userRepository.save(user);
+
+        // 9. Cập nhật Student
+        student.setStudentCode(request.getStudentCode());
+        student.setClasses(classEntity);
+        student.setMajor(major);
+        student.setFaculty(faculty);
+        studentRepository.save(student);
+
+        return ApiResponse.success(null, "Student updated successfully", servletRequest.getRequestURI());
+    }
+
 }
