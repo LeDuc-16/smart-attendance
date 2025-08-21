@@ -25,7 +25,7 @@ public class OtpService implements OtpDao {
         private final JwtService jwtService;
         private final EmailDao emailDao;
         private final AuthenticationService authenticationService;
-        private final PasswordEncoder passwordEncoder; // Thêm PasswordEncoder
+        private final PasswordEncoder passwordEncoder;
         private static final int OTP_LENGTH = 6;
         private static final int OTP_EXPIRATION_MINUTES = 5;
 
@@ -94,7 +94,8 @@ public class OtpService implements OtpDao {
                 return String.valueOf(number);
         }
 
-        public AuthenticationResponse verifyOtp(OtpResponse response) {
+        @Transactional
+        public OtpVerifyResponse verifyOtp(OtpResponse response) {
                 if (response == null || response.getOtpCode() == null || response.getOtpCode().trim().isEmpty()) {
                         throw new RequestValidationException("Mã OTP không được để trống");
                 }
@@ -109,13 +110,7 @@ public class OtpService implements OtpDao {
                                 "Mã OTP không hợp lệ hoặc đã hết hạn"));
 
                 try {
-                        otp.setUsed(true);
-                        otpRepository.save(otp);
-
-                        User user = otp.getUser();
-                        return AuthenticationResponse.builder()
-                                .email(user.getEmail()) // Trả về email để sử dụng trong bước đổi mật khẩu
-                                .build();
+                        return new OtpVerifyResponse(otp.getOtpCode());
                 } catch (Exception e) {
                         throw new RuntimeException("Lỗi khi xác thực OTP: " + e.getMessage());
                 }
@@ -123,20 +118,26 @@ public class OtpService implements OtpDao {
 
         @Transactional
         public AuthenticationResponse resetPassword(ResetPasswordRequest request) {
-                if (request == null || request.getEmail() == null || request.getNewPassword() == null) {
-                        throw new RequestValidationException("Email và mật khẩu mới không được để trống");
+                if (request == null || request.getOtpCode() == null || request.getNewPassword() == null || request.getConfirmPassword() == null) {
+                        throw new RequestValidationException("OTP, mật khẩu mới và xác nhận mật khẩu không được để trống");
                 }
 
-                User user = userRepository.findByEmail(request.getEmail())
-                        .orElseThrow(() -> new ResourceNotFoundException(
-                                "Không tìm thấy người dùng với email: " + request.getEmail()));
+                if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+                        throw new RequestValidationException("Mật khẩu xác nhận không khớp");
+                }
+
+                Otp otp = otpRepository.findByOtpCodeAndUsedFalseAndExpirationAfter(
+                                request.getOtpCode(), LocalDateTime.now())
+                        .orElseThrow(() -> new RequestValidationException(
+                                "Mã OTP không hợp lệ hoặc đã hết hạn"));
 
                 try {
-                        // Mã hóa mật khẩu mới
+                        User user = otp.getUser();
                         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+                        otp.setUsed(true); // Đánh dấu OTP đã sử dụng
                         userRepository.save(user);
+                        otpRepository.save(otp);
 
-                        // Tạo token mới sau khi đổi mật khẩu
                         String jwtToken = jwtService.generateToken(user);
                         String refreshToken = jwtService.generateRefreshToken(user);
                         authenticationService.revokeAllUserTokens(user);

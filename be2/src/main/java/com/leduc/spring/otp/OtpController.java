@@ -15,11 +15,7 @@ public class OtpController {
 
     @PostMapping("/forgot-password")
     public ResponseEntity<OtpResponse> sendOtp(@RequestBody OtpRequest request) {
-        // Validate request
-        if (request == null) {
-            throw new RequestValidationException("Dữ liệu yêu cầu OTP không được để trống");
-        }
-        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+        if (request == null || request.getEmail() == null || request.getEmail().trim().isEmpty()) {
             throw new RequestValidationException("Email không được để trống");
         }
 
@@ -28,18 +24,25 @@ public class OtpController {
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<AuthenticationResponse> verifyOtp(@RequestBody OtpResponse response) {
-        // Validate request
-        if (response == null) {
-            throw new RequestValidationException("Dữ liệu xác thực OTP không được để trống");
-        }
-        if (response.getOtpCode() == null || response.getOtpCode().trim().isEmpty()) {
+    public ResponseEntity<OtpVerifyResponse> verifyOtp(@RequestBody OtpResponse response) {
+        if (response == null || response.getOtpCode() == null || response.getOtpCode().trim().isEmpty()) {
             throw new RequestValidationException("Mã OTP không được để trống");
         }
 
-        AuthenticationResponse authResponse = otpService.verifyOtp(response);
-        return ResponseEntity.ok(authResponse);
+        OtpVerifyResponse verifyResponse = otpService.verifyOtp(response);
+        return ResponseEntity.ok(verifyResponse);
     }
 
+    @PostMapping("/reset-password")
+    public ResponseEntity<AuthenticationResponse> resetPassword(@RequestBody ResetPasswordRequest request) {
+        if (request == null || request.getNewPassword() == null || request.getConfirmPassword() == null) {
+            throw new RequestValidationException("Mật khẩu mới và xác nhận mật khẩu không được để trống");
+        }
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new RequestValidationException("Mật khẩu xác nhận không khớp");
+        }
 
+        AuthenticationResponse authResponse = otpService.resetPassword(request);
+        return ResponseEntity.ok(authResponse);
+    }
 }
