@@ -14,6 +14,8 @@ public class LecturerMapper {
         response.setUserId(lecturer.getUser() != null ? lecturer.getUser().getId().longValue() : null);
         response.setFacultyId(lecturer.getFaculty() != null ? lecturer.getFaculty().getId() : null);
         response.setRole(lecturer.getUser() != null ? lecturer.getUser().getRole() : null);
+        response.setAccount(lecturer.getUser() != null ? lecturer.getUser().getAccount() : null);
+        response.setEmail(lecturer.getUser() != null ? lecturer.getUser().getEmail() : null);
         return response;
     }
 
