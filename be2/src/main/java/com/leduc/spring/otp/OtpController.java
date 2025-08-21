@@ -40,4 +40,6 @@ public class OtpController {
         AuthenticationResponse authResponse = otpService.verifyOtp(response);
         return ResponseEntity.ok(authResponse);
     }
+
+
 }
