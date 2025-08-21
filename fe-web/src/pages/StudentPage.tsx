@@ -58,8 +58,6 @@ const getErrorMessageVN = (errorMessage: string): string => {
     return 'Có lỗi xảy ra. Vui lòng thử lại.';
 };
 
-// Student Card Component - ĐƠN GIẢN, KHÔNG DÙNG USEEFFECT
-// Student Card Component - Với force reload ảnh
 const StudentCard = ({
     student,
     onEdit,
@@ -71,7 +69,6 @@ const StudentCard = ({
     onDelete: () => void;
     onUpload: () => void;
 }) => {
-    // Ảnh mặc định đơn giản bằng CSS
     const placeholderStyle = {
         width: '80px',
         height: '80px',
@@ -86,7 +83,6 @@ const StudentCard = ({
         border: '4px solid #dbeafe'
     };
 
-    // Thêm timestamp để force reload ảnh
     const getImageUrl = (avatarUrl: string) => {
         return `${avatarUrl}?t=${Date.now()}`;
     };
@@ -163,9 +159,6 @@ const StudentCard = ({
     );
 };
 
-
-
-// Modal Form Component
 const StudentFormModal = ({
     isOpen,
     onClose,
@@ -366,7 +359,7 @@ const StudentFormModal = ({
     );
 };
 
-// Delete Confirmation Modal
+
 const DeleteConfirmModal = ({
     isOpen,
     onClose,
@@ -425,7 +418,7 @@ const DeleteConfirmModal = ({
     );
 };
 
-// Import Excel Modal
+
 const ImportExcelModal = ({
     isOpen,
     onClose,
@@ -532,13 +525,13 @@ const ImportExcelModal = ({
     );
 };
 
-// Main StudentPage Component
+
 const StudentPage = () => {
     const [students, setStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Dropdown data
+
     const [faculties, setFaculties] = useState<Faculty[]>([]);
     const [allMajors, setAllMajors] = useState<Major[]>([]);
     const [filteredMajors, setFilteredMajors] = useState<Major[]>([]);
@@ -548,11 +541,11 @@ const StudentPage = () => {
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
     const [modalError, setModalError] = useState('');
 
-    // Delete modal states
+
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingStudent, setDeletingStudent] = useState<Student | null>(null);
 
-    // Import modal states
+
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     const [formData, setFormData] = useState<StudentPayload>({
@@ -594,7 +587,7 @@ const StudentPage = () => {
         });
     }, []);
 
-    // Fetch dropdown options - chạy một lần duy nhất
+
     useEffect(() => {
         const fetchDropdownOptions = async () => {
             try {
@@ -618,7 +611,7 @@ const StudentPage = () => {
         fetchDropdownOptions();
     }, [showErrorToast]);
 
-    // Fetch students - phụ thuộc vào debouncedSearchTerm
+
     useEffect(() => {
         const fetchStudents = async () => {
             setLoading(true);
@@ -648,7 +641,7 @@ const StudentPage = () => {
         fetchStudents();
     }, [debouncedSearchTerm, showErrorToast]);
 
-    // Debounced search
+
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearchTerm(searchTerm);
@@ -657,7 +650,7 @@ const StudentPage = () => {
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
-    // Major filtering - LOẠI BỎ formData.majorName
+
     useEffect(() => {
         if (formData.facultyName && allMajors.length > 0 && faculties.length > 0) {
             const selectedFaculty = faculties.find(f => f.facultyName === formData.facultyName);
@@ -667,7 +660,7 @@ const StudentPage = () => {
                 );
                 setFilteredMajors(majorsForSelectedFaculty);
 
-                // Chỉ reset khi major không hợp lệ
+
                 const currentMajorValid = majorsForSelectedFaculty.some(
                     major => major.majorName === formData.majorName
                 );
@@ -758,7 +751,7 @@ const StudentPage = () => {
             }
             setIsModalOpen(false);
 
-            // Trigger re-fetch bằng cách reset search
+
             setDebouncedSearchTerm(prev => prev + " ");
             setTimeout(() => setDebouncedSearchTerm(searchTerm), 100);
         } catch (err: any) {
@@ -782,7 +775,7 @@ const StudentPage = () => {
                 setCurrentPage(currentPage - 1);
             }
 
-            // Trigger re-fetch bằng cách reset search
+
             setDebouncedSearchTerm(prev => prev + " ");
             setTimeout(() => setDebouncedSearchTerm(searchTerm), 100);
         } catch (error: any) {
@@ -811,10 +804,9 @@ const StudentPage = () => {
                 await uploadStudentImage(student.id, file);
                 showSuccessToast("Tải ảnh thành công!");
 
-                // FORCE UPDATE: Reload toàn bộ danh sách sinh viên để lấy URL ảnh mới
                 const updatedStudents = await getStudents();
 
-                // Filter nếu có search term
+
                 let filteredData = updatedStudents;
                 if (debouncedSearchTerm) {
                     filteredData = updatedStudents.filter(
@@ -845,7 +837,7 @@ const StudentPage = () => {
             showSuccessToast("Import sinh viên từ Excel thành công!");
             setIsImportModalOpen(false);
 
-            // Trigger re-fetch bằng cách reset search
+
             setDebouncedSearchTerm(prev => prev + " ");
             setTimeout(() => setDebouncedSearchTerm(searchTerm), 100);
         } catch (err: any) {

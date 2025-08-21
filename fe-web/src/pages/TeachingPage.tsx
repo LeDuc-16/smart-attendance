@@ -8,7 +8,6 @@ import {
 } from "react-icons/fi";
 import {
     getTeachingSchedules,
-    getSchedulesByDate,
     createTeachingSchedule,
     updateTeachingSchedule,
     deleteTeachingSchedule,

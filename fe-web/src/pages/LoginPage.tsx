@@ -38,7 +38,7 @@ const LoginPage = () => {
           navigate("/dashboard");
         }
       } else {
-        console.log("API response:", response); // Thêm dòng này để debug
+        console.log("API response:", response);
         setMessage("Không tìm thấy access_token trong phản hồi!");
       }
     } catch (error) {

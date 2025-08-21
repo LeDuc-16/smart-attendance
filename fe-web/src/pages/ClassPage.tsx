@@ -80,7 +80,7 @@ const ClassFormModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
                 <div className="flex justify-between items-start p-4">
                     <div>
@@ -173,7 +173,7 @@ const SelectLecturerModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
                 <div className="flex justify-between items-start p-4">
                     <div>
@@ -246,7 +246,7 @@ const DeleteConfirmModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
             <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-0">
                 <div className="flex items-start justify-between px-6 pt-6">
                     <div className="flex items-center">
@@ -334,7 +334,6 @@ const ClassPage = () => {
             draggable: true,
         });
     };
-
     const fetchClasses = useCallback(async (pageToFetch: number, currentSearchTerm: string) => {
         setLoading(true);
         setError(null);
@@ -364,25 +363,26 @@ const ClassPage = () => {
                     classData = response.data.content;
                 }
 
-                // Lấy thông tin giảng viên và số lượng sinh viên
                 const classesWithDetails = await Promise.all(
                     classData.map(async (classItem: Class) => {
                         let lecturerName = "Chưa có giảng viên";
+                        let currentStudents = 0;
+
                         if (classItem.advisor) {
                             try {
                                 const lecturer = await getLecturerById(classItem.advisor);
-                                lecturerName = lecturer.lecturerCode || `${classItem.advisor}`;
-                            } catch (error) {
-                                lecturerName = `${classItem.advisor}`;
+                                lecturerName = lecturer.lecturerCode || lecturer.name || `Lecturer-${classItem.advisor}`;
+                            } catch (error: any) {
+                                console.warn(`Không thể lấy thông tin giảng viên ID ${classItem.advisor}:`, error.message);
+                                lecturerName = `Giảng viên ID: ${classItem.advisor}`;
                             }
                         }
 
-                        // Lấy số lượng sinh viên hiện tại
-                        let currentStudents = 0;
                         try {
                             currentStudents = await getStudentCountByClass(classItem.className);
-                        } catch (error) {
-                            console.error('Error getting student count for class:', classItem.className, error);
+                        } catch (error: any) {
+                            console.warn(`Không thể lấy số lượng sinh viên lớp ${classItem.className}:`, error.message);
+                            currentStudents = 0;
                         }
 
                         return {
@@ -405,9 +405,25 @@ const ClassPage = () => {
                 setTotalItems(0);
                 setTotalPages(0);
             }
-        } catch (err) {
-            setError('Thử thêm dữ liệu trên backend');
-            console.error(err);
+        } catch (err: any) {
+            console.error('Error fetching classes:', err);
+
+            if (err.response && err.response.status === 404) {
+                setClasses([]);
+                setTotalItems(0);
+                setTotalPages(0);
+                setError(null);
+            } else if (err.response && err.response.status === 401) {
+                setError('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại');
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            } else if (err.response && err.response.status >= 500) {
+                setError('Lỗi máy chủ, vui lòng thử lại sau');
+            } else if (err.message === 'Network Error') {
+                setError('Không thể kết nối đến máy chủ');
+            } else {
+                setError('Có lỗi xảy ra khi tải dữ liệu');
+            }
         } finally {
             setLoading(false);
         }
@@ -416,9 +432,10 @@ const ClassPage = () => {
     const fetchLecturers = useCallback(async () => {
         try {
             const data = await getLecturers();
-            setLecturers(data);
-        } catch (err) {
-            console.error(err);
+            setLecturers(data || []);
+        } catch (err: any) {
+            console.warn('Error fetching lecturers for dropdown:', err);
+            setLecturers([]);
         }
     }, []);
 
@@ -468,15 +485,19 @@ const ClassPage = () => {
                 showSuccessToast('Thêm lớp thành công!');
             }
             setIsModalOpen(false);
-            setDebouncedSearchTerm(searchTerm);
-            setCurrentPage(1);
-            fetchClasses(1, searchTerm);
+
+
+            try {
+                await fetchClasses(1, searchTerm);
+                setCurrentPage(1);
+            } catch (refreshError) {
+                console.warn('Error refreshing classes:', refreshError);
+            }
         } catch (error: any) {
             console.error("API Error:", error.response || error);
 
             const serverMessage = error.response?.data?.message || '';
 
-            // Kiểm tra lỗi trùng tên
             if (serverMessage.includes("tồn tại") ||
                 serverMessage.toLowerCase().includes("existed") ||
                 serverMessage.toLowerCase().includes("already") ||
@@ -501,9 +522,13 @@ const ClassPage = () => {
             } else {
                 fetchClasses(currentPage, debouncedSearchTerm);
             }
-        } catch (error) {
-            showErrorToast('Lỗi: Không thể xóa lớp.');
-            console.error(error);
+        } catch (error: any) {
+            console.error('Delete error:', error);
+            if (error.response && error.response.status === 409) {
+                showErrorToast('Không thể xóa lớp này vì đang có sinh viên thuộc lớp');
+            } else {
+                showErrorToast('Lỗi: Không thể xóa lớp.');
+            }
             closeDeleteModal();
         }
     };
@@ -515,37 +540,23 @@ const ClassPage = () => {
 
     const handleSelectLecturer = async (lecturerId: number) => {
         try {
-            console.log('Calling API with:', { classId: selectedClassId, lecturerId });
-
             const response = await addLecturerToClass(selectedClassId, lecturerId);
 
-            console.log('API Response:', response);
-
             if (response && (response.statusCode === 200 || response.status === 200)) {
-                const lecturer = await getLecturerById(lecturerId);
-
-                setClasses(prevClasses =>
-                    prevClasses.map(classItem =>
-                        classItem.id === selectedClassId
-                            ? {
-                                ...classItem,
-                                advisor: lecturerId,
-                                lecturerName: lecturer.lecturerCode || `Lecturer-${lecturerId}`
-                            }
-                            : classItem
-                    )
-                );
-
                 showSuccessToast('Thêm giảng viên thành công!');
 
-                await fetchClasses(currentPage, debouncedSearchTerm);
+
+                try {
+                    await fetchClasses(currentPage, debouncedSearchTerm);
+                } catch (refreshError) {
+                    console.warn('Lỗi khi refresh sau khi thêm giảng viên:', refreshError);
+                    window.location.reload();
+                }
             } else {
-                console.error('API returned unexpected response:', response);
                 showErrorToast('Lỗi: API trả về response không mong đợi');
             }
         } catch (error: any) {
             console.error('Error adding lecturer:', error);
-            console.error('Error details:', error.response?.data);
             showErrorToast(`Lỗi: ${error.response?.data?.message || 'Không thể thêm giảng viên'}`);
         }
     };
@@ -557,6 +568,8 @@ const ClassPage = () => {
     };
 
     const renderPagination = () => {
+        if (totalPages <= 1) return null;
+
         let pageButtons = [];
         let pages: number[] = [];
         if (totalPages <= 3) {
@@ -636,6 +649,7 @@ const ClassPage = () => {
                 onSubmit={handleSelectLecturer}
                 lecturers={lecturers}
             />
+
             <div className="space-y-4">
                 <div className="mb-4">
                     <h1 className="text-2xl font-bold text-[#1E3A8A] mb-2">
@@ -657,7 +671,6 @@ const ClassPage = () => {
                         />
                         <FiSearch className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />
                     </div>
-
                     <button
                         onClick={openAddModal}
                         className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center font-semibold text-sm"
@@ -672,9 +685,25 @@ const ClassPage = () => {
                         Danh sách lớp học
                     </h2>
                     {loading ? (
-                        <p className="p-6 text-center text-gray-500">Đang tải dữ liệu...</p>
+                        <div className="p-8 text-center">
+                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <p className="text-gray-500 mt-2">Đang tải dữ liệu...</p>
+                        </div>
                     ) : error ? (
-                        <p className="p-6 text-center text-red-600">{error}</p>
+                        <div className="p-8 text-center">
+                            <div className="text-red-600 mb-4">
+                                <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <p className="text-lg font-medium">{error}</p>
+                            </div>
+                            <button
+                                onClick={() => fetchClasses(currentPage, debouncedSearchTerm)}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                            >
+                                Thử lại
+                            </button>
+                        </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
@@ -720,24 +749,24 @@ const ClassPage = () => {
                                                         )}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                        <div className="flex items-center space-x-2">
+                                                        <div className="flex items-center space-x-4">
                                                             <button
                                                                 onClick={() => openEditModal(classItem)}
-                                                                className="text-indigo-600 hover:text-indigo-900 p-1"
+                                                                className="text-indigo-600 hover:text-indigo-900"
                                                                 title="Sửa"
                                                             >
                                                                 <FiEdit size={16} />
                                                             </button>
                                                             <button
                                                                 onClick={() => openDeleteModal(classItem)}
-                                                                className="text-red-600 hover:text-red-900 p-1"
+                                                                className="text-red-600 hover:text-red-900"
                                                                 title="Xóa"
                                                             >
                                                                 <FiTrash2 size={16} />
                                                             </button>
                                                             <button
                                                                 onClick={() => handleAddTeacher(classItem.id)}
-                                                                className="text-green-600 hover:text-green-900 p-1"
+                                                                className="text-green-600 hover:text-green-900"
                                                                 title="Thêm giảng viên chủ nhiệm"
                                                             >
                                                                 <FiUserPlus size={16} />
@@ -748,8 +777,16 @@ const ClassPage = () => {
                                             ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={6} className="text-center py-6 text-gray-500">
-                                                Không tìm thấy lớp nào.
+                                            <td colSpan={6} className="text-center py-8">
+                                                <div className="text-gray-500">
+                                                    <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                    </svg>
+                                                    <p className="text-lg font-medium">Chưa có lớp nào</p>
+                                                    <p className="text-sm text-gray-400 mt-1">
+                                                        {searchTerm ? `Không tìm thấy lớp nào với từ khóa "${searchTerm}"` : 'Hãy thêm lớp đầu tiên'}
+                                                    </p>
+                                                </div>
                                             </td>
                                         </tr>
                                     )}
