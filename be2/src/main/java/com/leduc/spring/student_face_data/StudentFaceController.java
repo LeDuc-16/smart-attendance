@@ -1,5 +1,6 @@
 package com.leduc.spring.student_face_data;
 
+import com.leduc.spring.config.JwtService;
 import com.leduc.spring.exception.ApiResponse;
 import com.leduc.spring.student.Student;
 import com.leduc.spring.student.StudentRepository;
@@ -10,10 +11,12 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,18 +29,18 @@ import java.util.Arrays;
 @SecurityRequirement(name = "bearerAuth")
 public class StudentFaceController {
 
+    private static final Logger logger = LoggerFactory.getLogger(StudentFaceController.class);
     private final StudentFaceDataService studentFaceDataService;
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
+    private final JwtService jwtService;
 
-    //chi student
     @PostMapping(
-            value = "/{studentId}/face-registration",
+            value = "/face-registration",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
-    @Operation(summary = "Đăng ký ảnh khuôn mặt sinh viên", description = "Đăng ký 5 ảnh khuôn mặt (trên, dưới, trái, phải, giữa) cho sinh viên theo ID, sử dụng AWS Rekognition")
+    @Operation(summary = "Đăng ký ảnh khuôn mặt sinh viên", description = "Đăng ký 5 ảnh khuôn mặt (trên, dưới, trái, phải, giữa) cho sinh viên hiện tại, sử dụng AWS Rekognition")
     public ResponseEntity<ApiResponse<FaceRegisterResponse>> registerStudentFace(
-            @PathVariable("studentId") Long studentId,
             @RequestParam("top") MultipartFile top,
             @RequestParam("bottom") MultipartFile bottom,
             @RequestParam("left") MultipartFile left,
@@ -45,15 +48,34 @@ public class StudentFaceController {
             @RequestParam("center") MultipartFile center,
             HttpServletRequest servletRequest
     ) {
+        // Get account from authenticated principal
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String account = userDetails.getUsername();
+        logger.info("Authenticated account: {}", account);
+
+        // Validate JWT token
+        String authHeader = servletRequest.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            logger.error("Invalid or missing Authorization header");
+            throw new IllegalArgumentException("Invalid or missing Authorization header");
+        }
+        String jwt = authHeader.substring(7);
+        String extractedAccount = jwtService.extractUsername(jwt);
+        if (!extractedAccount.equals(account)) {
+            logger.error("JWT token username does not match authenticated user: {} vs {}", extractedAccount, account);
+            throw new IllegalArgumentException("JWT token username does not match authenticated user");
+        }
+
+        // Extract studentId from account
+        Long studentId = extractStudentIdFromAccount(account);
+
         FaceRegisterRequest request = FaceRegisterRequest.builder()
-                .studentId(studentId)
                 .files(Arrays.asList(top, bottom, left, right, center))
                 .build();
-        ApiResponse<FaceRegisterResponse> response = studentFaceDataService.registerStudentFace(request, servletRequest);
+        ApiResponse<FaceRegisterResponse> response = studentFaceDataService.registerStudentFace(request, studentId, servletRequest);
         return ResponseEntity.ok(response);
     }
 
-    //chi admin va giang vien
     @DeleteMapping("/{faceId}")
     @Operation(summary = "Xoá khuôn mặt sinh viên", description = "Xoá một faceId khỏi AWS Rekognition collection")
     public ResponseEntity<ApiResponse<String>> deleteFace(
@@ -64,8 +86,6 @@ public class StudentFaceController {
         return ResponseEntity.ok(response);
     }
 
-
-    //chi student
     @PostMapping(
             value = "/compare",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
@@ -75,12 +95,25 @@ public class StudentFaceController {
             @RequestParam("file") MultipartFile file,
             HttpServletRequest servletRequest
     ) {
-        // Lấy account từ JWT token
-        Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String account = jwt.getClaimAsString("account"); // Giả sử claim 'account' chứa email hoặc mã sinh viên
-        if (account == null) {
-            throw new IllegalArgumentException("JWT token does not contain 'account' claim");
+        // Get account from authenticated principal
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String account = userDetails.getUsername();
+        logger.info("Authenticated account: {}", account);
+
+        // Validate JWT token
+        String authHeader = servletRequest.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            logger.error("Invalid or missing Authorization header");
+            throw new IllegalArgumentException("Invalid or missing Authorization header");
         }
+        String jwt = authHeader.substring(7);
+        String extractedAccount = jwtService.extractUsername(jwt);
+        if (!extractedAccount.equals(account)) {
+            logger.error("JWT token username does not match authenticated user: {} vs {}", extractedAccount, account);
+            throw new IllegalArgumentException("JWT token username does not match authenticated user");
+        }
+
+        // Extract studentId from account
         Long studentId = extractStudentIdFromAccount(account);
         ApiResponse<FaceCompareResponse> response = studentFaceDataService.compareFace(studentId, file, servletRequest);
         return ResponseEntity.ok(response);

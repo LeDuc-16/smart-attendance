@@ -9,6 +9,5 @@ import java.util.List;
 @Builder
 @Getter
 public class FaceRegisterRequest {
-    private Long studentId;
-    private List<MultipartFile> files; // Danh sách 5 ảnh
+    private List<MultipartFile> files; // Chỉ giữ danh sách files
 }

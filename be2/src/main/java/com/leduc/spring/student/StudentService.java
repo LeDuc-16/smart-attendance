@@ -13,6 +13,8 @@ import com.leduc.spring.major.MajorRepository;
 import com.leduc.spring.aws.S3Buckets;
 import com.leduc.spring.aws.S3Service;
 import com.leduc.spring.student_face_data.StudentFaceData;
+import com.leduc.spring.student_face_data.StudentFaceDataService;
+import com.leduc.spring.token.TokenRepository;
 import com.leduc.spring.user.Role;
 import com.leduc.spring.user.User;
 import com.leduc.spring.user.UserRepository;
@@ -28,8 +30,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.SdkBytes;
-import software.amazon.awssdk.services.rekognition.RekognitionClient;
 import software.amazon.awssdk.services.rekognition.model.*;
 
 import java.io.IOException;
@@ -52,7 +52,9 @@ public class StudentService {
     private final PasswordEncoder passwordEncoder;
     private final S3Service s3Service;
     private final S3Buckets s3Buckets;
-    private final RekognitionClient rekognitionClient;
+    private final TokenRepository tokenRepository;
+    private final StudentFaceDataService studentFaceDataService;
+
     // Thêm RekognitionClient
     private static final String FACE_COLLECTION_ID = "student_faces";
 
@@ -350,12 +352,12 @@ public class StudentService {
     //xoa student
     @Transactional
     public ApiResponse<Object> deleteStudent(Long studentId, HttpServletRequest servletRequest) {
-        // Tìm student
+        // Find student
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Student with id [%s] not found".formatted(studentId)));
 
-        // Xóa ảnh hồ sơ nếu có
+        // Delete profile image if exists
         if (StringUtils.isNotBlank(student.getProfileImageId())) {
             s3Service.deleteObject(
                     s3Buckets.getStudent(),
@@ -363,8 +365,19 @@ public class StudentService {
             );
         }
 
-        // Xóa user liên kết
+        // Delete associated face data from Rekognition and database
+        List<StudentFaceData> faceDataList = student.getFaceDataList();
+        if (!faceDataList.isEmpty()) {
+            for (StudentFaceData faceData : faceDataList) {
+                studentFaceDataService.deleteFace(faceData.getFaceId(), servletRequest);
+            }
+        }
+
+        // Delete associated tokens
         Long userId = student.getUser().getId();
+        tokenRepository.deleteByUserId(userId);
+
+        // Delete student and associated user
         studentRepository.delete(student);
         userRepository.deleteById(userId);
 

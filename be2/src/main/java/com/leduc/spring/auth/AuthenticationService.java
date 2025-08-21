@@ -167,10 +167,10 @@ public class AuthenticationService {
 
     var jwtToken = jwtService.generateToken(user);
     var refreshToken = jwtService.generateRefreshToken(user);
-    revokeAllUserTokens(user);
+
+    // ❌ Bỏ revokeAllUserTokens(user);
     saveUserToken(user, jwtToken);
 
-    // Tùy role -> lấy DTO phù hợp
     Object userData;
     switch (user.getRole()) {
       case STUDENT:
@@ -191,7 +191,7 @@ public class AuthenticationService {
     AuthenticationResponse response = AuthenticationResponse.builder()
             .accessToken(jwtToken)
             .refreshToken(refreshToken)
-            .user(userData) // truyền object phù hợp
+            .user(userData)
             .build();
 
     return ApiResponse.success(
@@ -200,6 +200,7 @@ public class AuthenticationService {
             "/api/v1/auth/login"
     );
   }
+
 
 
   public Object getAccountInfoByRole(User user) {

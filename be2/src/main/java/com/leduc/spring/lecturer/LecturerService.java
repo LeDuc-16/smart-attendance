@@ -27,6 +27,7 @@ public class LecturerService {
     @Autowired
     private FacultyRepository facultyRepository;
 
+
     public ApiResponse<Object> createLecturer(CreateLecturerRequest request, HttpServletRequest servletRequest) {
         // Kiểm tra trùng lặp lecturerCode
         if (lecturerRepository.existsByLecturerCode(request.getLecturerCode())) {
@@ -129,5 +130,6 @@ public class LecturerService {
         lecturerRepository.delete(lecturer);
         return ApiResponse.success(null, "Lecturer deleted successfully", servletRequest.getRequestURI());
     }
+
 
 }
