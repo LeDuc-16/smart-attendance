@@ -9,6 +9,19 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface VerifyOtpRequest {
+  otp: string;
+}
+
+export interface ResetPasswordRequest {
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export interface BackendApiResponse<T> {
   statusCode: number;
   message: string;
@@ -28,22 +41,18 @@ class ApiAuthService {
     }
   }
 
-  // Set token sau khi login thành công
   setAuthToken(token: string) {
     this.authToken = token;
   }
 
-  // Clear token khi logout
   clearAuthToken() {
     this.authToken = null;
   }
 
-  // Get current token
   getAuthToken(): string | null {
     return this.authToken;
   }
 
-  // Get headers
   private getHeaders(includeAuth: boolean = true) {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -56,10 +65,7 @@ class ApiAuthService {
     return headers;
   }
 
-  // Login API
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    console.log('Attempting login with:', { account: credentials.account });
-    
     const response = await fetch(`${this.baseURL}/api/v1/auth/login`, {
       method: 'POST',
       headers: this.getHeaders(false),
@@ -67,25 +73,21 @@ class ApiAuthService {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error('Login failed with status:', response.status, error);
-      throw new Error(error || 'Login failed');
+      const error = await response.json();
+      // Chỉ lấy message từ error response
+      throw new Error(error.message || 'Đăng nhập thất bại');
     }
 
     const result: BackendApiResponse<AuthResponse> = await response.json();
-    console.log('Login response:', result);
-    
-    // Backend trả về: { statusCode, message, path, data: { access_token, refresh_token } }
+
     if (result.data && result.data.access_token) {
       this.setAuthToken(result.data.access_token);
       return result.data;
     }
-    
-    console.error('Invalid response structure:', result);
+
     throw new Error('Invalid response format');
   }
 
-  // Logout API
   async logout(): Promise<void> {
     try {
       await fetch(`${this.baseURL}/api/v1/auth/logout`, {
@@ -93,13 +95,12 @@ class ApiAuthService {
         headers: this.getHeaders(),
       });
     } catch (error) {
-      console.error('Logout error:', error);
+      // Silent catch
     } finally {
       this.clearAuthToken();
     }
   }
 
-  // Verify token
   async verifyToken(): Promise<boolean> {
     if (!this.authToken) {
       return false;
@@ -113,12 +114,10 @@ class ApiAuthService {
 
       return response.ok;
     } catch (error) {
-      console.error('Token verification failed:', error);
       return false;
     }
   }
 
-  // Get current user info
   async getCurrentUser(): Promise<any> {
     const response = await fetch(`${this.baseURL}/api/v1/auth/me`, {
       method: 'GET',
@@ -132,8 +131,55 @@ class ApiAuthService {
 
     return await response.json();
   }
+
+  async forgotPassword(request: ForgotPasswordRequest): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/v1/otp/forgot-password`, {
+      method: 'POST',
+      headers: this.getHeaders(false),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Gửi email thất bại');
+    }
+
+    const result: BackendApiResponse<any> = await response.json();
+    return result;
+  }
+
+  async verifyOtp(request: VerifyOtpRequest): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/v1/otp/verify`, {
+      method: 'POST',
+      headers: this.getHeaders(false),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Xác thực OTP thất bại');
+    }
+
+    const result: BackendApiResponse<any> = await response.json();
+    return result;
+  }
+
+  async resetPassword(request: ResetPasswordRequest): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/v1/auth/reset-password`, {
+      method: 'POST',
+      headers: this.getHeaders(false),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Đặt lại mật khẩu thất bại');
+    }
+
+    const result: BackendApiResponse<any> = await response.json();
+    return result;
+  }
 }
 
-// Export singleton instance
 export const apiAuthService = new ApiAuthService();
 export default ApiAuthService;
