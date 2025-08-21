@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Collections;
 
 @Service
 public class FacultyService {
@@ -35,8 +36,13 @@ public class FacultyService {
     public ApiResponse<Object> listFaculties(HttpServletRequest servletRequest) {
         List<Faculty> faculties = facultyRepository.findAll();
 
+//        if (faculties.isEmpty()) {
+//            throw new ResourceNotFoundException("No faculties found");
+//        }
+
         if (faculties.isEmpty()) {
-            throw new ResourceNotFoundException("No faculties found");
+            // Trả về 200 OK với mảng rỗng
+            return ApiResponse.success(Collections.emptyList(), "No faculties found", servletRequest.getRequestURI());
         }
 
         List<FacultyResponse> responses = faculties.stream()

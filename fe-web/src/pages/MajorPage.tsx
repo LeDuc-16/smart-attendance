@@ -66,7 +66,7 @@ const MajorFormModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
                 <div className="flex justify-between items-start p-4">
                     <div>
@@ -146,7 +146,7 @@ const DeleteConfirmModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
             <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-0">
                 <div className="flex items-start justify-between px-6 pt-6">
                     <div className="flex items-center">
@@ -200,8 +200,6 @@ const MajorPage = () => {
     const [editingMajor, setEditingMajor] = useState<Major | null>(null);
     const [modalError, setModalError] = useState('');
 
-
-
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingMajor, setDeletingMajor] = useState<Major | null>(null);
 
@@ -209,8 +207,9 @@ const MajorPage = () => {
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalItems, setTotalItems] = useState(0);
     const itemsPerPage = 5;
-    const [totalPages, setTotalPages] = useState(1);
 
     const showSuccessToast = (message: string) => {
         toast.success(message, {
@@ -234,33 +233,72 @@ const MajorPage = () => {
         });
     };
 
-    // Lấy danh sách ngành
     const fetchMajors = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await getMajors();
-            let data: Major[] = response.data || [];
-            if (debouncedSearchTerm) {
-                data = data.filter(m => m.majorName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()));
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setError('Vui lòng đăng nhập để tiếp tục');
+                window.location.href = '/login';
+                return;
             }
-            setMajors(data);
-            setTotalPages(Math.ceil(data.length / itemsPerPage));
-        } catch (err) {
-            console.error(err);
-            setError('Thử thêm dữ liệu trên be');
+
+            const response = await getMajors();
+            console.log('API Response:', response);
+
+            if (response && response.data) {
+                let majorData: Major[] = [];
+
+                if (Array.isArray(response.data)) {
+                    majorData = response.data;
+                } else if (Array.isArray(response.data.content)) {
+                    majorData = response.data.content;
+                }
+
+                const filteredData = debouncedSearchTerm
+                    ? majorData.filter(m => m.majorName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
+                    : majorData;
+
+                setMajors(filteredData);
+                setTotalItems(filteredData.length);
+                setTotalPages(Math.ceil(filteredData.length / itemsPerPage));
+            } else {
+                setMajors([]);
+                setTotalItems(0);
+                setTotalPages(0);
+            }
+        } catch (err: any) {
+            console.error('Error fetching majors:', err);
+
+            if (err.response && err.response.status === 404) {
+                setMajors([]);
+                setTotalItems(0);
+                setTotalPages(0);
+                setError(null);
+            } else if (err.response && err.response.status === 401) {
+                setError('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại');
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            } else if (err.response && err.response.status >= 500) {
+                setError('Lỗi máy chủ, vui lòng thử lại sau');
+            } else if (err.message === 'Network Error') {
+                setError('Không thể kết nối đến máy chủ');
+            } else {
+                setError('Có lỗi xảy ra khi tải dữ liệu');
+            }
         } finally {
             setLoading(false);
         }
     }, [debouncedSearchTerm]);
 
-    // Lấy danh sách khoa
     const fetchFaculties = useCallback(async () => {
         try {
             const data = await getAllFaculties();
-            setFaculties(data);
-        } catch (err) {
-            console.error(err);
+            setFaculties(data || []);
+        } catch (err: any) {
+            console.warn('Error fetching faculties for dropdown:', err);
+            setFaculties([]);
         }
     }, []);
 
@@ -310,13 +348,18 @@ const MajorPage = () => {
                 showSuccessToast('Thêm ngành thành công!');
             }
             setIsModalOpen(false);
-            fetchMajors();
+
+            try {
+                await fetchMajors();
+                setCurrentPage(1);
+            } catch (refreshError) {
+                console.warn('Error refreshing majors:', refreshError);
+            }
         } catch (error: any) {
             console.error("API Error:", error.response || error);
 
             const serverMessage = error.response?.data?.message || '';
 
-            // Kiểm tra lỗi trùng tên
             if (serverMessage.includes("tồn tại") ||
                 serverMessage.toLowerCase().includes("existed") ||
                 serverMessage.toLowerCase().includes("already") ||
@@ -328,7 +371,6 @@ const MajorPage = () => {
         }
     };
 
-    // Xử lý xóa ngành sau khi xác nhận
     const handleConfirmDelete = async () => {
         if (!deletingMajor) return;
 
@@ -342,18 +384,26 @@ const MajorPage = () => {
             } else {
                 fetchMajors();
             }
-        } catch (error) {
-            showErrorToast('Lỗi: Không thể xóa ngành.');
-            console.error(error);
+        } catch (error: any) {
+            console.error('Delete error:', error);
+            if (error.response && error.response.status === 409) {
+                showErrorToast('Không thể xóa ngành này vì đang có lớp học thuộc ngành');
+            } else {
+                showErrorToast('Lỗi: Không thể xóa ngành.');
+            }
             closeDeleteModal();
         }
     };
 
     const handlePageChange = (page: number) => {
-        if (page >= 1 && page <= totalPages) setCurrentPage(page);
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+        }
     };
 
     const renderPagination = () => {
+        if (totalPages <= 1) return null;
+
         let pageButtons = [];
         let pages: number[] = [];
         if (totalPages <= 3) {
@@ -379,13 +429,13 @@ const MajorPage = () => {
             </button>
         ));
 
-        const startItem = majors.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
-        const endItem = Math.min(currentPage * itemsPerPage, majors.length);
+        const startItem = totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
+        const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
         return (
             <div className="flex items-center justify-between mt-4 px-4 py-3">
                 <span className="text-sm text-gray-600">
-                    Hiển thị {startItem} - {endItem} của {majors.length} ngành
+                    Hiển thị {startItem} - {endItem} của {totalItems} ngành
                 </span>
                 <div className="flex items-center">
                     <button
@@ -408,8 +458,6 @@ const MajorPage = () => {
         );
     };
 
-    const paginatedMajors = majors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
     return (
         <>
             <ToastContainer />
@@ -431,7 +479,6 @@ const MajorPage = () => {
                 majorName={deletingMajor?.majorName || ''}
             />
 
-            {/* Page Content */}
             <div className="space-y-4">
                 <div className="mb-4">
                     <h1 className="text-2xl font-bold text-[#1E3A8A] mb-2">Quản lý ngành</h1>
@@ -460,9 +507,25 @@ const MajorPage = () => {
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                     <h2 className="text-lg font-semibold text-[#1E3A8A] p-4 border-b border-gray-200">Danh sách ngành</h2>
                     {loading ? (
-                        <p className="p-6 text-center text-gray-500">Đang tải dữ liệu...</p>
+                        <div className="p-8 text-center">
+                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <p className="text-gray-500 mt-2">Đang tải dữ liệu...</p>
+                        </div>
                     ) : error ? (
-                        <p className="p-6 text-center text-red-600">{error}</p>
+                        <div className="p-8 text-center">
+                            <div className="text-red-600 mb-4">
+                                <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <p className="text-lg font-medium">{error}</p>
+                            </div>
+                            <button
+                                onClick={() => fetchMajors()}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                            >
+                                Thử lại
+                            </button>
+                        </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
@@ -475,40 +538,52 @@ const MajorPage = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {paginatedMajors.length > 0 ? paginatedMajors.map((major, index) => (
-                                        <tr key={major.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                {(currentPage - 1) * itemsPerPage + index + 1}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                {major.majorName}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                {major.facultyName}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <div className="flex items-center space-x-4">
-                                                    <button
-                                                        onClick={() => openEditModal(major)}
-                                                        className="text-indigo-600 hover:text-indigo-900"
-                                                        title="Sửa"
-                                                    >
-                                                        <FiEdit size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => openDeleteModal(major)}
-                                                        className="text-red-600 hover:text-red-900"
-                                                        title="Xóa"
-                                                    >
-                                                        <FiTrash2 size={16} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    )) : (
+                                    {majors.length > 0 ? (
+                                        majors
+                                            .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                                            .map((major, index) => (
+                                                <tr key={major.id} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        {(currentPage - 1) * itemsPerPage + index + 1}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        {major.majorName}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        {major.facultyName}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                        <div className="flex items-center space-x-4">
+                                                            <button
+                                                                onClick={() => openEditModal(major)}
+                                                                className="text-indigo-600 hover:text-indigo-900"
+                                                                title="Sửa"
+                                                            >
+                                                                <FiEdit size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => openDeleteModal(major)}
+                                                                className="text-red-600 hover:text-red-900"
+                                                                title="Xóa"
+                                                            >
+                                                                <FiTrash2 size={16} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                    ) : (
                                         <tr>
-                                            <td colSpan={4} className="text-center py-6 text-gray-500">
-                                                Không tìm thấy ngành nào.
+                                            <td colSpan={4} className="text-center py-8">
+                                                <div className="text-gray-500">
+                                                    <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                    </svg>
+                                                    <p className="text-lg font-medium">Chưa có ngành nào</p>
+                                                    <p className="text-sm text-gray-400 mt-1">
+                                                        {searchTerm ? `Không tìm thấy ngành nào với từ khóa "${searchTerm}"` : 'Hãy thêm ngành đầu tiên'}
+                                                    </p>
+                                                </div>
                                             </td>
                                         </tr>
                                     )}

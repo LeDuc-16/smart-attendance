@@ -54,7 +54,7 @@ const FacultyFormModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
                 <div className="flex justify-between items-start p-4">
                     <div>
@@ -66,7 +66,6 @@ const FacultyFormModal = ({
                                 ? 'Sửa thông tin khoa.'
                                 : 'Thêm thông tin khoa mới.'}
                         </p>
-
                     </div>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
                         <FiX size={24} />
@@ -119,7 +118,7 @@ const DeleteConfirmModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
             <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-0">
                 <div className="flex items-start justify-between px-6 pt-6">
                     <div className="flex items-center">
@@ -244,9 +243,26 @@ const FacultyPage = () => {
                 setTotalItems(0);
                 setTotalPages(0);
             }
-        } catch (err) {
-            setError('Thử thêm dữ liệu trên be');
-            console.error(err);
+        } catch (err: any) {
+            console.error('Error fetching faculties:', err);
+
+            if (err.response && err.response.status === 404) {
+                // Xử lý như trường hợp không có dữ liệu
+                setFaculties([]);
+                setTotalItems(0);
+                setTotalPages(0);
+                setError(null);
+            } else if (err.response && err.response.status === 401) {
+                setError('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại');
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            } else if (err.response && err.response.status >= 500) {
+                setError('Lỗi máy chủ, vui lòng thử lại sau');
+            } else if (err.message === 'Network Error') {
+                setError('Không thể kết nối đến máy chủ');
+            } else {
+                setError('Có lỗi xảy ra khi tải dữ liệu');
+            }
         } finally {
             setLoading(false);
         }
@@ -280,7 +296,6 @@ const FacultyPage = () => {
         setDeletingFaculty(faculty);
         setIsDeleteModalOpen(true);
     };
-
 
     const closeDeleteModal = () => {
         setDeletingFaculty(null);
@@ -318,7 +333,6 @@ const FacultyPage = () => {
         }
     };
 
-
     const handleConfirmDelete = async () => {
         if (!deletingFaculty) return;
 
@@ -332,9 +346,13 @@ const FacultyPage = () => {
             } else {
                 fetchFaculties(currentPage, debouncedSearchTerm);
             }
-        } catch (error) {
-            showErrorToast('Lỗi: Không thể xóa khoa.');
-            console.error(error);
+        } catch (error: any) {
+            console.error('Delete error:', error);
+            if (error.response && error.response.status === 409) {
+                showErrorToast('Không thể xóa khoa này vì đang có ngành học thuộc khoa');
+            } else {
+                showErrorToast('Lỗi: Không thể xóa khoa.');
+            }
             closeDeleteModal();
         }
     };
@@ -346,6 +364,8 @@ const FacultyPage = () => {
     };
 
     const renderPagination = () => {
+        if (totalPages <= 1) return null;
+
         let pageButtons = [];
         let pages: number[] = [];
         if (totalPages <= 3) {
@@ -452,9 +472,25 @@ const FacultyPage = () => {
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                     <h2 className="text-lg font-semibold text-[#1E3A8A] p-4 border-b border-gray-200">Danh sách khoa</h2>
                     {loading ? (
-                        <p className="p-6 text-center text-gray-500">Đang tải dữ liệu...</p>
+                        <div className="p-8 text-center">
+                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <p className="text-gray-500 mt-2">Đang tải dữ liệu...</p>
+                        </div>
                     ) : error ? (
-                        <p className="p-6 text-center text-red-600">{error}</p>
+                        <div className="p-8 text-center">
+                            <div className="text-red-600 mb-4">
+                                <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <p className="text-lg font-medium">{error}</p>
+                            </div>
+                            <button
+                                onClick={() => fetchFaculties(currentPage, debouncedSearchTerm)}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                            >
+                                Thử lại
+                            </button>
+                        </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
@@ -495,8 +531,16 @@ const FacultyPage = () => {
                                             ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={2} className="text-center py-6 text-gray-500">
-                                                Không tìm thấy khoa nào.
+                                            <td colSpan={2} className="text-center py-8">
+                                                <div className="text-gray-500">
+                                                    <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                    </svg>
+                                                    <p className="text-lg font-medium">Chưa có khoa nào</p>
+                                                    <p className="text-sm text-gray-400 mt-1">
+                                                        {searchTerm ? `Không tìm thấy khoa nào với từ khóa "${searchTerm}"` : 'Hãy thêm khoa đầu tiên'}
+                                                    </p>
+                                                </div>
                                             </td>
                                         </tr>
                                     )}

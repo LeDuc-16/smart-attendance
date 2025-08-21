@@ -9,6 +9,7 @@ import com.leduc.spring.faculty.FacultyRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -83,8 +84,12 @@ public class MajorService {
 
         List<Major> majors = majorRepository.findByFacultyId(faculty.getId());
 
+//        if (majors.isEmpty()) {
+//            throw new ResourceNotFoundException("No majors found for this faculty");
+//        }
+
         if (majors.isEmpty()) {
-            throw new ResourceNotFoundException("No majors found for this faculty");
+            return ApiResponse.success(Collections.emptyList(), "No majors found", servletRequest.getRequestURI());
         }
 
         List<MajorResponse> responses = majors.stream()
@@ -97,9 +102,11 @@ public class MajorService {
     // Lấy ra tất cả majors bất kể khoa nào
     public ApiResponse<Object> listMajors(HttpServletRequest servletRequest) {
         List<Major> majors = majorRepository.findAll();
-
+//        if (majors.isEmpty()) {
+//            throw new ResourceNotFoundException("No majors found");
+//        }
         if (majors.isEmpty()) {
-            throw new ResourceNotFoundException("No majors found");
+            return ApiResponse.success(Collections.emptyList(), "No majors found", servletRequest.getRequestURI());
         }
 
         List<MajorResponse> responses = majors.stream()
