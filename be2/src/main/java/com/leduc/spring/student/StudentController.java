@@ -109,4 +109,17 @@ public class StudentController {
         ApiResponse<Object> response = studentService.getStudentsByClassName(className, servletRequest);
         return ResponseEntity.ok(response);
     }
+
+    @PutMapping("/{studentId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Cập nhật sinh viên", description = "Chỉ admin có quyền cập nhật thông tin sinh viên")
+    public ResponseEntity<ApiResponse<Object>> updateStudent(
+            @PathVariable("studentId") Long studentId,
+            @Valid @RequestBody CreateStudentRequest request,
+            HttpServletRequest servletRequest
+    ) {
+        ApiResponse<Object> response = studentService.updateStudent(studentId, request, servletRequest);
+        return ResponseEntity.ok(response);
+    }
+
 }

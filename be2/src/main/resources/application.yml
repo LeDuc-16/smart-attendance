@@ -49,7 +49,7 @@ application:
       refresh-token:
         expiration: 86400000
 
-# ================= AWS S3 CONFIG =================
+# ================= AWS CONFIG =================
 aws:
   region: ap-southeast-2
   s3:
@@ -57,4 +57,5 @@ aws:
     buckets:
       student: leducdev
   rekognition:
-    collection-id: students_collection
+    collection: students-faces
+

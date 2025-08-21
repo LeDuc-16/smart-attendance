@@ -5,12 +5,9 @@ import {
     FiPlus,
     FiX,
     FiSearch,
-    FiCalendar,
-    FiDownload
 } from "react-icons/fi";
 import {
     getTeachingSchedules,
-    getSchedulesByDate,
     createTeachingSchedule,
     updateTeachingSchedule,
     deleteTeachingSchedule,
@@ -22,8 +19,9 @@ import {
     type TeachingSchedulePayload,
     type DropdownOption
 } from "../api/apiTeaching";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-// Danh sách thứ trong tuần
 const DAYS_OF_WEEK = [
     { value: "MONDAY", label: "Thứ 2" },
     { value: "TUESDAY", label: "Thứ 3" },
@@ -34,7 +32,96 @@ const DAYS_OF_WEEK = [
     { value: "SUNDAY", label: "Chủ nhật" }
 ];
 
-// Modal Form Component
+const validateScheduleData = (formData: TeachingSchedulePayload): string[] => {
+    const errors: string[] = [];
+
+    const timeToMinutes = (time: string): number => {
+        if (!time) return 0;
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+    };
+
+    // 1. Ngày kết thúc >= ngày bắt đầu
+    if (formData.startDate && formData.endDate) {
+        const startDate = new Date(formData.startDate);
+        const endDate = new Date(formData.endDate);
+        if (endDate < startDate) {
+            errors.push("Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.");
+        }
+    }
+
+    // 2. Thời gian trong khoảng 07:00 - 21:30
+    const MIN_TIME = 7 * 60;
+    const MAX_TIME = 21 * 60 + 30;
+
+    if (formData.startTime) {
+        const startMinutes = timeToMinutes(formData.startTime);
+        if (startMinutes < MIN_TIME || startMinutes > MAX_TIME) {
+            errors.push("Thời gian bắt đầu phải nằm trong khoảng 07:00 đến 21:30.");
+        }
+    }
+
+    if (formData.endTime) {
+        const endMinutes = timeToMinutes(formData.endTime);
+        if (endMinutes < MIN_TIME || endMinutes > MAX_TIME) {
+            errors.push("Thời gian kết thúc phải nằm trong khoảng 07:00 đến 21:30.");
+        }
+    }
+
+    // 3. Thời gian kết thúc > thời gian bắt đầu
+    if (formData.startTime && formData.endTime) {
+        const startMinutes = timeToMinutes(formData.startTime);
+        const endMinutes = timeToMinutes(formData.endTime);
+        if (endMinutes <= startMinutes) {
+            errors.push("Thời gian kết thúc phải lớn hơn thời gian bắt đầu.");
+        }
+    }
+
+    return errors;
+};
+
+const checkScheduleConflict = (newSchedule: TeachingSchedulePayload, existingSchedules: any[]): string[] => {
+    const conflicts: string[] = [];
+
+    const timeToMinutes = (time: string): number => {
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+    };
+
+    const newStartMinutes = timeToMinutes(newSchedule.startTime.substring(0, 5));
+    const newEndMinutes = timeToMinutes(newSchedule.endTime.substring(0, 5));
+
+    newSchedule.dayOfWeek.forEach(dayOfWeek => {
+        existingSchedules.forEach(existing => {
+            if (existing.dayOfWeek !== dayOfWeek) return;
+
+            const existingStartMinutes = timeToMinutes(existing.startTime.substring(0, 5));
+            const existingEndMinutes = timeToMinutes(existing.endTime.substring(0, 5));
+
+
+            const hasTimeOverlap = (newStartMinutes < existingEndMinutes) && (existingStartMinutes < newEndMinutes);
+
+            if (!hasTimeOverlap) return;
+
+            const dayLabel = DAYS_OF_WEEK.find(d => d.value === dayOfWeek)?.label || dayOfWeek;
+
+            if (existing.lecturerId === newSchedule.lecturerId) {
+                conflicts.push(`Giảng viên đã có lịch dạy vào ${dayLabel} từ ${existing.startTime} đến ${existing.endTime}`);
+            }
+
+            if (existing.roomId === newSchedule.roomId) {
+                conflicts.push(`Phòng ${existing.roomCode} đã được sử dụng vào ${dayLabel} từ ${existing.startTime} đến ${existing.endTime}`);
+            }
+
+            if (existing.classId === newSchedule.classId) {
+                conflicts.push(`Lớp ${existing.className} đã có lịch học vào ${dayLabel} từ ${existing.startTime} đến ${existing.endTime}`);
+            }
+        });
+    });
+
+    return [...new Set(conflicts)];
+};
+
 const TeachingScheduleModal = ({
     isOpen,
     onClose,
@@ -43,7 +130,8 @@ const TeachingScheduleModal = ({
     courses,
     lecturers,
     classes,
-    rooms
+    rooms,
+    formError
 }: {
     isOpen: boolean;
     onClose: () => void;
@@ -53,6 +141,7 @@ const TeachingScheduleModal = ({
     lecturers: DropdownOption[];
     classes: DropdownOption[];
     rooms: DropdownOption[];
+    formError?: string;
 }) => {
     const [formData, setFormData] = useState<TeachingSchedulePayload>({
         startDate: "",
@@ -65,18 +154,17 @@ const TeachingScheduleModal = ({
         classId: 0,
         roomId: 0,
     });
-    const [formError, setFormError] = useState("");
+    const [inputError, setInputError] = useState("");
 
     useEffect(() => {
         if (isOpen) {
             if (initialData) {
-                // Khi edit, cần convert từ data response
                 setFormData({
                     startDate: initialData.weeks[0]?.startDate || "",
                     endDate: initialData.weeks[initialData.weeks.length - 1]?.endDate || "",
                     dayOfWeek: initialData.weeks[0]?.studyDays.map(day => day.dayOfWeek) || [],
-                    startTime: initialData.startTime,
-                    endTime: initialData.endTime,
+                    startTime: initialData.startTime.substring(0, 5),
+                    endTime: initialData.endTime.substring(0, 5),
                     courseId: initialData.courseId,
                     lecturerId: initialData.lecturerId,
                     classId: initialData.classId,
@@ -95,7 +183,7 @@ const TeachingScheduleModal = ({
                     roomId: 0,
                 });
             }
-            setFormError("");
+            setInputError("");
         }
     }, [isOpen, initialData]);
 
@@ -105,6 +193,7 @@ const TeachingScheduleModal = ({
             ...prev,
             [name]: name.includes("Id") ? parseInt(value) || 0 : value
         }));
+        setInputError("");
     };
 
     const handleDayOfWeekChange = (day: string) => {
@@ -114,15 +203,58 @@ const TeachingScheduleModal = ({
                 ? prev.dayOfWeek.filter(d => d !== day)
                 : [...prev.dayOfWeek, day]
         }));
+        setInputError("");
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Thêm :00 vào cuối nếu chỉ có HH:mm
+        if (!formData.startDate) {
+            setInputError("Vui lòng chọn ngày bắt đầu.");
+            return;
+        }
+        if (!formData.endDate) {
+            setInputError("Vui lòng chọn ngày kết thúc.");
+            return;
+        }
+        if (!formData.startTime) {
+            setInputError("Vui lòng chọn thời gian bắt đầu.");
+            return;
+        }
+        if (!formData.endTime) {
+            setInputError("Vui lòng chọn thời gian kết thúc.");
+            return;
+        }
+        if (formData.dayOfWeek.length === 0) {
+            setInputError("Vui lòng chọn ít nhất một ngày trong tuần.");
+            return;
+        }
+        if (!formData.courseId) {
+            setInputError("Vui lòng chọn môn học.");
+            return;
+        }
+        if (!formData.lecturerId) {
+            setInputError("Vui lòng chọn giảng viên.");
+            return;
+        }
+        if (!formData.classId) {
+            setInputError("Vui lòng chọn lớp học.");
+            return;
+        }
+        if (!formData.roomId) {
+            setInputError("Vui lòng chọn phòng học.");
+            return;
+        }
+
+        const validationErrors = validateScheduleData(formData);
+        if (validationErrors.length > 0) {
+            setInputError(validationErrors[0]);
+            return;
+        }
+
         const formatTime = (time: string) => {
-            if (time && time.length === 5) { // HH:mm format
-                return time + ':00'; // Convert to HH:mm:ss
+            if (time && time.length === 5) {
+                return time + ':00';
             }
             return time;
         };
@@ -136,19 +268,20 @@ const TeachingScheduleModal = ({
         onSubmit(formattedData);
     };
 
-
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-start p-4">
                     <div>
-                        <h3 className="text-xl font-semibold">
-                            {initialData ? 'Chỉnh sửa lịch giảng dạy' : 'Thêm lịch giảng dạy mới'}
+                        <h3 className="text-xl font-semibold text-[#1E3A8A]">
+                            {initialData ? 'Chỉnh sửa lịch giảng dạy' : 'Thêm mới'}
                         </h3>
                         <p className="text-sm text-gray-500 mt-1">
-                            Thêm thông tin lịch giảng dạy mới.
+                            {initialData
+                                ? 'Sửa thông tin lịch giảng dạy.'
+                                : 'Thêm thông tin lịch giảng dạy mới.'}
                         </p>
                     </div>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
@@ -157,165 +290,169 @@ const TeachingScheduleModal = ({
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Ngày bắt đầu */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Ngày bắt đầu <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="date"
-                                    name="startDate"
-                                    value={formData.startDate}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
+                        <div className="bg-blue-50 p-4 rounded-lg space-y-4">
+                            <h4 className="font-semibold">Thông tin lịch giảng dạy</h4>
 
-                            {/* Ngày kết thúc */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Ngày kết thúc <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="date"
-                                    name="endDate"
-                                    value={formData.endDate}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-
-                            {/* Thời gian bắt đầu */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Thời gian bắt đầu <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="time"
-                                    name="startTime"
-                                    value={formData.startTime}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-
-                            {/* Thời gian kết thúc */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Thời gian kết thúc <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="time"
-                                    name="endTime"
-                                    value={formData.endTime}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-
-                            {/* Môn học */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Môn học <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    name="courseId"
-                                    value={formData.courseId}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value={0}>-- Chọn môn học --</option>
-                                    {courses.map((course) => (
-                                        <option key={course.value} value={course.value}>
-                                            {course.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Giảng viên */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Giảng viên <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    name="lecturerId"
-                                    value={formData.lecturerId}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value={0}>-- Chọn giảng viên --</option>
-                                    {lecturers.map((lecturer) => (
-                                        <option key={lecturer.value} value={lecturer.value}>
-                                            {lecturer.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Lớp học */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Lớp học <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    name="classId"
-                                    value={formData.classId}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value={0}>-- Chọn lớp học --</option>
-                                    {classes.map((classItem) => (
-                                        <option key={classItem.value} value={classItem.value}>
-                                            {classItem.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Phòng học */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Phòng học <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    name="roomId"
-                                    value={formData.roomId}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value={0}>-- Chọn phòng học --</option>
-                                    {rooms.map((room) => (
-                                        <option key={room.value} value={room.value}>
-                                            {room.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-
-                        {/* Ngày trong tuần */}
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Ngày trong tuần <span className="text-red-500">*</span>
-                            </label>
-                            <div className="grid grid-cols-4 gap-2">
-                                {DAYS_OF_WEEK.map((day) => (
-                                    <label key={day.value} className="flex items-center space-x-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.dayOfWeek.includes(day.value)}
-                                            onChange={() => handleDayOfWeekChange(day.value)}
-                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                        />
-                                        <span className="text-sm">{day.label}</span>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Ngày bắt đầu <span className="text-red-500">*</span>
                                     </label>
-                                ))}
-                            </div>
-                        </div>
+                                    <input
+                                        type="date"
+                                        name="startDate"
+                                        value={formData.startDate}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                </div>
 
-                        {formError && <p className="text-red-500 text-sm mt-4">{formError}</p>}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Ngày kết thúc <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="endDate"
+                                        value={formData.endDate}
+                                        onChange={handleChange}
+                                        min={formData.startDate}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Thời gian bắt đầu <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="time"
+                                        name="startTime"
+                                        value={formData.startTime}
+                                        onChange={handleChange}
+                                        min="07:00"
+                                        max="21:30"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Chỉ trong khoảng 07:00 - 21:30</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Thời gian kết thúc <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="time"
+                                        name="endTime"
+                                        value={formData.endTime}
+                                        onChange={handleChange}
+                                        min="07:00"
+                                        max="21:30"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Chỉ trong khoảng 07:00 - 21:30</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Môn học <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        name="courseId"
+                                        value={formData.courseId}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    >
+                                        <option value={0}>-- Chọn môn học --</option>
+                                        {courses.map((course) => (
+                                            <option key={course.value} value={course.value}>
+                                                {course.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Giảng viên <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        name="lecturerId"
+                                        value={formData.lecturerId}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    >
+                                        <option value={0}>-- Chọn giảng viên --</option>
+                                        {lecturers.map((lecturer) => (
+                                            <option key={lecturer.value} value={lecturer.value}>
+                                                {lecturer.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Lớp học <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        name="classId"
+                                        value={formData.classId}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    >
+                                        <option value={0}>-- Chọn lớp học --</option>
+                                        {classes.map((classItem) => (
+                                            <option key={classItem.value} value={classItem.value}>
+                                                {classItem.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Phòng học <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        name="roomId"
+                                        value={formData.roomId}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    >
+                                        <option value={0}>-- Chọn phòng học --</option>
+                                        {rooms.map((room) => (
+                                            <option key={room.value} value={room.value}>
+                                                {room.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="mt-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Ngày trong tuần <span className="text-red-500">*</span>
+                                </label>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {DAYS_OF_WEEK.map((day) => (
+                                        <label key={day.value} className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.dayOfWeek.includes(day.value)}
+                                                onChange={() => handleDayOfWeekChange(day.value)}
+                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span className="text-sm">{day.label}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {(inputError || formError) && (
+                                <p className="text-red-500 text-sm mt-2">{inputError || formError}</p>
+                            )}
+                        </div>
                     </div>
                     <div className="flex justify-end p-4 border-t">
                         <button
@@ -331,13 +468,70 @@ const TeachingScheduleModal = ({
     );
 };
 
-// Main TeachingPage Component
+const DeleteConfirmModal = ({
+    isOpen,
+    onClose,
+    onConfirm,
+    scheduleName,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    scheduleName: string;
+}) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+            <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-0">
+                <div className="flex items-start justify-between px-6 pt-6">
+                    <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-4">
+                            <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">Xác nhận xóa lịch giảng dạy</h2>
+                            <div className="text-gray-400 text-base font-medium">Hành động không thể hoàn tác</div>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
+                        <FiX size={24} />
+                    </button>
+                </div>
+                <div className="px-6 pb-0 pt-4">
+                    <span className="text-base text-gray-500">
+                        Bạn có chắc chắn muốn xóa lịch giảng dạy <span className="font-bold text-black">{scheduleName}</span> khỏi hệ thống?
+                    </span>
+                </div>
+                <div className="flex items-center justify-end gap-6 px-6 pb-6 pt-6">
+                    <button
+                        className="rounded-lg border border-gray-400 px-6 py-2 text-black font-semibold text-lg transition hover:bg-gray-100"
+                        onClick={onClose}
+                        type="button"
+                    >
+                        Hủy
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="rounded-lg bg-red-500 px-6 py-2 font-semibold text-white text-lg transition hover:bg-red-600"
+                        type="button"
+                    >
+                        Xóa lịch giảng dạy
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const TeachingPage = () => {
     const [schedules, setSchedules] = useState<TeachingSchedule[]>([]);
+    const [allSchedulesForConflictCheck, setAllSchedulesForConflictCheck] = useState<any[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Dropdown options
     const [courses, setCourses] = useState<DropdownOption[]>([]);
     const [lecturers, setLecturers] = useState<DropdownOption[]>([]);
     const [classes, setClasses] = useState<DropdownOption[]>([]);
@@ -345,12 +539,37 @@ const TeachingPage = () => {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSchedule, setEditingSchedule] = useState<TeachingSchedule | null>(null);
+    const [modalError, setModalError] = useState('');
+
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletingSchedule, setDeletingSchedule] = useState<any>(null);
 
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [searchTerm, setSearchTerm] = useState("");
     const [filteredSchedules, setFilteredSchedules] = useState<any[]>([]);
 
-    // Fetch dropdown options
+    const showSuccessToast = (message: string) => {
+        toast.success(message, {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+        });
+    };
+
+    const showErrorToast = (message: string) => {
+        toast.error(message, {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+        });
+    };
+
     const fetchDropdownOptions = useCallback(async () => {
         try {
             const [coursesData, lecturersData, classesData, roomsData] = await Promise.all([
@@ -368,56 +587,56 @@ const TeachingPage = () => {
         }
     }, []);
 
-    // Fetch schedules by date
     const fetchSchedulesByDate = useCallback(async (date: string) => {
         setLoading(true);
         setError(null);
         try {
             let data: TeachingSchedule[];
 
-            // Thử gọi API theo date trước, nếu lỗi thì gọi API lấy tất cả
             try {
-                data = await getSchedulesByDate(date);
-            } catch (dateApiError) {
-                console.log('Date API failed, fallback to get all schedules');
                 const allSchedules = await getTeachingSchedules();
-                // Filter schedules có chứa ngày được chọn
-                data = allSchedules.filter(schedule =>
-                    schedule.weeks.some(week =>
-                        week.studyDays.some(day => day.date === date)
-                    )
-                );
+                data = allSchedules;
+            } catch (dateApiError) {
+                console.log('Error fetching all schedules:', dateApiError);
+                data = [];
             }
 
-            // Flatten data để hiển thị trong bảng
             const flattenedData: any[] = [];
+            const allFlattenedData: any[] = [];
+
             data.forEach(schedule => {
                 schedule.weeks.forEach(week => {
                     week.studyDays.forEach(day => {
+                        const scheduleItem = {
+                            id: `${schedule.id}-${week.weekNumber}-${day.dayOfWeek}`,
+                            scheduleId: schedule.id,
+                            startTime: schedule.startTime,
+                            endTime: schedule.endTime,
+                            courseId: schedule.courseId,
+                            courseName: courses.find(c => c.value === schedule.courseId)?.label || `Course ${schedule.courseId}`,
+                            lecturerId: schedule.lecturerId,
+                            lecturerName: lecturers.find(l => l.value === schedule.lecturerId)?.label || `Lecturer ${schedule.lecturerId}`,
+                            classId: schedule.classId,
+                            className: classes.find(c => c.value === schedule.classId)?.label || `Class ${schedule.classId}`,
+                            roomId: schedule.roomId,
+                            roomCode: rooms.find(r => r.value === schedule.roomId)?.label || `Room ${schedule.roomId}`,
+                            date: day.date,
+                            dayOfWeek: day.dayOfWeek,
+                            weekNumber: week.weekNumber
+                        };
+
+                        allFlattenedData.push(scheduleItem);
+
                         if (day.date === date) {
-                            flattenedData.push({
-                                id: `${schedule.id}-${week.weekNumber}-${day.dayOfWeek}`,
-                                scheduleId: schedule.id,
-                                startTime: schedule.startTime,
-                                endTime: schedule.endTime,
-                                courseId: schedule.courseId,
-                                courseName: courses.find(c => c.value === schedule.courseId)?.label || `Course ${schedule.courseId}`,
-                                lecturerId: schedule.lecturerId,
-                                lecturerName: lecturers.find(l => l.value === schedule.lecturerId)?.label || `Lecturer ${schedule.lecturerId}`,
-                                classId: schedule.classId,
-                                className: classes.find(c => c.value === schedule.classId)?.label || `Class ${schedule.classId}`,
-                                roomId: schedule.roomId,
-                                roomCode: rooms.find(r => r.value === schedule.roomId)?.label || `Room ${schedule.roomId}`,
-                                date: day.date,
-                                dayOfWeek: day.dayOfWeek,
-                                weekNumber: week.weekNumber
-                            });
+                            flattenedData.push(scheduleItem);
                         }
                     });
                 });
             });
 
-            // Filter by search term
+            setSchedules(data);
+            setAllSchedulesForConflictCheck(allFlattenedData);
+
             let filtered = flattenedData;
             if (searchTerm) {
                 filtered = flattenedData.filter(item =>
@@ -428,7 +647,7 @@ const TeachingPage = () => {
             }
 
             setFilteredSchedules(filtered);
-            setSchedules(data);
+
         } catch (err) {
             console.error(err);
             setError("Không tải được lịch giảng dạy.");
@@ -437,7 +656,6 @@ const TeachingPage = () => {
             setLoading(false);
         }
     }, [courses, lecturers, classes, rooms, searchTerm]);
-
 
     useEffect(() => {
         fetchDropdownOptions();
@@ -451,61 +669,101 @@ const TeachingPage = () => {
 
     const openAddModal = () => {
         setEditingSchedule(null);
+        setModalError('');
         setIsModalOpen(true);
     };
 
     const openEditModal = (schedule: TeachingSchedule) => {
         setEditingSchedule(schedule);
+        setModalError('');
         setIsModalOpen(true);
     };
 
+    const openDeleteModal = (scheduleItem: any) => {
+        setDeletingSchedule(scheduleItem);
+        setIsDeleteModalOpen(true);
+    };
+
+    const closeDeleteModal = () => {
+        setDeletingSchedule(null);
+        setIsDeleteModalOpen(false);
+    };
+
     const handleFormSubmit = async (data: TeachingSchedulePayload) => {
+        setModalError('');
+        const conflictErrors = checkScheduleConflict(data, allSchedulesForConflictCheck);
+        if (conflictErrors.length > 0) {
+            setModalError(conflictErrors[0]);
+        }
+
         try {
             if (editingSchedule) {
                 await updateTeachingSchedule(editingSchedule.id, data);
-                alert('Cập nhật lịch giảng dạy thành công!');
+                showSuccessToast('Cập nhật lịch giảng dạy thành công!');
             } else {
                 await createTeachingSchedule(data);
-                alert('Thêm lịch giảng dạy thành công!');
+                showSuccessToast('Thêm lịch giảng dạy thành công!');
             }
             setIsModalOpen(false);
             fetchSchedulesByDate(selectedDate);
         } catch (error: any) {
             console.error("API Error:", error);
-            const errorMessage = error.response?.data?.message || "Không thể thực hiện thao tác.";
-            alert(`Lỗi: ${errorMessage}`);
+            const serverMessage = error.response?.data?.message || '';
+
+            if (serverMessage.toLowerCase().includes('conflict') ||
+                serverMessage.toLowerCase().includes('trùng lịch') ||
+                serverMessage.toLowerCase().includes('duplicate')) {
+                setModalError('Trùng lịch giảng dạy, vui lòng chọn thời gian khác');
+            } else {
+                setModalError(serverMessage || 'Có lỗi xảy ra, vui lòng thử lại');
+            }
         }
     };
 
-    const handleDeleteSchedule = async (scheduleId: number) => {
-        if (window.confirm('Bạn có chắc chắn muốn xóa lịch giảng dạy này không?')) {
-            try {
-                await deleteTeachingSchedule(scheduleId);
-                alert('Xóa lịch giảng dạy thành công!');
-                fetchSchedulesByDate(selectedDate);
-            } catch (error) {
-                alert('Lỗi: Không thể xóa lịch giảng dạy.');
-                console.error(error);
-            }
+    const handleConfirmDelete = async () => {
+        if (!deletingSchedule) return;
+
+        try {
+            await deleteTeachingSchedule(deletingSchedule.scheduleId);
+            showSuccessToast('Xóa lịch giảng dạy thành công!');
+            closeDeleteModal();
+            fetchSchedulesByDate(selectedDate);
+        } catch (error) {
+            showErrorToast('Lỗi: Không thể xóa lịch giảng dạy.');
+            console.error(error);
+            closeDeleteModal();
         }
     };
 
     const formatDateVietnamese = (dateString: string) => {
         const date = new Date(dateString);
-        return `Thứ ${date.getDay() === 0 ? 'Chủ nhật' : date.getDay() + 1}, ${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+        const dayOfWeek = date.getDay();
+        const dayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+        return `${dayNames[dayOfWeek]}, ${date.getDate()} tháng ${date.getMonth() + 1} năm ${date.getFullYear()}`;
     };
 
     return (
         <>
+            <ToastContainer />
             <TeachingScheduleModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setModalError('');
+                }}
                 onSubmit={handleFormSubmit}
                 initialData={editingSchedule}
                 courses={courses}
                 lecturers={lecturers}
                 classes={classes}
                 rooms={rooms}
+                formError={modalError}
+            />
+            <DeleteConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={closeDeleteModal}
+                onConfirm={handleConfirmDelete}
+                scheduleName={deletingSchedule ? `${deletingSchedule.courseName} - ${deletingSchedule.startTime}` : ''}
             />
 
             <div className="space-y-4">
@@ -514,11 +772,10 @@ const TeachingPage = () => {
                         Quản lý lịch giảng dạy
                     </h1>
                     <p className="text-[#717182] text-xl">
-                        Quản lý thông tin lịch giảng dạy trong Trường Đại Học Thủy Lợi
+                        Quản lý thông tin lịch giảng dạy trong trường Đại học Thủy Lợi
                     </p>
                 </div>
 
-                {/* Filter Section */}
                 <div className="bg-white p-4 rounded-lg shadow-sm">
                     <div className="flex flex-col md:flex-row gap-4 items-end">
                         <div className="relative flex-grow">
@@ -552,13 +809,10 @@ const TeachingPage = () => {
                     </div>
                 </div>
 
-                {/* Schedule Table */}
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <div className="p-4 border-b border-gray-200">
-                        <h2 className="text-lg font-semibold text-gray-700">
-                            Thông kê lịch giảng dạy - {formatDateVietnamese(selectedDate)}
-                        </h2>
-                    </div>
+                    <h2 className="text-lg font-semibold text-[#1E3A8A] p-4 border-b border-gray-200">
+                        Thống kê lịch giảng dạy - {formatDateVietnamese(selectedDate)}
+                    </h2>
 
                     {loading ? (
                         <p className="p-6 text-center text-gray-500">Đang tải dữ liệu...</p>
@@ -582,7 +836,7 @@ const TeachingPage = () => {
                                             Môn học
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Phòng
+                                            Phòng học
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Giảng viên
@@ -627,7 +881,7 @@ const TeachingPage = () => {
                                                             <FiEdit size={16} />
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDeleteSchedule(item.scheduleId)}
+                                                            onClick={() => openDeleteModal(item)}
                                                             className="text-red-600 hover:text-red-900"
                                                             title="Xóa"
                                                         >
@@ -640,7 +894,7 @@ const TeachingPage = () => {
                                     ) : (
                                         <tr>
                                             <td colSpan={7} className="text-center py-6 text-gray-500">
-                                                Hiện tại {selectedDate} - {formatDateVietnamese(selectedDate)} chưa có lịch giảng dạy nào.
+                                                {selectedDate} - {formatDateVietnamese(selectedDate)} chưa có lịch giảng dạy nào.
                                             </td>
                                         </tr>
                                     )}

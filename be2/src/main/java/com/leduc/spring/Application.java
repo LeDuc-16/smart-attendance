@@ -27,7 +27,7 @@ public class Application {
 	@Bean
 	public CommandLineRunner accountRunner(AuthenticationService service) {
 		return args -> {
-			createUser(service, "ad", "ad", "ng@gmail.com", "ad", Role.ADMIN);
+			createUser(service, "ad", "ad", "vinhtlustudy1892004@gmail.com", "ad", Role.ADMIN);
 			createUser(service, "lec", "lec", "ngnlduc@gmail.com", "lec", Role.LECTURER);
 			createUser(service, "st", "st", "student@gmail.com", "st", Role.STUDENT);
 		};

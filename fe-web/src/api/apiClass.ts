@@ -21,87 +21,6 @@ classApiClient.interceptors.request.use(
     }
 );
 
-export const addLecturerToClass = async (classId: number, lecturerId: number) => {
-    try {
-        // Cần lấy className từ classId trước
-        const classesResponse = await classApiClient.get('/api/v1/classes');
-        console.log('Classes response:', classesResponse.data); // Log để debug
-
-        const classes = classesResponse.data.data || classesResponse.data;
-        const targetClass = classes.find((c: Class) => c.id === classId);
-
-        if (!targetClass) {
-            throw new Error('Không tìm thấy lớp học');
-        }
-
-        console.log('Target class found:', targetClass); // Log class
-        console.log('Request payload:', {
-            className: targetClass.className,
-            lecturerId: lecturerId
-        }); // Log request
-
-        const response = await classApiClient.post('/api/v1/classes/add-lecturer-to-class', {
-            className: targetClass.className,
-            lecturerId: lecturerId
-        });
-
-        console.log('Add lecturer response:', response.data); // Log response
-        return response.data;
-
-    } catch (error: any) {
-        console.error('AddLecturerToClass error:', error);
-        console.error('Error response:', error.response?.data);
-        throw error;
-    }
-};
-
-// Thêm API lấy danh sách
-export const getAllFaculties = async (): Promise<DropdownOption[]> => {
-    const token = localStorage.getItem("token");
-    const response = await axios.get("http://localhost:8080/api/v1/faculties", {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.data.data.map((faculty: any) => ({
-        value: faculty.facultyName,
-        label: faculty.facultyName
-    }));
-};
-
-export const getAllMajors = async (): Promise<DropdownOption[]> => {
-    const token = localStorage.getItem("token");
-    const response = await axios.get("http://localhost:8080/api/v1/majors", {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.data.data.map((major: any) => ({
-        value: major.majorName,
-        label: major.majorName
-    }));
-};
-
-export const getAllClasses = async (): Promise<DropdownOption[]> => {
-    const token = localStorage.getItem("token");
-    const response = await axios.get("http://localhost:8080/api/v1/classes", {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.data.data.map((classItem: any) => ({
-        value: classItem.className,
-        label: classItem.className
-    }));
-};
-
-
-
-// Thêm vào apiClass.ts
-export const getClassWithLecturer = async (classId: number) => {
-    const token = localStorage.getItem("token");
-    const response = await classApiClient.get(`/api/v1/classes/${classId}/lecturer`, {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.data.data;
-};
-
-
-
 classApiClient.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -113,24 +32,14 @@ classApiClient.interceptors.response.use(
     }
 );
 
-
 export interface Class {
     id: number;
     className: string;
     capacityStudent: number;
     advisor?: number;         // ID giảng viên chủ nhiệm
     lecturerName?: string;    // Hiển thị tên/maso giảng viên lên bảng
+    currentStudents?: number; // Số lượng sinh viên hiện tại
 }
-
-// trong apiClass.ts
-export const getLecturerById = async (lecturerId: number) => {
-    const token = localStorage.getItem("token");
-    const response = await axios.get(`http://localhost:8080/api/v1/lecturers/${lecturerId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.data.data;
-};
-
 
 export interface ClassPayload {
     className: string;
@@ -171,4 +80,96 @@ export const updateClass = async (id: number, data: ClassPayload): Promise<ApiRe
 export const deleteClass = async (id: number): Promise<ApiResponse<null>> => {
     const response = await classApiClient.delete(`/api/v1/classes/${id}`);
     return response.data;
+};
+
+export const getLecturerById = async (lecturerId: number) => {
+    const token = localStorage.getItem("token");
+    const response = await axios.get(`http://localhost:8080/api/v1/lecturers/${lecturerId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data.data;
+};
+
+export const addLecturerToClass = async (classId: number, lecturerId: number) => {
+    try {
+        // Cần lấy className từ classId trước
+        const classesResponse = await classApiClient.get('/api/v1/classes');
+        console.log('Classes response:', classesResponse.data);
+
+        const classes = classesResponse.data.data || classesResponse.data;
+        const targetClass = classes.find((c: Class) => c.id === classId);
+
+        if (!targetClass) {
+            throw new Error('Không tìm thấy lớp học');
+        }
+
+        console.log('Target class found:', targetClass);
+        console.log('Request payload:', {
+            className: targetClass.className,
+            lecturerId: lecturerId
+        });
+
+        const response = await classApiClient.post('/api/v1/classes/add-lecturer-to-class', {
+            className: targetClass.className,
+            lecturerId: lecturerId
+        });
+
+        console.log('Add lecturer response:', response.data);
+        return response.data;
+
+    } catch (error: any) {
+        console.error('AddLecturerToClass error:', error);
+        console.error('Error response:', error.response?.data);
+        throw error;
+    }
+};
+
+// Lấy số lượng sinh viên theo lớp
+export const getStudentCountByClass = async (className: string): Promise<number> => {
+    try {
+        const response = await classApiClient.get(`/api/v1/students`);
+        const students = response.data.data || response.data;
+        if (Array.isArray(students)) {
+            const classStudents = students.filter((student: any) => student.className === className);
+            return classStudents.length;
+        }
+        return 0;
+    } catch (error) {
+        console.error('Error getting student count:', error);
+        return 0;
+    }
+};
+
+// API để check capacity khi thêm/chuyển sinh viên
+export const checkClassCapacity = async (className: string): Promise<{ canAdd: boolean; currentCount: number; capacity: number }> => {
+    try {
+        // Lấy thông tin lớp
+        const classesResponse = await classApiClient.get('/api/v1/classes');
+        const classes = classesResponse.data.data || classesResponse.data;
+        const targetClass = classes.find((c: Class) => c.className === className);
+
+        if (!targetClass) {
+            throw new Error('Không tìm thấy lớp học');
+        }
+
+        // Lấy số lượng sinh viên hiện tại
+        const currentCount = await getStudentCountByClass(className);
+
+        return {
+            canAdd: currentCount < targetClass.capacityStudent,
+            currentCount,
+            capacity: targetClass.capacityStudent
+        };
+    } catch (error) {
+        console.error('Error checking class capacity:', error);
+        return { canAdd: false, currentCount: 0, capacity: 0 };
+    }
+};
+
+export const getClassWithLecturer = async (classId: number) => {
+    const token = localStorage.getItem("token");
+    const response = await classApiClient.get(`/api/v1/classes/${classId}/lecturer`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data.data;
 };

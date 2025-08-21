@@ -1,5 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getClasses, createClass, updateClass, deleteClass, getLecturerById, addLecturerToClass, type Class, type ClassPayload } from '../api/apiClass';
+import {
+    getClasses,
+    createClass,
+    updateClass,
+    deleteClass,
+    getLecturerById,
+    addLecturerToClass,
+    getStudentCountByClass,
+    type Class,
+    type ClassPayload
+} from '../api/apiClass';
+import { getLecturers } from '../api/apiLecturer';
 import {
     FiEdit,
     FiTrash2,
@@ -7,27 +18,28 @@ import {
     FiPlus,
     FiX,
     FiUserPlus,
-    FiUsers,
-    FiUpload,
-    FiEye
 } from 'react-icons/fi';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const ClassFormModal = ({
     isOpen,
     onClose,
     onSubmit,
     initialData,
+    formError,
 }: {
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (data: ClassPayload) => void;
     initialData: Class | null;
+    formError?: string;
 }) => {
     const [formData, setFormData] = useState<ClassPayload>({
         className: '',
         capacityStudent: 0,
     });
-    const [formError, setFormError] = useState('');
+    const [inputError, setInputError] = useState('');
 
     useEffect(() => {
         if (isOpen) {
@@ -39,7 +51,7 @@ const ClassFormModal = ({
             } else {
                 setFormData({ className: '', capacityStudent: 0 });
             }
-            setFormError('');
+            setInputError('');
         }
     }, [isOpen, initialData]);
 
@@ -49,16 +61,17 @@ const ClassFormModal = ({
             ...prev,
             [name]: name === 'capacityStudent' ? parseInt(value) || 0 : value
         }));
+        setInputError('');
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.className) {
-            setFormError('Vui lòng điền tên lớp.');
+        if (!formData.className.trim()) {
+            setInputError('Vui lòng điền tên lớp.');
             return;
         }
         if (formData.capacityStudent <= 0) {
-            setFormError('Sức chứa phải lớn hơn 0.');
+            setInputError('Sức chứa phải lớn hơn 0.');
             return;
         }
         onSubmit(formData);
@@ -67,15 +80,17 @@ const ClassFormModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
                 <div className="flex justify-between items-start p-4">
                     <div>
-                        <h3 className="text-xl font-semibold">
-                            {initialData ? 'Chỉnh sửa lớp' : 'Thêm lớp mới'}
+                        <h3 className="text-xl font-semibold text-[#1E3A8A]">
+                            {initialData ? 'Chỉnh sửa lớp' : 'Thêm mới'}
                         </h3>
                         <p className="text-sm text-gray-500 mt-1">
-                            Thêm thông tin lớp học mới.
+                            {initialData
+                                ? 'Sửa thông tin lớp học.'
+                                : 'Thêm thông tin lớp học mới.'}
                         </p>
                     </div>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
@@ -113,8 +128,10 @@ const ClassFormModal = ({
                                     placeholder="Nhập sức chứa"
                                 />
                             </div>
+                            {(inputError || formError) && (
+                                <p className="text-red-500 text-sm mt-2">{inputError || formError}</p>
+                            )}
                         </div>
-                        {formError && <p className="text-red-500 text-sm mt-2">{formError}</p>}
                     </div>
                     <div className="flex justify-end p-4">
                         <button
@@ -130,13 +147,165 @@ const ClassFormModal = ({
     );
 };
 
+const SelectLecturerModal = ({
+    isOpen,
+    onClose,
+    onSubmit,
+    lecturers,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onSubmit: (lecturerId: number) => void;
+    lecturers: any[];
+}) => {
+    const [selectedLecturerId, setSelectedLecturerId] = useState<number>(0);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedLecturerId) {
+            toast.error('Vui lòng chọn giảng viên!');
+            return;
+        }
+        onSubmit(selectedLecturerId);
+        onClose();
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+                <div className="flex justify-between items-start p-4">
+                    <div>
+                        <h3 className="text-xl font-semibold text-[#1E3A8A]">
+                            Chọn giảng viên chủ nhiệm
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Thêm giảng viên chủ nhiệm.
+                        </p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
+                        <FiX size={24} />
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit}>
+                    <div className="p-6">
+                        <div className="bg-blue-50 p-4 rounded-lg space-y-4">
+                            <h4 className="font-semibold">Danh sách giảng viên</h4>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Chọn giảng viên <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    value={selectedLecturerId}
+                                    onChange={(e) => setSelectedLecturerId(Number(e.target.value))}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value={0}>-- Chọn giảng viên --</option>
+                                    {lecturers.map((lecturer) => (
+                                        <option key={lecturer.id} value={lecturer.id}>
+                                            {lecturer.lecturerCode} - {lecturer.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex justify-end space-x-3 p-4">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            type="submit"
+                            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-semibold"
+                        >
+                            Thêm giảng viên
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+const DeleteConfirmModal = ({
+    isOpen,
+    onClose,
+    onConfirm,
+    className,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    className: string;
+}) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+            <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-0">
+                <div className="flex items-start justify-between px-6 pt-6">
+                    <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-4">
+                            <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">Xác nhận xóa lớp</h2>
+                            <div className="text-gray-400 text-base font-medium">Hành động không thể hoàn tác</div>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
+                        <FiX size={24} />
+                    </button>
+                </div>
+                <div className="px-6 pb-0 pt-4">
+                    <span className="text-base text-gray-500">
+                        Bạn có chắc chắn muốn xóa lớp <span className="font-bold text-black">{className}</span> khỏi hệ thống?
+                    </span>
+                </div>
+                <div className="flex items-center justify-end gap-6 px-6 pb-6 pt-6">
+                    <button
+                        className="rounded-lg border border-gray-400 px-6 py-2 text-black font-semibold text-lg transition hover:bg-gray-100"
+                        onClick={onClose}
+                        type="button"
+                    >
+                        Hủy
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="rounded-lg bg-red-500 px-6 py-2 font-semibold text-white text-lg transition hover:bg-red-600"
+                        type="button"
+                    >
+                        Xóa lớp
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const ClassPage = () => {
     const [classes, setClasses] = useState<Class[]>([]);
+    const [lecturers, setLecturers] = useState<any[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingClass, setEditingClass] = useState<Class | null>(null);
+    const [modalError, setModalError] = useState('');
+
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletingClass, setDeletingClass] = useState<Class | null>(null);
+
+    const [isSelectLecturerModalOpen, setIsSelectLecturerModalOpen] = useState(false);
+    const [selectedClassId, setSelectedClassId] = useState<number>(0);
+
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [totalPages, setTotalPages] = useState<number>(0);
     const [totalItems, setTotalItems] = useState<number>(0);
@@ -144,6 +313,27 @@ const ClassPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
+    const showSuccessToast = (message: string) => {
+        toast.success(message, {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+        });
+    };
+
+    const showErrorToast = (message: string) => {
+        toast.error(message, {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+        });
+    };
     const fetchClasses = useCallback(async (pageToFetch: number, currentSearchTerm: string) => {
         setLoading(true);
         setError(null);
@@ -173,33 +363,39 @@ const ClassPage = () => {
                     classData = response.data.content;
                 }
 
-                // Lấy thông tin giảng viên cho từng lớp
-                // Trích đoạn trong fetchClasses
-                const classesWithLecturer = await Promise.all(
+                const classesWithDetails = await Promise.all(
                     classData.map(async (classItem: Class) => {
-                        const lecturerId = classItem.advisor;  // advisor là ID giảng viên
-                        if (lecturerId) {
+                        let lecturerName = "Chưa có giảng viên";
+                        let currentStudents = 0;
+
+                        if (classItem.advisor) {
                             try {
-                                const lecturer = await getLecturerById(lecturerId);
-                                return {
-                                    ...classItem,
-                                    lecturerName: lecturer.lecturerCode || `${lecturerId}`,
-                                };
-                            } catch (error) {
-                                return {
-                                    ...classItem,
-                                    lecturerName: `${lecturerId}`,
-                                };
+                                const lecturer = await getLecturerById(classItem.advisor);
+                                lecturerName = lecturer.lecturerCode || lecturer.name || `Lecturer-${classItem.advisor}`;
+                            } catch (error: any) {
+                                console.warn(`Không thể lấy thông tin giảng viên ID ${classItem.advisor}:`, error.message);
+                                lecturerName = `Giảng viên ID: ${classItem.advisor}`;
                             }
                         }
-                        return classItem;
+
+                        try {
+                            currentStudents = await getStudentCountByClass(classItem.className);
+                        } catch (error: any) {
+                            console.warn(`Không thể lấy số lượng sinh viên lớp ${classItem.className}:`, error.message);
+                            currentStudents = 0;
+                        }
+
+                        return {
+                            ...classItem,
+                            lecturerName,
+                            currentStudents
+                        };
                     })
                 );
 
-
                 const filteredData = currentSearchTerm
-                    ? classesWithLecturer.filter(c => c.className.toLowerCase().includes(currentSearchTerm.toLowerCase()))
-                    : classesWithLecturer;
+                    ? classesWithDetails.filter(c => c.className.toLowerCase().includes(currentSearchTerm.toLowerCase()))
+                    : classesWithDetails;
 
                 setClasses(filteredData);
                 setTotalItems(filteredData.length);
@@ -209,17 +405,44 @@ const ClassPage = () => {
                 setTotalItems(0);
                 setTotalPages(0);
             }
-        } catch (err) {
-            setError('Thử thêm dữ liệu trên backend');
-            console.error(err);
+        } catch (err: any) {
+            console.error('Error fetching classes:', err);
+
+            if (err.response && err.response.status === 404) {
+                setClasses([]);
+                setTotalItems(0);
+                setTotalPages(0);
+                setError(null);
+            } else if (err.response && err.response.status === 401) {
+                setError('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại');
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            } else if (err.response && err.response.status >= 500) {
+                setError('Lỗi máy chủ, vui lòng thử lại sau');
+            } else if (err.message === 'Network Error') {
+                setError('Không thể kết nối đến máy chủ');
+            } else {
+                setError('Có lỗi xảy ra khi tải dữ liệu');
+            }
         } finally {
             setLoading(false);
         }
     }, []);
 
+    const fetchLecturers = useCallback(async () => {
+        try {
+            const data = await getLecturers();
+            setLecturers(data || []);
+        } catch (err: any) {
+            console.warn('Error fetching lecturers for dropdown:', err);
+            setLecturers([]);
+        }
+    }, []);
+
     useEffect(() => {
         fetchClasses(currentPage, debouncedSearchTerm);
-    }, [currentPage, debouncedSearchTerm, fetchClasses]);
+        fetchLecturers();
+    }, [currentPage, debouncedSearchTerm, fetchClasses, fetchLecturers]);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -231,128 +454,111 @@ const ClassPage = () => {
 
     const openAddModal = () => {
         setEditingClass(null);
+        setModalError('');
         setIsModalOpen(true);
     };
 
     const openEditModal = (classItem: Class) => {
         setEditingClass(classItem);
+        setModalError('');
         setIsModalOpen(true);
     };
 
+    const openDeleteModal = (classItem: Class) => {
+        setDeletingClass(classItem);
+        setIsDeleteModalOpen(true);
+    };
+
+    const closeDeleteModal = () => {
+        setDeletingClass(null);
+        setIsDeleteModalOpen(false);
+    };
+
     const handleFormSubmit = async (data: ClassPayload) => {
+        setModalError('');
         try {
             if (editingClass) {
                 await updateClass(editingClass.id, data);
-                alert('Cập nhật lớp thành công!');
+                showSuccessToast('Cập nhật lớp thành công!');
             } else {
                 await createClass(data);
-                alert('Thêm lớp thành công!');
+                showSuccessToast('Thêm lớp thành công!');
             }
             setIsModalOpen(false);
-            setDebouncedSearchTerm(searchTerm);
-            setCurrentPage(1);
-            fetchClasses(1, searchTerm);
+
+
+            try {
+                await fetchClasses(1, searchTerm);
+                setCurrentPage(1);
+            } catch (refreshError) {
+                console.warn('Error refreshing classes:', refreshError);
+            }
         } catch (error: any) {
             console.error("API Error:", error.response || error);
-            const serverMessage = error.response?.data?.message;
-            const statusCode = error.response?.status;
-            let displayMessage = `Lỗi: Không thể thực hiện thao tác.`;
-            if (statusCode) {
-                displayMessage += ` (Mã lỗi: ${statusCode})`;
-            }
-            if (serverMessage) {
-                displayMessage = serverMessage;
-            }
-            alert(displayMessage);
-        }
-    };
 
-    const handleDeleteClass = async (id: number) => {
-        if (window.confirm('Bạn có chắc chắn muốn xóa lớp này không?')) {
-            try {
-                await deleteClass(id);
-                alert('Xóa lớp thành công!');
-                if (classes.length === 1 && currentPage > 1) {
-                    setCurrentPage(currentPage - 1);
-                } else {
-                    fetchClasses(currentPage, debouncedSearchTerm);
-                }
-            } catch (error) {
-                alert('Lỗi: Không thể xóa lớp.');
-                console.error(error);
+            const serverMessage = error.response?.data?.message || '';
+
+            if (serverMessage.includes("tồn tại") ||
+                serverMessage.toLowerCase().includes("existed") ||
+                serverMessage.toLowerCase().includes("already") ||
+                serverMessage.toLowerCase().includes("duplicate")) {
+                setModalError('Tên lớp đã tồn tại, vui lòng nhập tên khác');
+            } else {
+                setModalError('Có lỗi xảy ra, vui lòng thử lại');
             }
         }
     };
 
-    // Sửa hàm handleAddTeacher - thêm input để nhập lecturerId
-    const handleAddTeacher = async (classId: number) => {
-        const lecturerIdInput = prompt('Nhập ID của giảng viên chủ nhiệm:');
-
-        if (!lecturerIdInput) {
-            return;
-        }
-
-        const lecturerId = parseInt(lecturerIdInput);
-        if (isNaN(lecturerId)) {
-            alert('ID giảng viên phải là số!');
-            return;
-        }
+    const handleConfirmDelete = async () => {
+        if (!deletingClass) return;
 
         try {
-            console.log('Calling API with:', { classId, lecturerId }); // Log request
+            await deleteClass(deletingClass.id);
+            showSuccessToast('Xóa lớp thành công!');
+            closeDeleteModal();
 
-            const response = await addLecturerToClass(classId, lecturerId);
-
-            console.log('API Response:', response); // Log response
-
-            // Kiểm tra response chi tiết hơn
-            if (response && (response.statusCode === 200 || response.status === 200)) {
-                // Lấy thông tin giảng viên
-                const lecturer = await getLecturerById(lecturerId);
-
-                // Cập nhật state local ngay lập tức
-                setClasses(prevClasses =>
-                    prevClasses.map(classItem =>
-                        classItem.id === classId
-                            ? {
-                                ...classItem,
-                                lecturerId: lecturerId,
-                                lecturerName: lecturer.lecturerCode || `Lecturer-${lecturerId}`
-                            }
-                            : classItem
-                    )
-                );
-
-                alert('Thêm giảng viên thành công!');
-
-                // Refresh data từ server để đảm bảo
-                await fetchClasses(currentPage, debouncedSearchTerm);
+            if (classes.length === 1 && currentPage > 1) {
+                setCurrentPage(currentPage - 1);
             } else {
-                console.error('API returned unexpected response:', response);
-                alert('Lỗi: API trả về response không mong đợi');
+                fetchClasses(currentPage, debouncedSearchTerm);
+            }
+        } catch (error: any) {
+            console.error('Delete error:', error);
+            if (error.response && error.response.status === 409) {
+                showErrorToast('Không thể xóa lớp này vì đang có sinh viên thuộc lớp');
+            } else {
+                showErrorToast('Lỗi: Không thể xóa lớp.');
+            }
+            closeDeleteModal();
+        }
+    };
+
+    const handleAddTeacher = (classId: number) => {
+        setSelectedClassId(classId);
+        setIsSelectLecturerModalOpen(true);
+    };
+
+    const handleSelectLecturer = async (lecturerId: number) => {
+        try {
+            const response = await addLecturerToClass(selectedClassId, lecturerId);
+
+            if (response && (response.statusCode === 200 || response.status === 200)) {
+                showSuccessToast('Thêm giảng viên thành công!');
+
+
+                try {
+                    await fetchClasses(currentPage, debouncedSearchTerm);
+                } catch (refreshError) {
+                    console.warn('Lỗi khi refresh sau khi thêm giảng viên:', refreshError);
+                    window.location.reload();
+                }
+            } else {
+                showErrorToast('Lỗi: API trả về response không mong đợi');
             }
         } catch (error: any) {
             console.error('Error adding lecturer:', error);
-            console.error('Error details:', error.response?.data);
-            alert(`Lỗi: ${error.response?.data?.message || 'Không thể thêm giảng viên'}`);
+            showErrorToast(`Lỗi: ${error.response?.data?.message || 'Không thể thêm giảng viên'}`);
         }
-    };
-
-
-
-    const handleAddStudent = (classId: number) => {
-        alert(`Thêm sinh viên vào lớp ID: ${classId}`);
-        // TODO: Implement add student functionality
-    };
-
-    const handleImportStudents = (classId: number) => {
-        alert(`Import sinh viên cho lớp ID: ${classId}`);
-        // TODO: Implement import students functionality
-    };
-
-    const handleViewDetails = (classId: number) => {
-        alert(`Xem chi tiết lớp ID: ${classId}`);
-        // TODO: Implement view details functionality
     };
 
     const handlePageChange = (page: number) => {
@@ -362,21 +568,32 @@ const ClassPage = () => {
     };
 
     const renderPagination = () => {
-        const pageButtons = [];
-        for (let i = 1; i <= totalPages; i++) {
-            pageButtons.push(
-                <button
-                    key={i}
-                    onClick={() => handlePageChange(i)}
-                    className={`px-3 py-1 mx-1 rounded-md text-sm font-medium ${currentPage === i
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                        }`}
-                >
-                    {i}
-                </button>
-            );
+        if (totalPages <= 1) return null;
+
+        let pageButtons = [];
+        let pages: number[] = [];
+        if (totalPages <= 3) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else if (currentPage <= 2) {
+            pages = [1, 2, 3];
+        } else if (currentPage >= totalPages - 1) {
+            pages = [totalPages - 2, totalPages - 1, totalPages];
+        } else {
+            pages = [currentPage - 1, currentPage, currentPage + 1];
         }
+
+        pageButtons = pages.map(i => (
+            <button
+                key={i}
+                onClick={() => handlePageChange(i)}
+                className={`px-3 py-1 mx-1 rounded-md text-sm font-medium ${currentPage === i
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+            >
+                {i}
+            </button>
+        ));
 
         const startItem = totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
         const endItem = Math.min(currentPage * itemsPerPage, totalItems);
@@ -409,12 +626,30 @@ const ClassPage = () => {
 
     return (
         <>
+            <ToastContainer />
             <ClassFormModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setModalError('');
+                }}
                 onSubmit={handleFormSubmit}
                 initialData={editingClass}
+                formError={modalError}
             />
+            <DeleteConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={closeDeleteModal}
+                onConfirm={handleConfirmDelete}
+                className={deletingClass?.className || ''}
+            />
+            <SelectLecturerModal
+                isOpen={isSelectLecturerModalOpen}
+                onClose={() => setIsSelectLecturerModalOpen(false)}
+                onSubmit={handleSelectLecturer}
+                lecturers={lecturers}
+            />
+
             <div className="space-y-4">
                 <div className="mb-4">
                     <h1 className="text-2xl font-bold text-[#1E3A8A] mb-2">
@@ -436,7 +671,6 @@ const ClassPage = () => {
                         />
                         <FiSearch className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />
                     </div>
-
                     <button
                         onClick={openAddModal}
                         className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center font-semibold text-sm"
@@ -447,13 +681,29 @@ const ClassPage = () => {
                 </div>
 
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <h2 className="text-lg font-semibold text-gray-700 p-4 border-b border-gray-200">
+                    <h2 className="text-lg font-semibold text-[#1E3A8A] p-4 border-b border-gray-200">
                         Danh sách lớp học
                     </h2>
                     {loading ? (
-                        <p className="p-6 text-center text-gray-500">Đang tải dữ liệu...</p>
+                        <div className="p-8 text-center">
+                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <p className="text-gray-500 mt-2">Đang tải dữ liệu...</p>
+                        </div>
                     ) : error ? (
-                        <p className="p-6 text-center text-red-600">{error}</p>
+                        <div className="p-8 text-center">
+                            <div className="text-red-600 mb-4">
+                                <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <p className="text-lg font-medium">{error}</p>
+                            </div>
+                            <button
+                                onClick={() => fetchClasses(currentPage, debouncedSearchTerm)}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                            >
+                                Thử lại
+                            </button>
+                        </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
@@ -463,81 +713,80 @@ const ClassPage = () => {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên lớp</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giảng viên</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sức chứa</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng hiện tại</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng sinh viên hiện tại</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {classes.length > 0 ? (
-                                        classes.map((classItem, index) => (
-                                            <tr key={classItem.id} className="hover:bg-gray-50">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {(currentPage - 1) * itemsPerPage + index + 1}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {classItem.className}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {classItem.lecturerName || "Chưa có giảng viên"}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {classItem.capacityStudent}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    0 / {classItem.capacityStudent}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                    <div className="flex items-center space-x-2">
-                                                        <button
-                                                            onClick={() => openEditModal(classItem)}
-                                                            className="text-indigo-600 hover:text-indigo-900 p-1"
-                                                            title="Sửa"
-                                                        >
-                                                            <FiEdit size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteClass(classItem.id)}
-                                                            className="text-red-600 hover:text-red-900 p-1"
-                                                            title="Xóa"
-                                                        >
-                                                            <FiTrash2 size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleAddTeacher(classItem.id)}
-                                                            className="text-green-600 hover:text-green-900 p-1"
-                                                            title="Thêm giảng viên chủ nhiệm"
-                                                        >
-                                                            <FiUserPlus size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleAddStudent(classItem.id)}
-                                                            className="text-blue-600 hover:text-blue-900 p-1"
-                                                            title="Thêm sinh viên"
-                                                        >
-                                                            <FiUsers size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleImportStudents(classItem.id)}
-                                                            className="text-purple-600 hover:text-purple-900 p-1"
-                                                            title="Import sinh viên"
-                                                        >
-                                                            <FiUpload size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleViewDetails(classItem.id)}
-                                                            className="text-gray-600 hover:text-gray-900 p-1"
-                                                            title="Xem chi tiết"
-                                                        >
-                                                            <FiEye size={16} />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
+                                        classes
+                                            .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                                            .map((classItem, index) => (
+                                                <tr key={classItem.id} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        {(currentPage - 1) * itemsPerPage + index + 1}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        {classItem.className}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        {classItem.lecturerName || "Chưa có giảng viên"}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        {classItem.capacityStudent}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                        <span className={`font-medium ${(classItem.currentStudents || 0) >= classItem.capacityStudent
+                                                            ? 'text-red-600'
+                                                            : 'text-gray-700'
+                                                            }`}>
+                                                            {classItem.currentStudents || 0} / {classItem.capacityStudent}
+                                                        </span>
+                                                        {(classItem.currentStudents || 0) >= classItem.capacityStudent && (
+                                                            <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                                Đầy
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                        <div className="flex items-center space-x-4">
+                                                            <button
+                                                                onClick={() => openEditModal(classItem)}
+                                                                className="text-indigo-600 hover:text-indigo-900"
+                                                                title="Sửa"
+                                                            >
+                                                                <FiEdit size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => openDeleteModal(classItem)}
+                                                                className="text-red-600 hover:text-red-900"
+                                                                title="Xóa"
+                                                            >
+                                                                <FiTrash2 size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleAddTeacher(classItem.id)}
+                                                                className="text-green-600 hover:text-green-900"
+                                                                title="Thêm giảng viên chủ nhiệm"
+                                                            >
+                                                                <FiUserPlus size={16} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={6} className="text-center py-6 text-gray-500">
-                                                Không tìm thấy lớp nào.
+                                            <td colSpan={6} className="text-center py-8">
+                                                <div className="text-gray-500">
+                                                    <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                    </svg>
+                                                    <p className="text-lg font-medium">Chưa có lớp nào</p>
+                                                    <p className="text-sm text-gray-400 mt-1">
+                                                        {searchTerm ? `Không tìm thấy lớp nào với từ khóa "${searchTerm}"` : 'Hãy thêm lớp đầu tiên'}
+                                                    </p>
+                                                </div>
                                             </td>
                                         </tr>
                                     )}

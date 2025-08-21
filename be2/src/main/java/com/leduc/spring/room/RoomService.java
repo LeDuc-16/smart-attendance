@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -35,8 +36,11 @@ public class RoomService {
     // Lấy danh sách tất cả các phòng
     public ApiResponse<Object> getAllRooms(HttpServletRequest servletRequest) {
         List<Room> rooms = roomRepository.findAll();
+//        if (rooms == null || rooms.isEmpty()) {
+//            throw new ResourceNotFoundException("No rooms have found yet");
+//        }
         if (rooms == null || rooms.isEmpty()) {
-            throw new ResourceNotFoundException("No rooms have found yet");
+            return ApiResponse.success(Collections.emptyList(), "No rooms found", servletRequest.getRequestURI());
         }
         List<RoomResponse> responses = RoomResponseMapper.toResponseList(rooms);
         return ApiResponse.success(responses, "List of rooms", servletRequest.getRequestURI());

@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -36,8 +37,12 @@ public class ClassService {
     // Lấy danh sách tất cả các lớp
     public ApiResponse<Object> getAllClass(HttpServletRequest servletRequest) {
         List<ClassEntity> classes = classRepository.findAll();
+//        if (classes == null || classes.isEmpty()) {
+//            throw new ResourceNotFoundException("No classes have found yet");
+//        }
+
         if (classes == null || classes.isEmpty()) {
-            throw new ResourceNotFoundException("No classes have found yet");
+            return ApiResponse.success(Collections.emptyList(), "No classes found", servletRequest.getRequestURI());
         }
         List<ClassResponse> responses = ClassResponseMapper.toResponseList(classes);
         return ApiResponse.success(responses, "List of classes", servletRequest.getRequestURI());

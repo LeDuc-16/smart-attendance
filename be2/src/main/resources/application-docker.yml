@@ -62,4 +62,5 @@ aws:
     buckets:
       student: leducdev
   rekognition:
-    collection-id: students_collection
+    collection: students-faces
+

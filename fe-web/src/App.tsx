@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import DashboardLayout from "./layout/DashboardLayout";
 import ClassPage from "./pages/ClassPage";
 import ClassRoomPage from "./pages/ClassRoomPage";
@@ -14,14 +15,17 @@ import AttendancePage from "./pages/AttendancePage";
 import LecturerDashboard from "./pages/LecturerDashboard";
 import TeachingSchedulePage from "./pages/TeachingSchedulePage";
 import LecturerReports from "./pages/LecturerReports";
+
 const App = () => {
   return (
     <BrowserRouter>
-      {" "}
       <Routes>
-        {" "}
-        {/* Login routes */} <Route path="/" element={<LoginPage />} />{" "}
-        <Route path="/login" element={<LoginPage />} /> {/* Dashboard routes */}{" "}
+        {/* Login routes */}
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+
+        {/* Dashboard routes */}
         <Route path="/dashboard" element={<DashboardLayout />}>
           {" "}
           <Route index element={<GeneralPage />} />{" "}
@@ -43,4 +47,5 @@ const App = () => {
     </BrowserRouter>
   );
 };
+
 export default App;
