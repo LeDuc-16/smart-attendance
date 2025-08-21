@@ -13,6 +13,7 @@ import TeachingPage from "./pages/TeachingPage";
 import AttendancePage from "./pages/AttendancePage";
 import LecturerDashboard from "./pages/LecturerDashboard";
 import TeachingSchedulePage from "./pages/TeachingSchedulePage";
+import LecturerReports from "./pages/LecturerReports";
 const App = () => {
   return (
     <BrowserRouter>
@@ -35,8 +36,9 @@ const App = () => {
           <Route path="teaching" element={<TeachingPage />} />{" "}
           <Route path="attendance" element={<AttendancePage />} />{" "}
         </Route>{" "}
-        <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
-        <Route path="/teaching-schedule" element={<TeachingSchedulePage />} />
+  <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
+  <Route path="/teaching-schedule" element={<TeachingSchedulePage />} />
+  <Route path="/lecturer-reports" element={<LecturerReports />} />
       </Routes>{" "}
     </BrowserRouter>
   );
