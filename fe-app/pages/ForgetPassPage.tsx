@@ -19,7 +19,7 @@ export default function ForgetPassPage({ navigation }: Props) {
   const handleForgotPassword = async () => {
     setError('');
     setSuccess('');
-    
+
     if (!email) {
       setError('Vui lòng nhập địa chỉ email');
       return;
@@ -40,7 +40,7 @@ export default function ForgetPassPage({ navigation }: Props) {
       });
 
       setSuccess('Email đặt lại mật khẩu đã được gửi thành công!');
-      
+
       // Navigate to OTP page after 2 seconds
       setTimeout(() => {
         navigation.navigate('OtpPage');
@@ -73,6 +73,12 @@ export default function ForgetPassPage({ navigation }: Props) {
               Nhập email để đặt lại mật khẩu
             </Text>
 
+            {/* Error Message */}
+            {error ? <ErrorMessage text={error} /> : null}
+
+            {/* Success Message */}
+            {success ? <SuccessMessage text={success} /> : null}
+
             {/* Email Input */}
             <MyInput
               label="Email"
@@ -87,7 +93,7 @@ export default function ForgetPassPage({ navigation }: Props) {
             <MyButton
               title="Gửi email đặt lại"
               isLoading={isLoading}
-              onPress={() => navigation.navigate('OtpPage')}
+              onPress={handleForgotPassword}
             />
 
             {/* Back to Login */}
