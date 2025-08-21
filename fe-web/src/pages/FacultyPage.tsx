@@ -553,6 +553,7 @@ const FacultyPage = () => {
             </div>
         </>
     );
+
 };
 
 export default FacultyPage;

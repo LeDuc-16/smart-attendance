@@ -158,6 +158,6 @@ const HeaderDashboard = () => {
             </div>
         </header>
     );
-};
+}
 
 export default HeaderDashboard;

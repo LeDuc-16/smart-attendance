@@ -1,6 +1,7 @@
 import axios, { AxiosError, type AxiosResponse } from 'axios';
 
 interface AuthTokens {
+
     access_token: string;
     refresh_token: string;
 }
@@ -29,6 +30,7 @@ interface VerifyOTPResponse {
         otpCode: string;
     };
 }
+
 
 const API_BASE_URL = 'http://localhost:8080';
 

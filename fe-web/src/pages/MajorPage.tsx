@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState, useEffect, useCallback } from 'react';
 import { FiEdit, FiTrash2, FiSearch, FiPlus, FiX } from 'react-icons/fi';
 import type { Major, MajorPayload, Faculty } from '../api/apiMajor';
@@ -599,3 +600,14 @@ const MajorPage = () => {
 };
 
 export default MajorPage;
+=======
+import React from 'react'
+
+const MajorPage = () => {
+  return (
+    <div>MajorPage</div>
+  )
+}
+
+export default MajorPage
+>>>>>>> 0613f4f1dda44d5ae357617c15b1bee095de8123

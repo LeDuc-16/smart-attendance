@@ -10,6 +10,8 @@ public class LecturerResponse {
     private String name;
     private String academicRank;
     private Long userId;
+    private String account;
+    private String email;
     private Long facultyId;
     private Role role;
 }

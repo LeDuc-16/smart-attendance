@@ -60,4 +60,6 @@ public class Schedule {
     @ManyToOne
     @JoinColumn(name = "room_id")
     private Room room;
+
+    private boolean isOpen;
 }
