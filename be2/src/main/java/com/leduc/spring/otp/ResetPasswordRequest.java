@@ -6,7 +6,8 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class ResetPasswordRequest {
-    private String otpCode; // OTP đã xác thực
+    private String email;
+    private String otpCode;
     private String newPassword;
     private String confirmPassword;
 }

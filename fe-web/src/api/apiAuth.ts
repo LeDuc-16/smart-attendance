@@ -1,7 +1,6 @@
 import axios, { AxiosError, type AxiosResponse } from 'axios';
 
 interface AuthTokens {
-
     access_token: string;
     refresh_token: string;
 }
@@ -31,6 +30,12 @@ interface VerifyOTPResponse {
     };
 }
 
+interface ResetPasswordResponse {
+    statusCode: number;
+    message: string;
+    path: string;
+    data: any;
+}
 
 const API_BASE_URL = 'http://localhost:8080';
 
@@ -83,7 +88,7 @@ export const forgotPassword = async (email: string): Promise<ForgotPasswordRespo
         console.error("Forgot password error:", axiosError);
 
         if (axiosError.response?.data?.data?.otpCode) {
-            console.log("🎉 Found OTP in error response:", axiosError.response.data.data.otpCode);
+            console.log("Found OTP in error response:", axiosError.response.data.data.otpCode);
             return axiosError.response.data;
         }
 
@@ -95,28 +100,90 @@ export const forgotPassword = async (email: string): Promise<ForgotPasswordRespo
     }
 };
 
-
-
-export const verifyOTP = async (email: string, otpCode: string): Promise<VerifyOTPResponse> => {
+export const verifyOTP = async (email: string, otpCode: string): Promise<any> => {
     try {
-        const response: AxiosResponse<VerifyOTPResponse> = await api.post('/api/v1/otp/verify', {
-            email,
-            otpCode,
+        console.log("🔍 API verifyOTP request:", { email, otpCode });
+
+        const response: AxiosResponse<any> = await api.post('/api/v1/otp/verify', {
+            email: email.trim(),
+            otpCode: otpCode.toString(),
+        }, {
+            validateStatus: function (status) {
+                return true;
+            },
+            timeout: 15000,
         });
 
-        console.log("Verify OTP response:", response);
+        console.log("API verifyOTP response:", response.data);
+        console.log("API response status:", response.status);
 
-        return response.data;
+        return {
+            ...response.data,
+            httpStatus: response.status
+        };
+
     } catch (error) {
-        const axiosError = error as AxiosError<ApiResponse<any>>;
-        console.error("Verify OTP error:", axiosError);
+        const axiosError = error as AxiosError<any>;
+        console.error("API verifyOTP error:", axiosError);
 
-        if (axiosError.response?.data?.message) {
-            throw new Error(axiosError.response.data.message);
-        } else {
-            throw new Error('Mã OTP không chính xác hoặc đã hết hạn');
+        if (axiosError.response?.data) {
+            return {
+                ...axiosError.response.data,
+                httpStatus: axiosError.response.status
+            };
         }
+
+        throw axiosError;
     }
 };
+
+
+
+
+
+export const resetPassword = async (
+    email: string,
+    otpCode: string,
+    newPassword: string
+): Promise<ResetPasswordResponse & { status?: number }> => {
+    try {
+        console.log("🔍 API resetPassword request:", { email, otpCode, newPassword: "***" });
+
+        const response: AxiosResponse<ResetPasswordResponse> = await api.post('/api/v1/otp/reset-password', {
+            email: email.trim(),
+            otpCode: otpCode.toString(),
+            newPassword: newPassword.trim(),
+            confirmPassword: newPassword.trim()
+        }, {
+            validateStatus: function (status) {
+                return true;
+            },
+            timeout: 15000
+        });
+
+        console.log("API resetPassword response:", response.data);
+        console.log("HTTP status:", response.status);
+
+
+        return {
+            ...response.data,
+            status: response.status
+        };
+
+    } catch (error) {
+        const axiosError = error as AxiosError<ResetPasswordResponse>;
+        console.error("API resetPassword error:", axiosError);
+
+        if (axiosError.response?.data) {
+            return {
+                ...axiosError.response.data,
+                status: axiosError.response.status
+            };
+        }
+
+        throw new Error('Không thể đặt lại mật khẩu');
+    }
+};
+
 
 export default api;

@@ -31,28 +31,28 @@ const ForgotPasswordPage = () => {
 
         try {
             const response = await forgotPassword(email);
-            console.log("✅ Success Response:", response);
+            console.log("Success Response:", response);
 
             setMessage("Mã OTP đã được gửi về email của bạn!");
             setIsSuccess(true);
 
         } catch (error: any) {
-            console.error("❌ Error occurred:", error);
+            console.error("Error occurred:", error);
 
             if (error.response?.data?.data?.otpCode) {
-                console.log("🎉 OTP found in error response:", error.response.data.data.otpCode);
+                console.log("OTP found in error response:", error.response.data.data.otpCode);
                 setMessage("Mã OTP đã được gửi về email của bạn!");
                 setIsSuccess(true);
             }
             else if (error.response?.status === 200 || error.response?.data?.statusCode === 200) {
-                console.log("🎉 Status 200 found in error response");
+                console.log("Status 200 found in error response");
                 setMessage("Mã OTP đã được gửi về email của bạn!");
                 setIsSuccess(true);
             }
 
 
             else {
-                console.log("💥 Real error occurred");
+                console.log("Real error occurred");
                 if (error.response?.data?.message) {
                     setMessage(error.response.data.message);
                 } else if (error.message) {
@@ -159,7 +159,7 @@ const ForgotPasswordPage = () => {
                 <div className="w-1/2 bg-blue-900 p-4 rounded h-150 justify-center flex flex-col text-white">
                     <img
                         src="https://www.tlu.edu.vn/Portals/0/2014/Logo-WRU.png"
-                        className="rounded-full object-cover mx-auto mb-4 w-20 h-20"
+                        className="rounded-full object-cover mx-auto mb-4"
                         alt="Logo TLU"
                     />
                     <h2 className="text-xl font-bold mb-2 text-center">

@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import VerifyOTPPage from "./pages/VerifyOTPPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import DashboardLayout from "./layout/DashboardLayout";
 import ClassPage from "./pages/ClassPage";
 import ClassRoomPage from "./pages/ClassRoomPage";
@@ -23,6 +25,8 @@ const App = () => {
         <Route path="/" element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/verify-otp" element={<VerifyOTPPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Dashboard routes */}
         <Route path="/dashboard" element={<DashboardLayout />}>

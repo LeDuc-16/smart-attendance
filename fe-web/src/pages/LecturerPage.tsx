@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import React, { useState, useEffect, useCallback } from "react";
 import { FiEdit, FiTrash2, FiSearch, FiPlus, FiX } from "react-icons/fi";
 import type { Lecturer, LecturerPayload, Faculty } from "../api/apiLecturer";
@@ -728,13 +727,4 @@ const LecturerPage = () => {
 };
 
 export default LecturerPage;
-=======
 
-const LecturerPage = () => {
-  return (
-    <div>LecturerPage</div>
-  )
-}
-
-export default LecturerPage
->>>>>>> 0613f4f1dda44d5ae357617c15b1bee095de8123

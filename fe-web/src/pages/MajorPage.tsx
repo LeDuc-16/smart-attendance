@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import React, { useState, useEffect, useCallback } from 'react';
 import { FiEdit, FiTrash2, FiSearch, FiPlus, FiX } from 'react-icons/fi';
 import type { Major, MajorPayload, Faculty } from '../api/apiMajor';
@@ -67,7 +66,7 @@ const MajorFormModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-opacity-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
                 <div className="flex justify-between items-start p-4">
                     <div>
@@ -147,7 +146,7 @@ const DeleteConfirmModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-60">
             <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-0">
                 <div className="flex items-start justify-between px-6 pt-6">
                     <div className="flex items-center">
@@ -600,14 +599,4 @@ const MajorPage = () => {
 };
 
 export default MajorPage;
-=======
-import React from 'react'
 
-const MajorPage = () => {
-  return (
-    <div>MajorPage</div>
-  )
-}
-
-export default MajorPage
->>>>>>> 0613f4f1dda44d5ae357617c15b1bee095de8123
