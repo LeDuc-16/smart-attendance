@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import ForgetPassPage from './pages/ForgetPassPage';
 import OtpPage from './pages/OtpPage';
 import { ChangePassPage } from './pages/ChangePassPage';
+import NewPassWordPage from './pages/NewPassWordPage';
 import DashBoardPage from './pages/DashBoardPage';
 import AttendancePage from './pages/AttendancePage';
 
@@ -14,11 +15,12 @@ export type RootStackParamList = {
   ForgetPass: undefined;
   OtpPage: undefined;
   ChangePassPage: undefined;
+  NewPassWordPage: undefined;
   DashBoardPage: undefined;
   AttendancePage: undefined;
 };
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
@@ -32,6 +34,7 @@ export default function App() {
         <Stack.Screen name="ForgetPass" component={ForgetPassPage} />
         <Stack.Screen name="OtpPage" component={OtpPage} />
         <Stack.Screen name="ChangePassPage" component={ChangePassPage} />
+        <Stack.Screen name="NewPassWordPage" component={NewPassWordPage} />
         <Stack.Screen name="DashBoardPage" component={DashBoardPage} />
         <Stack.Screen name="AttendancePage" component={AttendancePage} />
       </Stack.Navigator>

@@ -13,6 +13,15 @@ export interface ForgotPasswordRequest {
   email: string;
 }
 
+export interface VerifyOtpRequest {
+  otp: string;
+}
+
+export interface ResetPasswordRequest {
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export interface BackendApiResponse<T> {
   statusCode: number;
   message: string;
@@ -133,6 +142,38 @@ class ApiAuthService {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || 'Gửi email thất bại');
+    }
+
+    const result: BackendApiResponse<any> = await response.json();
+    return result;
+  }
+
+  async verifyOtp(request: VerifyOtpRequest): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/v1/otp/verify`, {
+      method: 'POST',
+      headers: this.getHeaders(false),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Xác thực OTP thất bại');
+    }
+
+    const result: BackendApiResponse<any> = await response.json();
+    return result;
+  }
+
+  async resetPassword(request: ResetPasswordRequest): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/v1/auth/reset-password`, {
+      method: 'POST',
+      headers: this.getHeaders(false),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Đặt lại mật khẩu thất bại');
     }
 
     const result: BackendApiResponse<any> = await response.json();
