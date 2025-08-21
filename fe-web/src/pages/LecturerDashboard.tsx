@@ -6,8 +6,6 @@ import { getCourses } from "../api/apiCourse";
 import { getClassRooms } from "../api/apiClassRoom";
 import { getClasses } from "../api/apiClass";
 
-// Lấy ngày hiện tại dạng YYYY-MM-DD
-// Format ngày hiện tại sang tiếng Việt: Thứ, ngày tháng năm
 function getTodayLabel() {
   const today = new Date();
   const days = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
@@ -27,8 +25,6 @@ function getTodayString() {
 }
 
 
-// ...existing code...
-
 const LecturerDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [scheduleToday, setScheduleToday] = useState<any[]>([]);
@@ -43,13 +39,11 @@ const LecturerDashboard = () => {
         const classesRes = await getClasses();
         const courses: any[] = (coursesRes as any).data;
         const classes: any[] = (classesRes as any).data;
-        // Lọc lịch theo ngày hiện tại
         const filteredSchedules = schedules.filter((item: any) =>
           item.weeks.some((week: any) =>
             week.studyDays.some((day: any) => day.date === todayStr)
           )
         );
-        // Map lại dữ liệu cho bảng hôm nay
         const enriched = filteredSchedules.map((item: any) => {
           const course = courses.find((c: any) => c.id === item.courseId);
           const room = rooms.find((r: any) => r.id === item.roomId);
@@ -67,10 +61,16 @@ const LecturerDashboard = () => {
             status = "Đã kết thúc";
             statusType = "ended";
           }
+          function formatTime(str: string) {
+            if (/^\d{2}:\d{2}$/.test(str)) return str;
+            const d = new Date(str);
+            if (isNaN(d.getTime())) return str;
+            return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+          }
           return {
             subject: course?.courseName || "",
             className: classInfo?.className || "",
-            time: `${item.startTime.slice(11,16)} - ${item.endTime.slice(11,16)}`,
+            time: `${formatTime(item.startTime)} - ${formatTime(item.endTime)}`,
             room: room?.roomCode || "",
             students: classInfo?.capacityStudent || "-",
             status,

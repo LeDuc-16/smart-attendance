@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import SidebarLecturer from "../components/SidebarLecturer";
 import HeaderLecturer from "../components/HeaderLecturer";
+import EditScheduleModal from "../components/EditScheduleModal";
 import { getSchedulesByDate } from "../api/apiTeaching";
 import type { TeachingSchedule } from "../api/apiTeaching";
 import { getCourses } from "../api/apiCourse";
@@ -8,8 +9,33 @@ import { getClassRooms } from "../api/apiClassRoom";
 import { getClasses } from "../api/apiClass";
 
 const TeachingSchedulePage = () => {
+  // Format giờ phút an toàn
+  function formatTime(str: string) {
+    if (!str) return "";
+    // Nếu chuỗi chỉ có dạng HH:mm thì trả về luôn
+    if (/^\d{2}:\d{2}$/.test(str)) return str;
+    // Nếu là dạng ISO thì lấy giờ phút
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return str;
+    return d.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  }
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editData, setEditData] = useState<TeachingSchedule | null>(null);
   const [search, setSearch] = useState("");
-  const [date, setDate] = useState("2025-08-05");
+
+  function getTodayString() {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  const [date, setDate] = useState(getTodayString());
   const [activeTab, setActiveTab] = useState("teaching-schedule");
   const [scheduleData, setScheduleData] = useState<TeachingSchedule[]>([]);
   const [loading, setLoading] = useState(false);
@@ -19,40 +45,35 @@ const TeachingSchedulePage = () => {
     (async () => {
       try {
         const schedules = await getSchedulesByDate(date);
-        // Lấy tất cả courses, rooms, classes một lần
         const coursesRes = await getCourses();
         const rooms = await getClassRooms();
         const classesRes = await getClasses();
-        console.log("coursesRes:", coursesRes);
-        console.log("classesRes:", classesRes);
-  const courses: any[] = (coursesRes as any).data;
-  const classes: any[] = (classesRes as any).data;
 
-        // Lọc lịch theo ngày được chọn
-        const filteredSchedules = schedules.filter((item) =>
-          item.weeks.some((week) =>
-            week.studyDays.some((day) => day.date === date)
+        const courses: any[] = (coursesRes as any).data;
+        const classes: any[] = (classesRes as any).data;
+
+        const filteredSchedules = schedules.filter((item: any) =>
+          item.weeks.some((week: any) =>
+            week.studyDays.some((day: any) => day.date === date)
           )
         );
-        // Map lại dữ liệu lịch giảng dạy
-        const enriched = filteredSchedules.map((item) => {
+
+        const enriched = filteredSchedules.map((item: any) => {
           const course = courses.find((c: any) => c.id === item.courseId);
           const room = rooms.find((r: any) => r.id === item.roomId);
           const classInfo = classes.find((cl: any) => cl.id === item.classId);
           return {
             ...item,
-            // Môn học là className, tên lớp là courseName
-            className: classInfo?.className || '',
-            courseName: course?.courseName || '',
-            roomCode: room?.roomCode || '',
+            className: classInfo?.className || "",
+            courseName: course?.courseName || "",
+            roomCode: room?.roomCode || "",
             capacityStudent: classInfo?.capacityStudent,
           };
         });
-        console.log("courses:", courses);
-        console.log("classes:", classes);
-        console.log("enriched:", enriched);
+
         setScheduleData(enriched);
       } catch (err) {
+        console.error("Failed to fetch schedule data:", err);
         setScheduleData([]);
       } finally {
         setLoading(false);
@@ -60,31 +81,33 @@ const TeachingSchedulePage = () => {
     })();
   }, [date]);
 
-  // --- Main Teaching Schedule Page Component ---
+  const handleEditClick = (item: TeachingSchedule) => {
+    setEditData(item);
+    setShowEditModal(true);
+  };
 
-  const formattedDate = new Date(date).toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  const handleCloseModal = () => {
+    setShowEditModal(false);
+    setEditData(null);
+  };
+
+  const formattedDate = new Date(date + "T00:00:00").toLocaleDateString(
+    "vi-VN",
+    {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }
+  );
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-gray-100 font-sans">
       <SidebarLecturer activeTab={activeTab} setActiveTab={setActiveTab} />
       <div className="flex-1 flex flex-col">
         <HeaderLecturer lecturerName="Kiều Tuấn Dũng" />
         <main className="flex-1 p-8 overflow-y-auto">
           <div className="mb-6">
-            <h1
-              className={`text-2xl font-bold cursor-pointer ${
-                activeTab === "teaching-schedule"
-                  ? "text-blue-700"
-                  : "text-gray-800"
-              }`}
-              onClick={() => setActiveTab("teaching-schedule")}
-            >
-              Lịch giảng dạy
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-800">Lịch giảng dạy</h1>
             <p className="text-sm text-gray-500">
               Quản lý và theo dõi lịch giảng dạy một cách hiệu quả
             </p>
@@ -96,7 +119,7 @@ const TeachingSchedulePage = () => {
               <input
                 type="text"
                 placeholder="Tìm kiếm theo môn học, phòng học..."
-                className="w-full border rounded-lg px-4 py-2 pl-10"
+                className="w-full border rounded-lg px-4 py-2 pl-10 focus:ring-2 focus:ring-blue-500 outline-none"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -119,7 +142,7 @@ const TeachingSchedulePage = () => {
             <div className="relative w-full md:w-auto">
               <input
                 type="date"
-                className="w-full md:w-auto border rounded-lg px-4 py-2"
+                className="w-full md:w-auto border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
               />
@@ -129,13 +152,20 @@ const TeachingSchedulePage = () => {
           {/* Schedule Table */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="mb-4">
-              <h2 className="text-lg font-bold text-blue-700 ">
+              <h2 className="text-lg font-bold text-blue-700">
                 Lịch giảng dạy
               </h2>
               <p className="text-sm text-gray-500">
                 Lịch giảng dạy ngày {formattedDate}
               </p>
             </div>
+            <EditScheduleModal
+              show={showEditModal}
+              data={editData}
+              onClose={handleCloseModal}
+              onCancel={() => setShowEditModal(false)}
+              formatTime={formatTime}
+            />
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
                 <thead className="bg-blue-50 text-gray-600">
@@ -146,7 +176,7 @@ const TeachingSchedulePage = () => {
                     <th className="py-3 px-4 font-semibold">Phòng</th>
                     <th className="py-3 px-4 font-semibold">Sĩ số</th>
                     <th className="py-3 px-4 font-semibold text-center">
-                      Trạng thái
+                      Hành động
                     </th>
                   </tr>
                 </thead>
@@ -166,7 +196,7 @@ const TeachingSchedulePage = () => {
                   ) : (
                     scheduleData
                       .filter(
-                        (item) =>
+                        (item: TeachingSchedule) =>
                           item.courseName
                             ?.toLowerCase()
                             .includes(search.toLowerCase()) ||
@@ -174,7 +204,7 @@ const TeachingSchedulePage = () => {
                             ?.toLowerCase()
                             .includes(search.toLowerCase())
                       )
-                      .map((item, idx) => (
+                      .map((item: TeachingSchedule, idx: number) => (
                         <tr
                           key={idx}
                           className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50"
@@ -182,16 +212,32 @@ const TeachingSchedulePage = () => {
                           <td className="py-3 px-4">{item.courseName}</td>
                           <td className="py-3 px-4">{item.className}</td>
                           <td className="py-3 px-4">
-                            {item.startTime} - {item.endTime}
+                            {formatTime(item.startTime)} -{" "}
+                            {formatTime(item.endTime)}
                           </td>
                           <td className="py-3 px-4">{item.roomCode}</td>
-                          <td className="py-3 px-4">{item.capacityStudent !== undefined ? item.capacityStudent : '-'}</td>
-                          <td className="py-3 px-4 flex justify-center">
+                          <td className="py-3 px-4">
+                            {item.capacityStudent ?? "-"}
+                          </td>
+                          <td className="py-3 px-4 text-center">
                             <button
-                              className="text-blue-600 hover:text-blue-800 p-2 rounded-full focus:outline-none"
+                              className="text-blue-600 hover:text-blue-800 p-2 rounded-full focus:outline-none transition-colors"
                               title="Chỉnh sửa"
+                              onClick={() => handleEditClick(item)}
                             >
-                              <span className="material-icons">edit</span>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                                <path
+                                  fillRule="evenodd"
+                                  d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </td>
                         </tr>
