@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import MyButton from "../components/MyButton";
 import MyInput from "../components/MyInput";
 import { login } from "../api/apiAuth";
@@ -82,9 +82,9 @@ const LoginPage = () => {
                 <input type="checkbox" className="form-checkbox" />
                 <span className="ml-2">Ghi nhớ tôi</span>
               </label>
-              <a href="#" className="text-sm text-blue-600 hover:underline">
+              <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
                 Quên mật khẩu?
-              </a>
+              </Link>
             </div>
             <MyButton title="Đăng nhập" type="submit" isLoading={isLoading} />
 
