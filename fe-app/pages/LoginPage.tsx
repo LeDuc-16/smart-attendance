@@ -6,12 +6,10 @@ import MyInput from '../components/MyInput';
 import MyButton from '../components/MyButton';
 import ErrorMessage from '../components/ErrorMessage';
 import SuccessMessage from '../components/SuccessMessage';
-import { RootStackParamList } from '../types/navigation';
 import LoginBackGround from './LoginBackGround';
-import { apiAuthService } from '../services/api/apiAuthService';
-import { apiFaceRegisterService } from '../services/api/apiFaceRegisterService';
+import { apiAuthService } from '../api/apiAuth';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
+type Props = NativeStackScreenProps<any, 'Login'>;
 
 export default function LoginPage({ navigation }: Props) {
   const [email, setEmail] = useState('');
@@ -22,7 +20,7 @@ export default function LoginPage({ navigation }: Props) {
 
   const handleLogin = async () => {
     setError('');
-    
+
     if (!email || !password) {
       setError('Vui lòng nhập đầy đủ thông tin');
       return;
@@ -36,45 +34,10 @@ export default function LoginPage({ navigation }: Props) {
         password: password,
       });
 
-      if (authResponse.access_token) {
-        apiFaceRegisterService.setAuthToken(authResponse.access_token);
-
-        try {
-          const faceRegistrationStatus = await apiFaceRegisterService.checkFaceRegistration();
-
-          if (faceRegistrationStatus.hasRegistered) {
-            Alert.alert('Đăng nhập thành công', `Chào mừng ${faceRegistrationStatus.userName}!`, [
-              {
-                text: 'OK',
-                onPress: () => navigation.navigate('DashBoardPage'),
-              },
-            ]);
-          } else {
-            Alert.alert(
-              'Chưa đăng ký khuôn mặt',
-              'Bạn cần đăng ký khuôn mặt để sử dụng tính năng điểm danh',
-              [
-                {
-                  text: 'Đăng ký ngay',
-                  onPress: () => navigation.navigate('FaceRegisterPage'),
-                },
-                {
-                  text: 'Để sau',
-                  style: 'cancel',
-                },
-              ]
-            );
-          }
-        } catch (faceCheckError: any) {
-          setError('Lỗi khi kiểm tra đăng ký khuôn mặt');
-          navigation.navigate('FaceRegisterPage');
-        }
-      }
-    } catch (error: any) {
-      const errorMessage = error.message && typeof error.message === 'string' 
-        ? JSON.parse(error.message).message 
-        : 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
-      setError(errorMessage);
+      navigation.navigate('DashBoardPage'); // Navigate to dashboard if face check fails
+    } catch (err: any) {
+      // API service đã xử lý lỗi, chỉ cần lấy message
+      setError(err?.message || 'Đăng nhập thất bại');
     } finally {
       setIsLoading(false);
     }
@@ -126,8 +89,7 @@ export default function LoginPage({ navigation }: Props) {
 
             <TouchableOpacity
               className="mb-4 sm:mb-6 md:mb-8"
-              onPress={() => navigation.navigate('ForgetPass')}
-            >
+              onPress={() => navigation.navigate('ForgetPass')}>
               <Text className="text-right text-sm font-medium text-blue-600 sm:text-base md:text-lg">
                 Quên mật khẩu?
               </Text>

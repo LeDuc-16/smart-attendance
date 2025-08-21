@@ -1,8 +1,7 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { View, Text } from 'react-native';
-import { RootStackParamList } from '../types/navigation';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'ChangePassPage'>;
+type Props = NativeStackScreenProps<any, 'ChangePassPage'>;
 
 export const ChangePassPage = () => {
   return (

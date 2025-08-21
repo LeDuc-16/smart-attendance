@@ -4,10 +4,9 @@ import { StatusBar } from 'expo-status-bar';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import MyInput from '../components/MyInput';
 import MyButton from '../components/MyButton';
-import { RootStackParamList } from '../types/navigation';
 import LoginBackGround from './LoginBackGround';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'OtpPage'>;
+type Props = NativeStackScreenProps<any, 'OtpPage'>;
 
 export default function OtpPage({ navigation }: Props) {
   const [otp, setOtp] = useState('');

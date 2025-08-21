@@ -4,9 +4,19 @@ import './global.css';
 import LoginPage from './pages/LoginPage';
 import ForgetPassPage from './pages/ForgetPassPage';
 import OtpPage from './pages/OtpPage';
-import FaceRegisterPage from './pages/FaceRegisterPage';
 import { ChangePassPage } from './pages/ChangePassPage';
-import { RootStackParamList } from './types/navigation';
+import DashBoardPage from './pages/DashBoardPage';
+import AttendancePage from './pages/AttendancePage';
+
+// Define the type for your stack navigator routes
+export type RootStackParamList = {
+  Login: undefined;
+  ForgetPass: undefined;
+  OtpPage: undefined;
+  ChangePassPage: undefined;
+  DashBoardPage: undefined;
+  AttendancePage: undefined;
+};
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -21,8 +31,9 @@ export default function App() {
         <Stack.Screen name="Login" component={LoginPage} />
         <Stack.Screen name="ForgetPass" component={ForgetPassPage} />
         <Stack.Screen name="OtpPage" component={OtpPage} />
-        <Stack.Screen name="FaceRegisterPage" component={FaceRegisterPage} />
         <Stack.Screen name="ChangePassPage" component={ChangePassPage} />
+        <Stack.Screen name="DashBoardPage" component={DashBoardPage} />
+        <Stack.Screen name="AttendancePage" component={AttendancePage} />
       </Stack.Navigator>
     </NavigationContainer>
   );

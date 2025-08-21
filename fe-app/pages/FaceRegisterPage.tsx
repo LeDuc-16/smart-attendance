@@ -3,14 +3,12 @@ import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types/navigation';
 import LoginBackGround from './LoginBackGround';
 import { StatusBar } from 'expo-status-bar';
 import FaceApiManager from '../utils/faceApiSetup';
 import { setupFaceApiEnvironment } from '../utils/polyfills';
-import { apiFaceRegisterService } from '../services/api/apiFaceRegisterService';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'FaceRegisterPage'>;
+type Props = NativeStackScreenProps<any, 'FaceRegisterPage'>;
 
 // Helper function để tính trung bình các descriptors
 const calculateAverageDescriptor = (descriptors: number[][]): number[] => {
@@ -135,8 +133,19 @@ const FaceRegisterPage = () => {
       // Gửi face data lên backend sử dụng apiFaceRegisterService
       const descriptorStrings = faceDescriptors.map((desc) => JSON.stringify(desc));
 
-      // Gửi từng descriptor (hoặc có thể gửi nhiều cùng lúc tùy API backend)
-      const results = await apiFaceRegisterService.registerMultipleFaces(descriptorStrings);
+      // Mock API call - thay thế cho apiFaceRegisterService.registerMultipleFaces
+      const results = await new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'Đăng ký khuôn mặt thành công',
+            data: {
+              userId: '20210001',
+              faces: descriptorStrings.length,
+            },
+          });
+        }, 1000);
+      });
 
       Alert.alert('Thành công', 'Đăng ký khuôn mặt thành công!', [
         {

@@ -9,6 +9,10 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
 export interface BackendApiResponse<T> {
   statusCode: number;
   message: string;
@@ -61,16 +65,17 @@ class ApiAuthService {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(JSON.stringify(error));
+      // Chỉ lấy message từ error response
+      throw new Error(error.message || 'Đăng nhập thất bại');
     }
 
     const result: BackendApiResponse<AuthResponse> = await response.json();
-    
+
     if (result.data && result.data.access_token) {
       this.setAuthToken(result.data.access_token);
       return result.data;
     }
-    
+
     throw new Error('Invalid response format');
   }
 
@@ -116,6 +121,22 @@ class ApiAuthService {
     }
 
     return await response.json();
+  }
+
+  async forgotPassword(request: ForgotPasswordRequest): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/v1/otp/forgot-password`, {
+      method: 'POST',
+      headers: this.getHeaders(false),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Gửi email thất bại');
+    }
+
+    const result: BackendApiResponse<any> = await response.json();
+    return result;
   }
 }
 
