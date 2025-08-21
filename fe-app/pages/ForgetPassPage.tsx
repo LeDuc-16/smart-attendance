@@ -39,11 +39,16 @@ export default function ForgetPassPage({ navigation }: Props) {
         email: email,
       });
 
+      console.log('Forgot password response:', response);
+
       setSuccess('Email đặt lại mật khẩu đã được gửi thành công!');
 
-      // Navigate to OTP page after 2 seconds
+      // Navigate to OTP page with the OTP from response
       setTimeout(() => {
-        navigation.navigate('OtpPage');
+        navigation.navigate('OtpPage', {
+          otp: response.otp, // OTP từ API response
+          email: email,
+        });
       }, 2000);
     } catch (err: any) {
       setError(err?.message || 'Gửi email thất bại');

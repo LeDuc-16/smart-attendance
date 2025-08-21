@@ -17,8 +17,14 @@ const DashBoardPage = ({ navigation }: Props) => {
 
     // Handle navigation based on tab
     switch (tab) {
+      case 'schedule':
+        navigation.navigate('SchedulePage');
+        break;
       case 'attendance':
         navigation.navigate('AttendancePage');
+        break;
+      case 'stats':
+        navigation.navigate('StatsPage');
         break;
       case 'profile':
         handleProfilePress();
@@ -106,16 +112,7 @@ const DashBoardPage = ({ navigation }: Props) => {
 
       {/* Stats Cards */}
       <View className="mb-4 flex-row gap-3">
-        <View className="flex-1 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-          <MaterialIcons name="schedule" size={24} color="#3b82f6" />
-          <Text className="mt-2 text-2xl font-bold text-gray-800">5</Text>
-          <Text className="text-sm text-gray-500">Lớp hôm nay</Text>
-        </View>
-        <View className="flex-1 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-          <MaterialIcons name="notifications" size={24} color="#f59e0b" />
-          <Text className="mt-2 text-2xl font-bold text-gray-800">4</Text>
-          <Text className="text-sm text-gray-500">Thông báo mới</Text>
-        </View>
+       
       </View>
 
       {/* Schedule Section */}
