@@ -374,7 +374,7 @@ const ClassPage = () => {
                                 lecturerName = lecturer.lecturerCode || lecturer.name || `Lecturer-${classItem.advisor}`;
                             } catch (error: any) {
                                 console.warn(`Không thể lấy thông tin giảng viên ID ${classItem.advisor}:`, error.message);
-                                lecturerName = `Giảng viên ID: ${classItem.advisor}`;
+                                lecturerName = `${classItem.advisor}`;
                             }
                         }
 

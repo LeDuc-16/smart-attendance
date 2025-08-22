@@ -68,17 +68,36 @@ public class SecurityConfiguration {
                 return http.build();
         }
 
+//        @Bean
+//        public CorsConfigurationSource corsConfigurationSource() {
+//                CorsConfiguration config = new CorsConfiguration();
+//                config.setAllowedOriginPatterns(List.of("*"));
+//                config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+//                config.setAllowedHeaders(List.of("*"));
+//                config.setExposedHeaders(List.of("Content-Disposition"));
+//                config.setAllowCredentials(true);
+//
+//                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+//                source.registerCorsConfiguration("/**", config);
+//                return source;
+//        }
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration config = new CorsConfiguration();
-                config.setAllowedOriginPatterns(List.of("*"));
-                config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+                config.setAllowedOrigins(List.of(
+                        "http://localhost:5173",
+                        "http://localhost:3000"
+                ));
+                config.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
                 config.setAllowedHeaders(List.of("*"));
                 config.setExposedHeaders(List.of("Content-Disposition"));
                 config.setAllowCredentials(true);
+                config.setMaxAge(3600L);
 
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/**", config);
                 return source;
         }
+
 }

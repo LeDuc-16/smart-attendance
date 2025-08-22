@@ -16,6 +16,7 @@ import TeachingPage from "./pages/TeachingPage";
 import AttendancePage from "./pages/AttendancePage";
 import LecturerDashboard from "./pages/LecturerDashboard";
 import TeachingSchedulePage from "./pages/TeachingSchedulePage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 
 const App = () => {
   return (
@@ -45,6 +46,7 @@ const App = () => {
 
         <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
         <Route path="/teaching-schedule" element={<TeachingSchedulePage />} />
+        <Route path="/change-password" element={<ChangePasswordPage />} />
       </Routes>
     </BrowserRouter>
   );
