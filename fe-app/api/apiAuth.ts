@@ -2,7 +2,35 @@
 export interface AuthResponse {
   access_token: string;
   refresh_token: string;
+  user?: UserInfo; // Generic user info
 }
+
+export interface StudentResponse {
+  id: number;
+  studentCode: string;
+  studentName: string;
+  className: string;
+  majorName: string;
+  facultyName: string;
+  account: string;
+  email: string;
+  role: 'STUDENT';
+}
+
+export interface LecturerResponse {
+  id: number;
+  lecturerCode: string;
+  name: string;
+  email: string;
+  account: string;
+  role: 'LECTURER';
+  academicRank?: string;
+  facultyId?: number;
+  userId: number;
+}
+
+// Union type cho user info
+export type UserInfo = StudentResponse | LecturerResponse;
 
 export interface LoginRequest {
   account: string;
@@ -43,6 +71,7 @@ export interface BackendApiResponse<T> {
 class ApiAuthService {
   private baseURL: string;
   private authToken: string | null = null;
+  private userInfo: UserInfo | null = null;
 
   constructor(baseURL?: string) {
     if (process.env.NODE_ENV === 'production') {
@@ -67,6 +96,18 @@ class ApiAuthService {
 
   getAuthToken(): string | null {
     return this.authToken;
+  }
+
+  setUserInfo(user: UserInfo) {
+    this.userInfo = user;
+  }
+
+  getUserInfo(): UserInfo | null {
+    return this.userInfo;
+  }
+
+  clearUserInfo() {
+    this.userInfo = null;
   }
 
   private getHeaders(includeAuth: boolean = true) {
@@ -94,9 +135,16 @@ class ApiAuthService {
     }
 
     const result: BackendApiResponse<AuthResponse> = await response.json();
+    console.log('Login API response:', result);
 
     if (result.data && result.data.access_token) {
       this.setAuthToken(result.data.access_token);
+
+      // Save user info nếu có
+      if (result.data.user) {
+        this.setUserInfo(result.data.user);
+      }
+
       return result.data;
     }
 
@@ -229,6 +277,7 @@ class ApiAuthService {
       // Silent catch
     } finally {
       this.clearAuthToken();
+      this.clearUserInfo();
     }
   }
 
