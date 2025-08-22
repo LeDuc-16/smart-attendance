@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -11,6 +11,46 @@ const DashBoardPage = ({ navigation }: Props) => {
   const [activeTab, setActiveTab] = useState<
     'home' | 'schedule' | 'attendance' | 'stats' | 'notification' | 'profile'
   >('home');
+
+  // Get user info và current date
+  const userInfo = apiAuthService.getUserInfo();
+  const currentDate = new Date().toLocaleDateString('vi-VN', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  // Helper functions để lấy thông tin theo role
+  const getUserName = () => {
+    if (!userInfo) return 'Người dùng';
+    if (userInfo.role === 'STUDENT') {
+      return (userInfo as any).studentName || 'Sinh viên';
+    } else if (userInfo.role === 'LECTURER') {
+      return (userInfo as any).name || 'Giảng viên';
+    }
+    return 'Người dùng';
+  };
+
+  const getUserCode = () => {
+    if (!userInfo) return 'N/A';
+    if (userInfo.role === 'STUDENT') {
+      return (userInfo as any).studentCode || 'N/A';
+    } else if (userInfo.role === 'LECTURER') {
+      return (userInfo as any).lecturerCode || 'N/A';
+    }
+    return 'N/A';
+  };
+
+  const getUserClass = () => {
+    if (!userInfo) return 'N/A';
+    if (userInfo.role === 'STUDENT') {
+      return (userInfo as any).className || 'N/A';
+    } else if (userInfo.role === 'LECTURER') {
+      return (userInfo as any).academicRank || 'Giảng viên';
+    }
+    return 'N/A';
+  };
 
   const handleTabPress = (tab: string) => {
     setActiveTab(tab as any);
@@ -90,12 +130,14 @@ const DashBoardPage = ({ navigation }: Props) => {
       <View className="mb-4 rounded-2xl bg-blue-500 p-6 shadow-lg">
         <View className="flex-row items-start justify-between">
           <View className="flex-1">
-            <Text className="mb-1 text-lg font-bold text-white">Xin chào, Nguyễn Văn Nam!</Text>
-            <Text className="mb-3 text-sm text-blue-100">20210001 | T6-01</Text>
+            <Text className="mb-1 text-lg font-bold text-white">Xin chào, {getUserName()}!</Text>
+            <Text className="mb-3 text-sm text-blue-100">
+              {getUserCode()} | {getUserClass()}
+            </Text>
             <View className="flex-row items-center justify-between">
               <View>
                 <Text className="text-xs text-white opacity-80">Hôm nay</Text>
-                <Text className="text-lg font-semibold text-white">30/07/2025</Text>
+                <Text className="text-lg font-semibold text-white">{currentDate}</Text>
               </View>
             </View>
           </View>
@@ -111,9 +153,7 @@ const DashBoardPage = ({ navigation }: Props) => {
       </View>
 
       {/* Stats Cards */}
-      <View className="mb-4 flex-row gap-3">
-       
-      </View>
+      <View className="mb-4 flex-row gap-3"></View>
 
       {/* Schedule Section */}
       <View className="mb-4 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
