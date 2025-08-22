@@ -1,49 +1,149 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import SidebarLecturer from "../components/SidebarLecturer";
 import HeaderLecturer from "../components/HeaderLecturer";
+import EditScheduleModal from "../components/EditScheduleModal";
 import { getSchedulesByDate } from "../api/apiTeaching";
 import type { TeachingSchedule } from "../api/apiTeaching";
+import { getCourses } from "../api/apiCourse";
+import { getClassRooms } from "../api/apiClassRoom";
+import { getClasses } from "../api/apiClass";
 
 const TeachingSchedulePage = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // Format giờ phút an toàn
+  function formatTime(str: string) {
+    if (!str) return "";
+    // Nếu chuỗi chỉ có dạng HH:mm thì trả về luôn
+    if (/^\d{2}:\d{2}$/.test(str)) return str;
+    // Nếu là dạng ISO thì lấy giờ phút
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return str;
+    return d.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  }
+  const location = useLocation();
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editData, setEditData] = useState<TeachingSchedule | null>(null);
   const [search, setSearch] = useState("");
-  const [date, setDate] = useState("2025-08-05");
-  const [activeTab, setActiveTab] = useState("teaching-schedule");
+  let activeTab = "teaching-schedule";
+  if (location.pathname === "/teaching-schedule") activeTab = "teaching-schedule";
+  else if (location.pathname === "/lecturer-reports") activeTab = "report";
+  else if (location.pathname === "/lecturer-dashboard") activeTab = "dashboard";
+  else if (location.pathname === "/attendance") activeTab = "attendance";
+
+  // Hàm lấy ngày đầu tuần (Thứ 2) từ một ngày bất kỳ
+  function getMonday(d: Date) {
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+    return new Date(d.setDate(diff));
+  }
+
+  // Hàm lấy danh sách ngày trong tuần
+  function getWeekDates(date: string) {
+    const d = new Date(date);
+    const monday = getMonday(new Date(d));
+    const weekDates = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(monday);
+      day.setDate(monday.getDate() + i);
+      weekDates.push(day.toISOString().slice(0, 10));
+    }
+    return weekDates;
+  }
+
+  function getTodayString() {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  const [date, setDate] = useState(getTodayString());
   const [scheduleData, setScheduleData] = useState<TeachingSchedule[]>([]);
   const [loading, setLoading] = useState(false);
+  const [weekDates, setWeekDates] = useState<string[]>(getWeekDates(getTodayString()));
+
+  useEffect(() => {
+    setWeekDates(getWeekDates(date));
+  }, [date]);
 
   useEffect(() => {
     setLoading(true);
-    getSchedulesByDate(date)
-      .then(data => {
-        console.log('Lich giang day API:', data);
-        setScheduleData(data);
-      })
-      .catch(() => setScheduleData([]))
-      .finally(() => setLoading(false));
-  }, [date]);
+    (async () => {
+      try {
+        const schedules = await getSchedulesByDate(date);
+        const coursesRes = await getCourses();
+        const rooms = await getClassRooms();
+        const classesRes = await getClasses();
 
-// --- Main Teaching Schedule Page Component ---
+        const courses: any[] = (coursesRes as any).data;
+        const classes: any[] = (classesRes as any).data;
 
-  const formattedDate = new Date(date).toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+        // Gom tất cả các lịch học trong tuần thành từng dòng riêng biệt
+        let enriched: any[] = [];
+        schedules.forEach((item: any) => {
+          const course = courses.find((c: any) => c.id === item.courseId);
+          const room = rooms.find((r: any) => r.id === item.roomId);
+          const classInfo = classes.find((cl: any) => cl.id === item.classId);
+          item.weeks.forEach((week: any) => {
+            week.studyDays.forEach((day: any) => {
+              if (weekDates.includes(day.date)) {
+                enriched.push({
+                  date: day.date,
+                  dayOfWeek: day.dayOfWeek,
+                  courseName: course?.courseName || "",
+                  className: classInfo?.className || "",
+                  startTime: day.startTime || item.startTime,
+                  endTime: day.endTime || item.endTime,
+                  roomCode: room?.roomCode || "",
+                  capacityStudent: classInfo?.capacityStudent,
+                  raw: item,
+                });
+              }
+            });
+          });
+        });
+        setScheduleData(enriched);
+      } catch (err) {
+        console.error("Failed to fetch schedule data:", err);
+        setScheduleData([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [weekDates]);
+
+  const handleEditClick = (item: TeachingSchedule) => {
+    setEditData(item);
+    setShowEditModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowEditModal(false);
+    setEditData(null);
+  };
+
+  const formattedDate = new Date(date + "T00:00:00").toLocaleDateString(
+    "vi-VN",
+    {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }
+  );
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <SidebarLecturer activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div className="flex min-h-screen bg-gray-100 font-sans">
+  <SidebarLecturer activeTab={activeTab} />
       <div className="flex-1 flex flex-col">
         <HeaderLecturer lecturerName="Kiều Tuấn Dũng" />
         <main className="flex-1 p-8 overflow-y-auto">
           <div className="mb-6">
-            <h1
-              className={`text-2xl font-bold cursor-pointer ${activeTab === 'teaching-schedule' ? 'text-blue-700' : 'text-gray-800'}`}
-              onClick={() => setActiveTab('teaching-schedule')}
-            >
-              Lịch giảng dạy
-            </h1>
+            <h1 className="text-2xl font-bold text-blue-700">Lịch giảng dạy</h1>
             <p className="text-sm text-gray-500">
               Quản lý và theo dõi lịch giảng dạy một cách hiệu quả
             </p>
@@ -55,7 +155,7 @@ const TeachingSchedulePage = () => {
               <input
                 type="text"
                 placeholder="Tìm kiếm theo môn học, phòng học..."
-                className="w-full border rounded-lg px-4 py-2 pl-10"
+                className="w-full border rounded-lg px-4 py-2 pl-10 focus:ring-2 focus:ring-blue-500 outline-none"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -75,68 +175,146 @@ const TeachingSchedulePage = () => {
                 </svg>
               </div>
             </div>
-            <div className="relative w-full md:w-auto">
+            <div className="relative w-full md:w-auto flex gap-2 items-center">
               <input
-                type="date"
-                className="w-full md:w-auto border rounded-lg px-4 py-2"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
+                type="week"
+                className="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                value={date.slice(0,8)}
+                onChange={(e) => {
+                  // Lấy ngày đầu tuần từ input type="week" (YYYY-Wxx)
+                  const [year, week] = e.target.value.split('-W');
+                  function getMondayOfWeek(year: number, week: number) {
+                    const simple = new Date(year, 0, 1 + (week - 1) * 7);
+                    const dow = simple.getDay();
+                    const monday = simple;
+                    if (dow <= 4)
+                      monday.setDate(simple.getDate() - simple.getDay() + 1);
+                    else
+                      monday.setDate(simple.getDate() + 8 - simple.getDay());
+                    return monday;
+                  }
+                  const monday = getMondayOfWeek(Number(year), Number(week));
+                  const yyyy = monday.getFullYear();
+                  const mm = String(monday.getMonth() + 1).padStart(2, "0");
+                  const dd = String(monday.getDate()).padStart(2, "0");
+                  setDate(`${yyyy}-${mm}-${dd}`);
+                }}
               />
+              <span className="text-sm text-gray-500">Tuần: {weekDates[0]} - {weekDates[6]}</span>
             </div>
           </div>
 
           {/* Schedule Table */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="mb-4">
-              <h2 className="text-lg font-bold text-blue-700 ">
+              <h2 className="text-lg font-bold text-blue-700">
                 Lịch giảng dạy
               </h2>
               <p className="text-sm text-gray-500">
                 Lịch giảng dạy ngày {formattedDate}
               </p>
             </div>
+            <EditScheduleModal
+              show={showEditModal}
+              data={editData}
+              onClose={handleCloseModal}
+              onCancel={() => setShowEditModal(false)}
+              formatTime={formatTime}
+            />
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
                 <thead className="bg-blue-50 text-gray-600">
                   <tr>
+                    <th className="py-3 px-4 font-semibold">Ngày</th>
+                    <th className="py-3 px-4 font-semibold">Thứ</th>
                     <th className="py-3 px-4 font-semibold">Môn học</th>
                     <th className="py-3 px-4 font-semibold">Tên lớp</th>
                     <th className="py-3 px-4 font-semibold">Thời gian</th>
                     <th className="py-3 px-4 font-semibold">Phòng</th>
-                    <th className="py-3 px-4 font-semibold">Sinh viên</th>
+                    <th className="py-3 px-4 font-semibold">Sĩ số</th>
                     <th className="py-3 px-4 font-semibold text-center">
-                      Trạng thái
+                      Hành động
                     </th>
                   </tr>
                 </thead>
                 <tbody className="text-gray-700">
                   {loading ? (
-                    <tr><td colSpan={6} className="text-center py-6">Đang tải dữ liệu...</td></tr>
+                    <tr>
+                      <td colSpan={6} className="text-center py-6">
+                        Đang tải dữ liệu...
+                      </td>
+                    </tr>
                   ) : scheduleData.length === 0 ? (
-                    <tr><td colSpan={6} className="text-center py-6">Không có dữ liệu lịch giảng dạy</td></tr>
+                    <tr>
+                      <td colSpan={6} className="text-center py-6">
+                        Không có dữ liệu lịch giảng dạy
+                      </td>
+                    </tr>
                   ) : (
-                    scheduleData
-                      .filter(item =>
-                        (item.courseName?.toLowerCase().includes(search.toLowerCase()) ||
-                        item.roomCode?.toLowerCase().includes(search.toLowerCase()))
-                      )
-                      .map((item, idx) => (
-                        <tr key={idx} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
+                    weekDates.map((dateStr) => {
+                      // Lấy tất cả lịch học của ngày này
+                      const items = scheduleData.filter((item: any) => item.date === dateStr);
+                      if (items.length === 0) {
+                        return (
+                          <tr key={dateStr} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
+                            <td className="py-3 px-4">{new Date(dateStr).toLocaleDateString('vi-VN')}</td>
+                            <td className="py-3 px-4">{
+                              (() => {
+                                const day = new Date(dateStr).getDay();
+                                const days = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+                                return days[day];
+                              })()
+                            }</td>
+                            <td className="py-3 px-4 text-gray-400" colSpan={6}>Không có lịch học</td>
+                          </tr>
+                        );
+                      }
+                      return items.map((item: any, subIdx: number) => (
+                        <tr key={dateStr + '-' + subIdx} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
+                          <td className="py-3 px-4">{new Date(item.date).toLocaleDateString('vi-VN')}</td>
+                          <td className="py-3 px-4">{
+                            (() => {
+                              const dayMap: Record<string, string> = {
+                                MONDAY: "Thứ 2",
+                                TUESDAY: "Thứ 3",
+                                WEDNESDAY: "Thứ 4",
+                                THURSDAY: "Thứ 5",
+                                FRIDAY: "Thứ 6",
+                                SATURDAY: "Thứ 7",
+                                SUNDAY: "Chủ nhật"
+                              };
+                              return dayMap[item.dayOfWeek] || "";
+                            })()
+                          }</td>
                           <td className="py-3 px-4">{item.courseName}</td>
                           <td className="py-3 px-4">{item.className}</td>
-                          <td className="py-3 px-4">{item.startTime} - {item.endTime}</td>
+                          <td className="py-3 px-4">{formatTime(item.startTime)} - {formatTime(item.endTime)}</td>
                           <td className="py-3 px-4">{item.roomCode}</td>
-                          <td className="py-3 px-4">-</td>
-                          <td className="py-3 px-4 flex justify-center">
+                          <td className="py-3 px-4">{item.capacityStudent ?? "-"}</td>
+                          <td className="py-3 px-4 text-center">
                             <button
-                              className="text-blue-600 hover:text-blue-800 p-2 rounded-full focus:outline-none"
+                              className="text-blue-600 hover:text-blue-800 p-2 rounded-full focus:outline-none transition-colors"
                               title="Chỉnh sửa"
+                              onClick={() => handleEditClick(item.raw)}
                             >
-                              <span className="material-icons">edit</span>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                                <path
+                                  fillRule="evenodd"
+                                  d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </td>
                         </tr>
-                      ))
+                      ));
+                    })
                   )}
                 </tbody>
               </table>

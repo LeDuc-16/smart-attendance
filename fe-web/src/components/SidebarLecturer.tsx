@@ -73,7 +73,7 @@ const SidebarLecturer: React.FC<SidebarLecturerProps> = ({ activeTab, setActiveT
                         <li>
                             <Link
                                 to="/lecturer-dashboard"
-                                className={`flex items-center gap-3 px-4 py-2.5 rounded-md font-semibold transition-colors duration-200 ${activeTab === 'dashboard' ? 'bg-blue-700 text-white' : 'hover:bg-blue-800 text-blue-200'}`}
+                                className={`flex items-center gap-3 px-4 py-2.5 rounded-md text-base font-semibold transition-colors duration-200 ${activeTab === 'dashboard' ? 'bg-blue-700 text-white' : 'hover:bg-blue-800 text-blue-200'}`}
                                 onClick={() => setActiveTab && setActiveTab('dashboard')}
                             >
                                 <img src={skyLineIcon} alt="icon" className="w-6 h-6" /> Trang chủ
@@ -82,17 +82,29 @@ const SidebarLecturer: React.FC<SidebarLecturerProps> = ({ activeTab, setActiveT
                         <li>
                             <Link
                                 to="/teaching-schedule"
-                                className={`flex items-center gap-3 px-4 py-2.5 rounded-md font-semibold transition-colors duration-200 ${activeTab === 'teaching-schedule' ? 'bg-blue-700 text-white' : 'hover:bg-blue-800 text-blue-200'}`}
+                                className={`flex items-center gap-3 px-4 py-2.5 rounded-md text-base font-normal transition-colors duration-200 ${activeTab === 'teaching-schedule' ? 'bg-blue-700 text-white' : 'hover:bg-blue-800 text-blue-200'}`}
                                 onClick={() => setActiveTab && setActiveTab('teaching-schedule')}
                             >
                                 <img src={calenderIcon} alt="icon" className="w-6 h-6" /> Lịch giảng dạy
                             </Link>
                         </li>
-                        <li className="flex items-center gap-3 px-4 py-2.5 rounded-md hover:bg-blue-800 text-blue-200 cursor-pointer">
-                            <img src={accountIcon} alt="icon" className="w-6 h-6" /> Điểm danh
+                        <li>
+                            <Link
+                                to="/lecturer-takes-attendance"
+                                className={`flex items-center gap-3 px-4 py-2.5 rounded-md text-base font-normal transition-colors duration-200 ${activeTab === 'attendance' ? 'bg-blue-700 text-white' : 'hover:bg-blue-800 text-blue-200'}`}
+                                onClick={() => setActiveTab && setActiveTab('attendance')}
+                            >
+                                <img src={accountIcon} alt="icon" className="w-6 h-6" /> Điểm danh
+                            </Link>
                         </li>
-                        <li className="flex items-center gap-3 px-4 py-2.5 rounded-md hover:bg-blue-800 text-blue-200 cursor-pointer">
-                            <img src={booksIcon} alt="icon" className="w-6 h-6" /> Báo cáo
+                        <li>
+                            <Link
+                                to="/lecturer-reports"
+                                className={`flex items-center gap-3 px-4 py-2.5 rounded-md text-base font-semibold transition-colors duration-200 ${activeTab === 'report' ? 'bg-blue-700 text-white' : 'hover:bg-blue-800 text-blue-200'}`}
+                                onClick={() => setActiveTab && setActiveTab('report')}
+                            >
+                                <img src={booksIcon} alt="icon" className="w-6 h-6" /> Báo cáo
+                            </Link>
                         </li>
                     </ul>
                 </nav>

@@ -27,6 +27,7 @@ export interface TeachingSchedule {
     lecturerName?: string;
     className?: string;
     roomCode?: string;
+    capacityStudent?: number;
 }
 
 // Payload cho tạo lịch giảng dạy
