@@ -34,6 +34,26 @@ const TeachingSchedulePage = () => {
   else if (location.pathname === "/lecturer-dashboard") activeTab = "dashboard";
   else if (location.pathname === "/attendance") activeTab = "attendance";
 
+  // Hàm lấy ngày đầu tuần (Thứ 2) từ một ngày bất kỳ
+  function getMonday(d: Date) {
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+    return new Date(d.setDate(diff));
+  }
+
+  // Hàm lấy danh sách ngày trong tuần
+  function getWeekDates(date: string) {
+    const d = new Date(date);
+    const monday = getMonday(new Date(d));
+    const weekDates = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(monday);
+      day.setDate(monday.getDate() + i);
+      weekDates.push(day.toISOString().slice(0, 10));
+    }
+    return weekDates;
+  }
+
   function getTodayString() {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -43,9 +63,13 @@ const TeachingSchedulePage = () => {
   }
 
   const [date, setDate] = useState(getTodayString());
-  // ...existing code...
   const [scheduleData, setScheduleData] = useState<TeachingSchedule[]>([]);
   const [loading, setLoading] = useState(false);
+  const [weekDates, setWeekDates] = useState<string[]>(getWeekDates(getTodayString()));
+
+  useEffect(() => {
+    setWeekDates(getWeekDates(date));
+  }, [date]);
 
   useEffect(() => {
     setLoading(true);
@@ -59,25 +83,30 @@ const TeachingSchedulePage = () => {
         const courses: any[] = (coursesRes as any).data;
         const classes: any[] = (classesRes as any).data;
 
-        const filteredSchedules = schedules.filter((item: any) =>
-          item.weeks.some((week: any) =>
-            week.studyDays.some((day: any) => day.date === date)
-          )
-        );
-
-        const enriched = filteredSchedules.map((item: any) => {
+        // Gom tất cả các lịch học trong tuần thành từng dòng riêng biệt
+        let enriched: any[] = [];
+        schedules.forEach((item: any) => {
           const course = courses.find((c: any) => c.id === item.courseId);
           const room = rooms.find((r: any) => r.id === item.roomId);
           const classInfo = classes.find((cl: any) => cl.id === item.classId);
-          return {
-            ...item,
-            className: classInfo?.className || "",
-            courseName: course?.courseName || "",
-            roomCode: room?.roomCode || "",
-            capacityStudent: classInfo?.capacityStudent,
-          };
+          item.weeks.forEach((week: any) => {
+            week.studyDays.forEach((day: any) => {
+              if (weekDates.includes(day.date)) {
+                enriched.push({
+                  date: day.date,
+                  dayOfWeek: day.dayOfWeek,
+                  courseName: course?.courseName || "",
+                  className: classInfo?.className || "",
+                  startTime: day.startTime || item.startTime,
+                  endTime: day.endTime || item.endTime,
+                  roomCode: room?.roomCode || "",
+                  capacityStudent: classInfo?.capacityStudent,
+                  raw: item,
+                });
+              }
+            });
+          });
         });
-
         setScheduleData(enriched);
       } catch (err) {
         console.error("Failed to fetch schedule data:", err);
@@ -86,7 +115,7 @@ const TeachingSchedulePage = () => {
         setLoading(false);
       }
     })();
-  }, [date]);
+  }, [weekDates]);
 
   const handleEditClick = (item: TeachingSchedule) => {
     setEditData(item);
@@ -146,13 +175,32 @@ const TeachingSchedulePage = () => {
                 </svg>
               </div>
             </div>
-            <div className="relative w-full md:w-auto">
+            <div className="relative w-full md:w-auto flex gap-2 items-center">
               <input
-                type="date"
-                className="w-full md:w-auto border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
+                type="week"
+                className="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                value={date.slice(0,8)}
+                onChange={(e) => {
+                  // Lấy ngày đầu tuần từ input type="week" (YYYY-Wxx)
+                  const [year, week] = e.target.value.split('-W');
+                  function getMondayOfWeek(year: number, week: number) {
+                    const simple = new Date(year, 0, 1 + (week - 1) * 7);
+                    const dow = simple.getDay();
+                    const monday = simple;
+                    if (dow <= 4)
+                      monday.setDate(simple.getDate() - simple.getDay() + 1);
+                    else
+                      monday.setDate(simple.getDate() + 8 - simple.getDay());
+                    return monday;
+                  }
+                  const monday = getMondayOfWeek(Number(year), Number(week));
+                  const yyyy = monday.getFullYear();
+                  const mm = String(monday.getMonth() + 1).padStart(2, "0");
+                  const dd = String(monday.getDate()).padStart(2, "0");
+                  setDate(`${yyyy}-${mm}-${dd}`);
+                }}
               />
+              <span className="text-sm text-gray-500">Tuần: {weekDates[0]} - {weekDates[6]}</span>
             </div>
           </div>
 
@@ -177,6 +225,8 @@ const TeachingSchedulePage = () => {
               <table className="w-full text-sm text-left">
                 <thead className="bg-blue-50 text-gray-600">
                   <tr>
+                    <th className="py-3 px-4 font-semibold">Ngày</th>
+                    <th className="py-3 px-4 font-semibold">Thứ</th>
                     <th className="py-3 px-4 font-semibold">Môn học</th>
                     <th className="py-3 px-4 font-semibold">Tên lớp</th>
                     <th className="py-3 px-4 font-semibold">Thời gian</th>
@@ -201,36 +251,51 @@ const TeachingSchedulePage = () => {
                       </td>
                     </tr>
                   ) : (
-                    scheduleData
-                      .filter(
-                        (item: TeachingSchedule) =>
-                          item.courseName
-                            ?.toLowerCase()
-                            .includes(search.toLowerCase()) ||
-                          item.roomCode
-                            ?.toLowerCase()
-                            .includes(search.toLowerCase())
-                      )
-                      .map((item: TeachingSchedule, idx: number) => (
-                        <tr
-                          key={idx}
-                          className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50"
-                        >
+                    weekDates.map((dateStr) => {
+                      // Lấy tất cả lịch học của ngày này
+                      const items = scheduleData.filter((item: any) => item.date === dateStr);
+                      if (items.length === 0) {
+                        return (
+                          <tr key={dateStr} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
+                            <td className="py-3 px-4">{new Date(dateStr).toLocaleDateString('vi-VN')}</td>
+                            <td className="py-3 px-4">{
+                              (() => {
+                                const day = new Date(dateStr).getDay();
+                                const days = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+                                return days[day];
+                              })()
+                            }</td>
+                            <td className="py-3 px-4 text-gray-400" colSpan={6}>Không có lịch học</td>
+                          </tr>
+                        );
+                      }
+                      return items.map((item: any, subIdx: number) => (
+                        <tr key={dateStr + '-' + subIdx} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
+                          <td className="py-3 px-4">{new Date(item.date).toLocaleDateString('vi-VN')}</td>
+                          <td className="py-3 px-4">{
+                            (() => {
+                              const dayMap: Record<string, string> = {
+                                MONDAY: "Thứ 2",
+                                TUESDAY: "Thứ 3",
+                                WEDNESDAY: "Thứ 4",
+                                THURSDAY: "Thứ 5",
+                                FRIDAY: "Thứ 6",
+                                SATURDAY: "Thứ 7",
+                                SUNDAY: "Chủ nhật"
+                              };
+                              return dayMap[item.dayOfWeek] || "";
+                            })()
+                          }</td>
                           <td className="py-3 px-4">{item.courseName}</td>
                           <td className="py-3 px-4">{item.className}</td>
-                          <td className="py-3 px-4">
-                            {formatTime(item.startTime)} -{" "}
-                            {formatTime(item.endTime)}
-                          </td>
+                          <td className="py-3 px-4">{formatTime(item.startTime)} - {formatTime(item.endTime)}</td>
                           <td className="py-3 px-4">{item.roomCode}</td>
-                          <td className="py-3 px-4">
-                            {item.capacityStudent ?? "-"}
-                          </td>
+                          <td className="py-3 px-4">{item.capacityStudent ?? "-"}</td>
                           <td className="py-3 px-4 text-center">
                             <button
                               className="text-blue-600 hover:text-blue-800 p-2 rounded-full focus:outline-none transition-colors"
                               title="Chỉnh sửa"
-                              onClick={() => handleEditClick(item)}
+                              onClick={() => handleEditClick(item.raw)}
                             >
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -248,7 +313,8 @@ const TeachingSchedulePage = () => {
                             </button>
                           </td>
                         </tr>
-                      ))
+                      ));
+                    })
                   )}
                 </tbody>
               </table>

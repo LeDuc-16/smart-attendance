@@ -12,8 +12,10 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@react-native-community/art": "^1.1.2",
     "@react-navigation/native": "^7.1.14",
     "@react-navigation/native-stack": "^7.3.21",
+    "autoprefixer": "^10.4.21",
     "expo": "^53.0.20",
     "expo-av": "^15.1.7",
     "expo-camera": "~16.1.11",
@@ -24,16 +26,20 @@
     "expo-linear-gradient": "~14.1.5",
     "expo-status-bar": "~2.2.3",
     "face-api.js": "^0.20.0",
-    "nativewind": "latest",
+    "nativewind": "^4.1.23",
+    "postcss": "^8.5.6",
     "react": "19.0.0",
     "react-native": "0.79.5",
     "react-native-fs": "^2.20.0",
+    "react-native-gesture-handler": "~2.24.0",
     "react-native-image-picker": "^8.2.1",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
+    "react-native-shadow-2": "^7.1.2",
+    "react-native-svg": "15.11.2",
     "react-native-unimodules": "^0.15.0",
-    "react-native-vector-icons": "^10.2.0"
+    "react-native-vector-icons": "^10.3.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
@@ -43,7 +49,7 @@
     "eslint-config-prettier": "^10.1.2",
     "prettier": "^3.2.5",
     "prettier-plugin-tailwindcss": "^0.5.11",
-    "tailwindcss": "^3.4.0",
+    "tailwindcss": "^3.4.17",
     "typescript": "~5.8.3"
   },
   "main": "node_modules/expo/AppEntry.js",
