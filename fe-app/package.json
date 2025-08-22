@@ -24,7 +24,7 @@
     "expo-linear-gradient": "~14.1.5",
     "expo-status-bar": "~2.2.3",
     "face-api.js": "^0.20.0",
-    "nativewind": "latest",
+    "nativewind": "^4.1.23",
     "react": "19.0.0",
     "react-native": "0.79.5",
     "react-native-fs": "^2.20.0",
