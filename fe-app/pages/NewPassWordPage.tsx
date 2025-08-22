@@ -11,7 +11,8 @@ import { apiAuthService } from '../api/apiAuth';
 
 type Props = NativeStackScreenProps<any, 'NewPassWordPage'>;
 
-export default function NewPassWordPage({ navigation }: Props) {
+export default function NewPassWordPage({ navigation, route }: Props) {
+  const { otpCode } = route.params || {}; // Chỉ cần otpCode
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -56,10 +57,16 @@ export default function NewPassWordPage({ navigation }: Props) {
       return;
     }
 
+    if (!otpCode) {
+      setError('Mã OTP không hợp lệ. Vui lòng thử lại từ đầu.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const response = await apiAuthService.resetPassword({
+        otpCode: otpCode,
         newPassword: newPassword,
         confirmPassword: confirmPassword,
       });
@@ -106,6 +113,13 @@ export default function NewPassWordPage({ navigation }: Props) {
 
             {/* Success Message */}
             {success ? <SuccessMessage text={success} /> : null}
+
+            {/* Debug info - xóa sau khi test */}
+            {__DEV__ && otpCode && (
+              <View className="mb-2 rounded bg-blue-100 p-2">
+                <Text className="text-xs text-blue-800">Debug: OTP Code = "{otpCode}"</Text>
+              </View>
+            )}
 
             {/* New Password Input */}
             <MyInput

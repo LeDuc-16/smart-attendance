@@ -11,42 +11,61 @@ import { apiAuthService } from '../api/apiAuth';
 
 type Props = NativeStackScreenProps<any, 'OtpPage'>;
 
-export default function OtpPage({ navigation }: Props) {
+export default function OtpPage({ navigation, route }: Props) {
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isResendLoading, setIsResendLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
 
+  // Lấy email từ route params
+  const email = route.params?.email || '';
+
   const handleVerifyOtp = async () => {
     setError('');
     setSuccess('');
 
-    if (!otp) {
+    const trimmedOtp = otp.trim();
+
+    if (!trimmedOtp) {
       setError('Vui lòng nhập mã OTP');
       return;
     }
 
-    if (otp.length !== 6) {
-      setError('Mã OTP phải có 6 chữ số');
+    if (trimmedOtp.length !== 6) {
+      setError(`Mã OTP phải có 6 chữ số (hiện tại: ${trimmedOtp.length})`);
+      return;
+    }
+
+    if (!/^\d{6}$/.test(trimmedOtp)) {
+      setError('Mã OTP chỉ được chứa số');
       return;
     }
 
     setIsLoading(true);
 
     try {
+      // Gọi API verify OTP - chỉ cần otpCode
       const response = await apiAuthService.verifyOtp({
-        otp: otp,
+        otpCode: trimmedOtp,
       });
 
-      setSuccess('Xác thực OTP thành công!');
+      console.log('OTP Verify response:', response);
 
-      // Navigate to new password page after 2 seconds
-      setTimeout(() => {
-        navigation.navigate('NewPassWordPage');
-      }, 2000);
-    } catch (err: any) {
-      setError(err?.message || 'Xác thực OTP thất bại');
+      // API trả về OTP đúng, so sánh với input
+      if (response.otp === trimmedOtp) {
+        setSuccess('Xác thực OTP thành công!');
+        setTimeout(() => {
+          navigation.navigate('NewPassWordPage', {
+            otpCode: trimmedOtp, // Backend dùng otpCode để tìm user
+          });
+        }, 1000);
+      } else {
+        setError('Mã OTP không chính xác. Vui lòng thử lại.');
+      }
+    } catch (error: any) {
+      console.error('OTP verification error:', error);
+      setError(error.message || 'Đã xảy ra lỗi khi xác thực OTP. Vui lòng thử lại.');
     } finally {
       setIsLoading(false);
     }
@@ -58,22 +77,19 @@ export default function OtpPage({ navigation }: Props) {
     setIsResendLoading(true);
 
     try {
-      // Note: Bạn cần có email từ trang trước hoặc lưu trong global state
-      // Ở đây tôi sẽ giả định rằng có thể gửi lại OTP
-      Alert.alert('Gửi lại OTP', 'Bạn có muốn gửi lại mã OTP không?', [
-        {
-          text: 'Hủy',
-          style: 'cancel',
-        },
-        {
-          text: 'Gửi lại',
-          onPress: () => {
-            setSuccess('Mã OTP mới đã được gửi đến email của bạn!');
-          },
-        },
-      ]);
+      console.log('Resending OTP with email:', email);
+      if (!email) {
+        setError('Không tìm thấy email. Vui lòng quay lại trang đăng nhập.');
+        return;
+      }
+
+      const response = await apiAuthService.forgotPassword({ email });
+      console.log('Resend OTP response:', response);
+      setSuccess('Mã OTP mới đã được gửi đến email của bạn!');
+      navigation.setParams({ otp: response.otp });
     } catch (err: any) {
-      setError(err?.message || 'Gửi lại OTP thất bại');
+      console.error('Resend OTP error:', err);
+      setError(`Gửi lại OTP thất bại: ${err.message || 'Không xác định'}`);
     } finally {
       setIsResendLoading(false);
     }
@@ -83,11 +99,9 @@ export default function OtpPage({ navigation }: Props) {
     <>
       <LoginBackGround>
         <View className="flex-1 items-center justify-center px-4 sm:px-6 md:px-10">
-          {/* Title */}
           <Text className="mb-3 text-center text-3xl font-bold text-white">Smart Attendance</Text>
           <Text className="mb-10 text-center text-base text-white sm:text-lg">Nhập mã OTP</Text>
 
-          {/* OTP Form */}
           <View className="w-full max-w-sm rounded-3xl border border-white/20 bg-white/95 p-6 shadow-2xl backdrop-blur-sm sm:max-w-md sm:p-8 md:max-w-lg">
             <Text className="mb-1 text-center text-2xl font-bold text-gray-800 sm:text-3xl">
               XÁC NHẬN OTP
@@ -96,11 +110,15 @@ export default function OtpPage({ navigation }: Props) {
               Vui lòng nhập mã OTP đã gửi đến email của bạn
             </Text>
 
-            {/* Error Message */}
             {error ? <ErrorMessage text={error} /> : null}
-
-            {/* Success Message */}
             {success ? <SuccessMessage text={success} /> : null}
+
+            {/* Debug info - xóa sau khi test */}
+            {__DEV__ && (
+              <View className="mb-2 rounded bg-blue-100 p-2">
+                <Text className="text-xs text-blue-800">Debug: Email = "{email}"</Text>
+              </View>
+            )}
 
             <MyInput
               label="Mã OTP"
@@ -113,10 +131,8 @@ export default function OtpPage({ navigation }: Props) {
               maxLength={6}
             />
 
-            {/* Submit */}
             <MyButton title="Xác nhận" onPress={handleVerifyOtp} isLoading={isLoading} />
 
-            {/* Resend OTP */}
             <TouchableOpacity
               className="mt-3 py-2"
               onPress={handleResendOtp}
@@ -126,14 +142,12 @@ export default function OtpPage({ navigation }: Props) {
               </Text>
             </TouchableOpacity>
 
-            {/* Back to Login */}
-            <TouchableOpacity className="mt-1" onPress={() => navigation.goBack()}>
+            <TouchableOpacity className="mt-1" onPress={() => navigation.navigate('Login')}>
               <Text className="text-center font-medium text-blue-600">← Quay lại</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Footer */}
         <View className="absolute bottom-0 w-full items-center justify-center p-2 sm:p-4">
           <Text className="text-xs text-white sm:text-sm">© 2025 Trường Đại Học Thủy Lợi</Text>
         </View>
