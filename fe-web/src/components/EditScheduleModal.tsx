@@ -12,7 +12,7 @@ interface EditScheduleModalProps {
 const EditScheduleModal: React.FC<EditScheduleModalProps> = ({ show, data, onClose, onCancel, formatTime }) => {
   if (!show || !data) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-[3px] transition-opacity">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-[2px] transition-opacity">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 m-4 relative">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">

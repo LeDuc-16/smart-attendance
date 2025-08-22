@@ -38,7 +38,7 @@ const HeaderLecturer: React.FC<{ lecturerName: string }> = ({ lecturerName }) =>
         }}
       />
       <div className="flex flex-col text-right ml-3">
-        <span className="font-semibold">{lecturerName}</span>
+        <span className="text-base font-semibold">{lecturerName}</span>
         <span className="text-xs text-gray-500">Giảng viên</span>
       </div>
       <button

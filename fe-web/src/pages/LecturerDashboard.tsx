@@ -1,6 +1,7 @@
 import HeaderLecturer from "../components/HeaderLecturer";
 import SidebarLecturer from "../components/SidebarLecturer";
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { getSchedulesByDate } from "../api/apiTeaching";
 import { getCourses } from "../api/apiCourse";
 import { getClassRooms } from "../api/apiClassRoom";
@@ -26,7 +27,12 @@ function getTodayString() {
 
 
 const LecturerDashboard = () => {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const location = useLocation();
+  let activeTab = "dashboard";
+  if (location.pathname === "/teaching-schedule") activeTab = "teaching-schedule";
+  else if (location.pathname === "/lecturer-reports") activeTab = "report";
+  else if (location.pathname === "/lecturer-dashboard") activeTab = "dashboard";
+  else if (location.pathname === "/attendance") activeTab = "attendance";
   const [scheduleToday, setScheduleToday] = useState<any[]>([]);
   const todayStr = getTodayString();
 
@@ -85,12 +91,12 @@ const LecturerDashboard = () => {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-gray-100 font-sans">
       {/* Sidebar giảng viên */}
-      <SidebarLecturer activeTab={activeTab} setActiveTab={setActiveTab} />
+  <SidebarLecturer activeTab={activeTab} />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+  <div className="flex-1 flex flex-col font-sans font-normal">
         <HeaderLecturer lecturerName="Kiều Tuấn Dũng" />
         <main className="p-8">
           <div className="mb-6">

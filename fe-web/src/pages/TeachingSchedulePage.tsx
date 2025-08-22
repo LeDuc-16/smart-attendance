@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import SidebarLecturer from "../components/SidebarLecturer";
 import HeaderLecturer from "../components/HeaderLecturer";
 import EditScheduleModal from "../components/EditScheduleModal";
@@ -23,9 +24,15 @@ const TeachingSchedulePage = () => {
       hour12: false,
     });
   }
+  const location = useLocation();
   const [showEditModal, setShowEditModal] = useState(false);
   const [editData, setEditData] = useState<TeachingSchedule | null>(null);
   const [search, setSearch] = useState("");
+  let activeTab = "teaching-schedule";
+  if (location.pathname === "/teaching-schedule") activeTab = "teaching-schedule";
+  else if (location.pathname === "/lecturer-reports") activeTab = "report";
+  else if (location.pathname === "/lecturer-dashboard") activeTab = "dashboard";
+  else if (location.pathname === "/attendance") activeTab = "attendance";
 
   function getTodayString() {
     const today = new Date();
@@ -36,7 +43,7 @@ const TeachingSchedulePage = () => {
   }
 
   const [date, setDate] = useState(getTodayString());
-  const [activeTab, setActiveTab] = useState("teaching-schedule");
+  // ...existing code...
   const [scheduleData, setScheduleData] = useState<TeachingSchedule[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -102,12 +109,12 @@ const TeachingSchedulePage = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100 font-sans">
-      <SidebarLecturer activeTab={activeTab} setActiveTab={setActiveTab} />
+  <SidebarLecturer activeTab={activeTab} />
       <div className="flex-1 flex flex-col">
         <HeaderLecturer lecturerName="Kiều Tuấn Dũng" />
         <main className="flex-1 p-8 overflow-y-auto">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-800">Lịch giảng dạy</h1>
+            <h1 className="text-2xl font-bold text-blue-700">Lịch giảng dạy</h1>
             <p className="text-sm text-gray-500">
               Quản lý và theo dõi lịch giảng dạy một cách hiệu quả
             </p>
