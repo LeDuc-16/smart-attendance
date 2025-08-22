@@ -223,9 +223,8 @@ const AttendancePage = ({ navigation }: Props) => {
 
             {/* Action Button */}
             <TouchableOpacity
-              className={`h-20 w-20 items-center justify-center rounded-full border-4 border-white ${
-                isProcessing ? 'bg-gray-400' : 'bg-blue-600'
-              } shadow-lg`}
+              className={`h-20 w-20 items-center justify-center rounded-full border-4 border-white ${isProcessing ? 'bg-gray-400' : 'bg-blue-600'
+                } shadow-lg`}
               onPress={markAttendance}
               disabled={isProcessing}>
               <Text className="text-center text-sm font-bold text-white">

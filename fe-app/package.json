@@ -12,6 +12,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@react-native-community/art": "^1.1.2",
     "@react-navigation/native": "^7.1.14",
     "@react-navigation/native-stack": "^7.3.21",
     "expo": "^53.0.20",
@@ -30,8 +31,10 @@
     "react-native-fs": "^2.20.0",
     "react-native-image-picker": "^8.2.1",
     "react-native-reanimated": "~3.17.4",
-    "react-native-safe-area-context": "5.4.0",
+    "react-native-safe-area-context": "^5.4.0",
     "react-native-screens": "~4.11.1",
+    "react-native-shadow-2": "^7.1.2",
+    "react-native-svg": "15.11.2",
     "react-native-unimodules": "^0.15.0",
     "react-native-vector-icons": "^10.2.0"
   },
@@ -43,7 +46,7 @@
     "eslint-config-prettier": "^10.1.2",
     "prettier": "^3.2.5",
     "prettier-plugin-tailwindcss": "^0.5.11",
-    "tailwindcss": "^3.4.0",
+    "tailwindcss": "^3.3.2",
     "typescript": "~5.8.3"
   },
   "main": "node_modules/expo/AppEntry.js",
