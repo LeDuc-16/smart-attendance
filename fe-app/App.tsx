@@ -15,7 +15,7 @@ export type RootStackParamList = {
   ForgetPass: undefined;
   OtpPage: undefined;
   ChangePassPage: undefined;
-  NewPassWordPage: undefined;
+  NewPassWordPage: { otpCode: string };
   DashBoardPage: undefined;
   AttendancePage: undefined;
 };
