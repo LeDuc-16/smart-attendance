@@ -32,6 +32,7 @@ public class Schedule {
     @Column(name = "end_date")
     private LocalDate endDate;
 
+    @ElementCollection(targetClass = DayOfWeek.class)
     @Enumerated(EnumType.STRING)
     @Column(name = "day_of_week")
     private List<DayOfWeek> dayOfWeek;
@@ -43,7 +44,6 @@ public class Schedule {
     @JsonFormat(pattern = "HH:mm:ss")
     @Column(name = "end_time")
     private LocalTime endTime;
-
 
     @ManyToOne
     @JoinColumn(name = "course_id")
@@ -61,5 +61,6 @@ public class Schedule {
     @JoinColumn(name = "room_id")
     private Room room;
 
-    private boolean isOpen;
+    @Column(name = "is_open")
+    private boolean isOpen; // Thêm trường để đánh dấu lịch học có mở không
 }

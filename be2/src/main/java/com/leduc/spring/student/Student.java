@@ -27,6 +27,9 @@ public class Student {
     @Column(name = "student_code", unique = true, nullable = false)
     private String studentCode;
 
+    @Column(name = "isRegisted")
+    private String isRegisted;
+
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId
     @JoinColumn(name = "id")

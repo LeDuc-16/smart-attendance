@@ -25,9 +25,9 @@ public class CreateScheduleResponse {
     @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime endTime;
 
-    private Long courseId;     // Chỉ trả về ID
-    private Long lecturerId;   // Chỉ trả về ID
-    private Long classId;      // Chỉ trả về ID
-    private Long roomId;       // Chỉ trả về ID
-    private List<WeekSchedule> weeks; // Danh sách các tuần
+    private String courseName;
+    private String lecturerName;
+    private String className;
+    private String roomName;
+    private List<WeekSchedule> weeks;
 }
