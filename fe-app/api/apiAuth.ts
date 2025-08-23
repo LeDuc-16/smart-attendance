@@ -75,15 +75,12 @@ class ApiAuthService {
 
   constructor(baseURL?: string) {
     if (process.env.NODE_ENV === 'production') {
-      this.baseURL =
-        baseURL ||
-        process.env.REACT_APP_API_BASE_URL ||
-        'http://14.225.210.41:8080';
+      this.baseURL = baseURL || process.env.REACT_APP_API_BASE_URL || 'http://14.225.210.41:8080';
     } else {
-      // Dùng IP LAN thay vì localhost
-      this.baseURL = baseURL || 'http://192.168.1.3:8080';
+      this.baseURL = baseURL || 'http://localhost:8080';
     }
   }
+
 
 
   setAuthToken(token: string) {
