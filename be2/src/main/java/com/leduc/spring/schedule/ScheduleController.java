@@ -32,10 +32,21 @@ public class ScheduleController {
     }
 
     @GetMapping("/me")
-    @PreAuthorize("hasAnyRole('LECTURER','STUDENT')")
+    @PreAuthorize("hasAnyRole('LECTURER','STUDENT','ADMIN')")
     @Operation(summary = "Lấy lịch cá nhân", description = "Giảng viên lấy lịch giảng dạy, sinh viên lấy lịch học")
     public ResponseEntity<ApiResponse<Object>> getMySchedule(HttpServletRequest servletRequest) {
         ApiResponse<Object> response = scheduleService.getMySchedule(servletRequest);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/lecturer/{lecturerId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Lấy lịch học theo ID giảng viên", description = "Chỉ admin có quyền lấy lịch học của giảng viên")
+    public ResponseEntity<ApiResponse<Object>> getScheduleByLecturerId(
+            @PathVariable("lecturerId") Long lecturerId,
+            HttpServletRequest servletRequest
+    ) {
+        ApiResponse<Object> response = scheduleService.getScheduleByLecturerId(lecturerId, servletRequest);
         return ResponseEntity.ok(response);
     }
 
