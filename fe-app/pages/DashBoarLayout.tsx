@@ -93,7 +93,7 @@ const DashBoardLayout: React.FC<DashBoardLayoutProps> = ({
 }) => {
   const studentTabs = [
     { id: 'DashBoardPage', icon: 'home', label: 'Trang chủ' },
-    { id: 'AttendancePage', icon: 'camera', label: 'Điểm danh' },
+    { id: 'StudentAttendanceViewPage', icon: 'camera', label: 'Điểm danh' },
     { id: 'StatsPage', icon: 'bar-chart', label: 'Lịch sử' },
     { id: 'NotificationPage', icon: 'notifications', label: 'Thông báo' },
     { id: 'ProfilePage', icon: 'person', label: 'Cá nhân' },

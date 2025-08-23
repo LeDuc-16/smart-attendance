@@ -42,6 +42,18 @@ export interface Room {
   locations: string;
 }
 
+export interface Student {
+  id: number;
+  studentCode: string;
+  studentName: string;
+  className: string;
+  majorName: string | null;
+  facultyName: string | null;
+  account: string;
+  email: string;
+  role: string | null;
+}
+
 class ApiScheduleService {
   private baseURL: string;
   private authToken: string | null = null; // Assuming token is managed elsewhere or passed
@@ -139,7 +151,7 @@ class ApiScheduleService {
     }
   }
 
-  async getRooms(): Promise<Room[]> {
+    async getRooms(): Promise<Room[]> {
     try {
       const response = await fetch(`${this.baseURL}/api/v1/rooms`, {
         method: 'GET',
@@ -155,6 +167,26 @@ class ApiScheduleService {
       return result.data;
     } catch (error) {
       console.error('Error fetching rooms:', error);
+      throw error;
+    }
+  }
+
+  async getStudents(): Promise<Student[]> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/v1/students`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch students');
+      }
+
+      const result: BackendApiResponse<Student[]> = await response.json();
+      return result.data;
+    } catch (error) {
+      console.error('Error fetching students:', error);
       throw error;
     }
   }

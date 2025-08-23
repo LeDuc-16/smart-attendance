@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { apiScheduleService, Schedule, Course, Class, Room } from '../api/apiScheduleService';
 import {
   SafeAreaView,
   View,
@@ -7,8 +8,11 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 
 interface ClassDataItem {
   id: number;
@@ -18,10 +22,11 @@ interface ClassDataItem {
   time: string;
   status: 'open' | 'closed';
   attendance: string;
+  date: string; // Added date field
 }
 
 // --- Dữ liệu mẫu ---
-const classesData: ClassDataItem[] = [
+const allClassesData: ClassDataItem[] = [
   {
     id: 1,
     subject: 'Lập trình ứng dụng di động',
@@ -30,6 +35,7 @@ const classesData: ClassDataItem[] = [
     time: '07:00 - 09:00',
     status: 'open',
     attendance: '48/50 có mặt',
+    date: '2025-08-24', // Example date
   },
   {
     id: 2,
@@ -39,28 +45,77 @@ const classesData: ClassDataItem[] = [
     time: '07:00 - 09:00',
     status: 'closed',
     attendance: 'Chưa điểm danh',
+    date: '2025-08-24', // Example date
+  },
+  {
+    id: 3,
+    subject: 'Cấu trúc dữ liệu',
+    className: '64KTPM1',
+    location: '301-A1',
+    time: '09:00 - 11:00',
+    status: 'open',
+    attendance: '30/35 có mặt',
+    date: '2025-08-25', // Example date for another day
   },
 ];
 
 // --- Các thành phần giao diện ---
 
-const DateNavigator = () => (
-  <View style={styles.dateNavigatorContainer}>
-    <TouchableOpacity>
-      <Icon name="chevron-back" size={24} color="#666" />
-    </TouchableOpacity>
-    <View style={styles.dateNavigatorCenter}>
-      <Text style={styles.dateNavigatorToday}>Hôm nay</Text>
-      <Text style={styles.dateNavigatorDate}>Thứ 5, 07/08/2025</Text>
-    </View>
-    <TouchableOpacity>
-      <Icon name="chevron-forward" size={24} color="#666" />
-    </TouchableOpacity>
-  </View>
-);
+interface DateNavigatorProps {
+  selectedDate: Date;
+  onDateChange: (date: Date) => void;
+  onPress: () => void;
+}
 
-const ClassCard = ({ item }: { item: ClassDataItem }) => {
+const DateNavigator: React.FC<DateNavigatorProps> = ({ selectedDate, onDateChange, onPress }) => {
+  const formattedDate = selectedDate.toLocaleDateString('vi-VN', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+
+  const handlePreviousDay = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() - 1);
+    onDateChange(newDate);
+  };
+
+  const handleNextDay = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + 1);
+    onDateChange(newDate);
+  };
+
+  return (
+    <View style={styles.dateNavigatorContainer}>
+      <TouchableOpacity onPress={handlePreviousDay}>
+        <Icon name="chevron-back" size={24} color="#666" />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onPress} style={styles.dateNavigatorCenter}>
+        <Text style={styles.dateNavigatorToday}>
+          {selectedDate.toDateString() === new Date().toDateString() ? 'Hôm nay' : 'Ngày đã chọn'}
+        </Text>
+        <Text style={styles.dateNavigatorDate}>{formattedDate}</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={handleNextDay}>
+        <Icon name="chevron-forward" size={24} color="#666" />
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+interface ClassCardProps {
+  item: ClassDataItem;
+  navigation: NavigationProp<any>;
+}
+
+const ClassCard = ({ item, navigation }: ClassCardProps) => {
   const isOpen = item.status === 'open';
+
+  const handleViewDetails = () => {
+    navigation.navigate('StudentListPage', { className: item.className });
+  };
 
   return (
     <View style={[styles.card, isOpen && styles.cardOpen]}>
@@ -84,7 +139,7 @@ const ClassCard = ({ item }: { item: ClassDataItem }) => {
       <Text style={styles.cardAttendanceText}>{item.attendance}</Text>
       {isOpen && (
         <View style={styles.cardActionsOpen}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={handleViewDetails}>
             <Text style={styles.cardDetailsLink}>Xem chi tiết</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.cardButtonOpen}>
@@ -94,7 +149,7 @@ const ClassCard = ({ item }: { item: ClassDataItem }) => {
       )}
       {!isOpen && (
         <View style={styles.cardActionsOpen}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={handleViewDetails}>
             <Text style={styles.cardDetailsLink}>Xem chi tiết</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.cardButtonClose}>
@@ -109,6 +164,100 @@ const ClassCard = ({ item }: { item: ClassDataItem }) => {
 // --- Màn hình chính ---
 
 const AttendanceScreen = () => {
+  const navigation = useNavigation();
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [fetchedSchedules, fetchedCourses, fetchedClasses, fetchedRooms] = await Promise.all([
+          apiScheduleService.getSchedules(),
+          apiScheduleService.getCourses(),
+          apiScheduleService.getClasses(),
+          apiScheduleService.getRooms(),
+        ]);
+        setSchedules(fetchedSchedules);
+        setCourses(fetchedCourses);
+        setClasses(fetchedClasses);
+        setRooms(fetchedRooms);
+      } catch (err: any) {
+        setError(err.message || 'Failed to fetch data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []); // Empty dependency array means this runs once on mount
+
+  const handleDateChange = (event: any, date?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (date) {
+      setSelectedDate(date);
+    }
+  };
+
+  const showMode = () => {
+    setShowDatePicker(true);
+  };
+
+  const getFormattedTime = (startTime: string, endTime: string) => {
+    const start = new Date(`2000-01-01T${startTime}`);
+    const end = new Date(`2000-01-01T${endTime}`);
+    return `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')} - ${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
+  };
+
+  const filteredClassesData: ClassDataItem[] = schedules
+    .filter(schedule => {
+      // Filter schedules by selected date
+      return schedule.weeks.some(week =>
+        week.studyDays.some(studyDay => {
+          const studyDate = new Date(studyDay.date);
+          return studyDate.toDateString() === selectedDate.toDateString();
+        })
+      );
+    })
+    .map(schedule => {
+      const course = courses.find(c => c.id === schedule.courseId);
+      const classInfo = classes.find(cl => cl.id === schedule.classId);
+      const room = rooms.find(r => r.id === schedule.roomId);
+
+      return {
+        id: schedule.id,
+        subject: course?.courseName || 'N/A',
+        className: classInfo?.className || 'N/A',
+        location: room?.roomCode || 'N/A',
+        time: getFormattedTime(schedule.startTime, schedule.endTime),
+        status: 'open', // Assuming all fetched schedules are 'open' for now
+        attendance: 'Chưa điểm danh', // Placeholder
+        date: selectedDate.toISOString().split('T')[0], // Use selected date for consistency
+      };
+    });
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <Text style={styles.errorText}>Lỗi: {error}</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#F4F7FC" />
@@ -116,10 +265,25 @@ const AttendanceScreen = () => {
         <Text style={styles.headerTitle}>Chọn lớp điểm danh</Text>
       </View>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
-        <DateNavigator />
-        {classesData.map(item => (
-          <ClassCard key={item.id} item={item} />
-        ))}
+        <DateNavigator
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+          onPress={showMode}
+        />
+        {showDatePicker && (
+          <DateTimePicker
+            testID="dateTimePicker"
+            value={selectedDate}
+            mode="date"
+            display="default"
+            onChange={handleDateChange}
+          />
+        )}
+        {filteredClassesData.length > 0 ? (
+          filteredClassesData.map(item => <ClassCard key={item.id} item={item} navigation={navigation} />)
+        ) : (
+          <Text style={styles.noDataText}>Không có lớp học nào vào ngày này.</Text>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

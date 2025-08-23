@@ -13,6 +13,8 @@ import ProfilePage from './pages/ProfilePage';
 import StatsPage from './pages/StatsPage';
 import TeachingSchedulePage from './pages/TeachingSchedulePage';
 import DashBoarLayout from './pages/DashBoarLayout';
+import StudentAttendanceViewPage from './pages/StudentAttendanceViewPage';
+import StudentListPage from './pages/StudentListPage';
 // Define the type for your stack navigator routes
 export type RootStackParamList = {
   Login: undefined;
@@ -26,7 +28,9 @@ export type RootStackParamList = {
   ProfilePage: undefined;
   StatsPage: undefined;
   TeachingSchedulePage: undefined;
+  StudentAttendanceViewPage: undefined;
   SchedulePage: undefined;
+  StudentListPage: { className: string };
 };
 
 // const Stack = createNativeStackNavigator();
@@ -57,6 +61,14 @@ export default function App() {
         <Stack.Screen name="ProfilePage" component={ProfilePage} />
         <Stack.Screen name="StatsPage" component={StatsPage} />
         <Stack.Screen name="TeachingSchedulePage" component={TeachingSchedulePage} />
+        <Stack.Screen name="StudentAttendanceViewPage">
+          {(props) => (
+            <DashBoarLayout activeTab="attendance" userRole="STUDENT" navigation={props.navigation as any}>
+              <StudentAttendanceViewPage />
+            </DashBoarLayout>
+          )}
+        </Stack.Screen>
+        <Stack.Screen name="StudentListPage" component={StudentListPage} />
       </Stack.Navigator>
     </NavigationContainer>
   );
