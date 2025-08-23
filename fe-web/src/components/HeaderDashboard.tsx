@@ -16,6 +16,7 @@ const pageTitles: { [key: string]: string } = {
     '/dashboard/classroom': 'Quản lý phòng học',
     '/dashboard/teaching': 'Quản lý giảng dạy',
     '/dashboard/attendance': 'Quản lý điểm danh',
+    '/change-password': 'Thay đổi mật khẩu',
 };
 
 const HeaderDashboard = () => {
@@ -24,7 +25,6 @@ const HeaderDashboard = () => {
     const navigate = useNavigate();
     const currentTitle = pageTitles[location.pathname] || 'Trang không xác định';
 
-    // Kiểm tra token và xử lý back button
     useEffect(() => {
         const checkAuth = () => {
             const token = localStorage.getItem('token');
@@ -35,35 +35,28 @@ const HeaderDashboard = () => {
             return true;
         };
 
-        // Kiểm tra ban đầu
         checkAuth();
 
-        // Xử lý khi trang được hiển thị lại (bao gồm cả back button)
         const handlePageShow = (event: PageTransitionEvent) => {
-            // Kiểm tra nếu trang được load từ cache
             if (event.persisted) {
                 checkAuth();
             }
         };
 
-        // Xử lý khi focus lại vào trang
         const handleFocus = () => {
             checkAuth();
         };
 
-        // Xử lý back/forward button
         const handlePopState = () => {
             setTimeout(() => {
                 checkAuth();
             }, 100);
         };
 
-        // Thêm event listeners
         window.addEventListener('pageshow', handlePageShow);
         window.addEventListener('focus', handleFocus);
         window.addEventListener('popstate', handlePopState);
 
-        // Cleanup
         return () => {
             window.removeEventListener('pageshow', handlePageShow);
             window.removeEventListener('focus', handleFocus);
@@ -88,23 +81,18 @@ const HeaderDashboard = () => {
         return `${day}, ${dateNum} tháng ${month} năm ${year}`;
     };
 
-    // Hàm xử lý đăng xuất được cải thiện
+
     const handleLogout = () => {
-        // Xóa tất cả thông tin đăng nhập
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('refreshToken');
 
-        // Xóa session storage nếu có
         sessionStorage.clear();
 
-        // Thay thế history entry hiện tại để ngăn back button
         window.history.replaceState(null, '', '/login');
 
-        // Navigate đến login page
         navigate('/login', { replace: true });
 
-        // Thêm entry mới để ngăn back button
         setTimeout(() => {
             window.history.pushState(null, '', '/login');
         }, 100);
@@ -112,6 +100,11 @@ const HeaderDashboard = () => {
 
     const handleProfile = () => {
         console.log('Mở hồ sơ cá nhân');
+    };
+
+    const handleChangePassword = () => {
+        console.log('Chuyển đến trang đổi mật khẩu');
+        navigate('/change-password');
     };
 
     return (
@@ -141,11 +134,12 @@ const HeaderDashboard = () => {
                     >
                         <div className="py-2">
                             <button
-                                onClick={handleProfile}
+                                onClick={handleChangePassword}
                                 className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                             >
-                                Hồ sơ cá nhân
+                                Đổi mật khẩu
                             </button>
+                            <hr className="my-1 border-gray-200" />
                             <button
                                 onClick={handleLogout}
                                 className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

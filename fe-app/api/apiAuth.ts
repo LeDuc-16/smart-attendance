@@ -80,10 +80,11 @@ class ApiAuthService {
         process.env.REACT_APP_API_BASE_URL ||
         'http://14.225.210.41:8080';
     } else {
-      // Sử dụng đúng IP máy thật
-      this.baseURL = baseURL || 'http://192.168.68.109:8080';
+      // Dùng IP LAN thay vì localhost
+      this.baseURL = baseURL || 'http://192.168.1.3:8080';
     }
   }
+
 
   setAuthToken(token: string) {
     this.authToken = token;

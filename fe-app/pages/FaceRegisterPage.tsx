@@ -209,9 +209,8 @@ const FaceRegisterPage = () => {
             </Text>
 
             <TouchableOpacity
-              className={`mb-2 w-full rounded-xl px-4 py-3 ${
-                isProcessing || !faceApiReady ? 'bg-gray-400' : 'bg-blue-600'
-              }`}
+              className={`mb-2 w-full rounded-xl px-4 py-3 ${isProcessing || !faceApiReady ? 'bg-gray-400' : 'bg-blue-600'
+                }`}
               onPress={captureFaceDescriptor}
               disabled={isProcessing || !faceApiReady}>
               <Text className="text-center font-bold text-white">

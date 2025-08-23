@@ -16,8 +16,10 @@ import TeachingPage from "./pages/TeachingPage";
 import AttendancePage from "./pages/AttendancePage";
 import LecturerDashboard from "./pages/LecturerDashboard";
 import TeachingSchedulePage from "./pages/TeachingSchedulePage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 import LecturerReports from "./pages/LecturerReports";
 import LecturerTakesAttendance from "./pages/LecturerTakesAttendance";
+
 
 const App = () => {
   return (
@@ -32,25 +34,26 @@ const App = () => {
 
         {/* Dashboard routes */}
         <Route path="/dashboard" element={<DashboardLayout />}>
-          {" "}
-          <Route index element={<GeneralPage />} />{" "}
-          <Route path="class" element={<ClassPage />} />{" "}
-          <Route path="subject" element={<SubjectPage />} />{" "}
-          <Route path="classroom" element={<ClassRoomPage />} />{" "}
-          <Route path="lecturer" element={<LecturerPage />} />{" "}
-          <Route path="faculty" element={<FacultyPage />} />{" "}
-          <Route path="general" element={<GeneralPage />} />{" "}
-          <Route path="major" element={<MajorPage />} />{" "}
-          <Route path="student" element={<StudentPage />} />{" "}
-          <Route path="teaching" element={<TeachingPage />} />{" "}
-          <Route path="attendance" element={<AttendancePage />} />{" "}
-        </Route>{" "}
-  <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
-  <Route path="/teaching-schedule" element={<TeachingSchedulePage />} />
-  <Route path="/lecturer-reports" element={<LecturerReports />} />
-  <Route path="/lecturer-takes-attendance" element={<LecturerTakesAttendance />} />
-      </Routes>{" "}
-    </BrowserRouter>
+
+          <Route index element={<GeneralPage />} />
+          <Route path="class" element={<ClassPage />} />
+          <Route path="subject" element={<SubjectPage />} />
+          <Route path="classroom" element={<ClassRoomPage />} />
+          <Route path="lecturer" element={<LecturerPage />} />
+          <Route path="faculty" element={<FacultyPage />} />
+          <Route path="general" element={<GeneralPage />} />
+          <Route path="major" element={<MajorPage />} />
+          <Route path="student" element={<StudentPage />} />
+          <Route path="teaching" element={<TeachingPage />} />
+          <Route path="attendance" element={<AttendancePage />} />
+        </Route >
+
+        <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
+        <Route path="/teaching-schedule" element={<TeachingSchedulePage />} />
+        <Route path="/change-password" element={<ChangePasswordPage />} />
+      </Routes >
+
+    </BrowserRouter >
   );
 };
 

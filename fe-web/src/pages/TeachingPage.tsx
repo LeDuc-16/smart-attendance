@@ -694,6 +694,7 @@ const TeachingPage = () => {
         const conflictErrors = checkScheduleConflict(data, allSchedulesForConflictCheck);
         if (conflictErrors.length > 0) {
             setModalError(conflictErrors[0]);
+            return;
         }
 
         try {
