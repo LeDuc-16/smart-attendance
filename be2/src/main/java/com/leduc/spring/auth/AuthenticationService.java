@@ -168,7 +168,6 @@ public class AuthenticationService {
     var jwtToken = jwtService.generateToken(user);
     var refreshToken = jwtService.generateRefreshToken(user);
 
-    // ❌ Bỏ revokeAllUserTokens(user);
     saveUserToken(user, jwtToken);
 
     Object userData;
