@@ -1,6 +1,8 @@
-// Lưu ý: KHÔNG hardcode secret key trong file này. Luôn lấy từ biến môi trường hoặc file cấu hình đã được bảo mật.
 package com.leduc.spring.config;
 
+import com.leduc.spring.exception.ResourceNotFoundException;
+import com.leduc.spring.user.User;
+import com.leduc.spring.user.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -11,7 +13,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 
 @Service
+@RequiredArgsConstructor
 public class JwtService {
 
   @Value("${application.security.jwt.secret-key}")
@@ -27,6 +30,8 @@ public class JwtService {
   private long jwtExpiration;
   @Value("${application.security.jwt.refresh-token.expiration}")
   private long refreshExpiration;
+
+  private final UserRepository userRepository; // Cần inject UserRepository
 
   public String extractUsername(String token) {
     return extractClaim(token, Claims::getSubject);
@@ -42,14 +47,14 @@ public class JwtService {
   }
 
   public String generateToken(
-      Map<String, Object> extraClaims,
-      UserDetails userDetails
+          Map<String, Object> extraClaims,
+          UserDetails userDetails
   ) {
     return buildToken(extraClaims, userDetails, jwtExpiration);
   }
 
   public String generateRefreshToken(
-      UserDetails userDetails
+          UserDetails userDetails
   ) {
     return buildToken(new HashMap<>(), userDetails, refreshExpiration);
   }
@@ -94,5 +99,11 @@ public class JwtService {
   private SecretKey getSignInKey() {
     byte[] keyBytes = Decoders.BASE64.decode(secretKey);
     return Keys.hmacShaKeyFor(keyBytes);
+  }
+
+  // Thêm phương thức để lấy User từ token
+  public User getUserFromToken(String username) {
+    return userRepository.findByUsername(username)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
   }
 }

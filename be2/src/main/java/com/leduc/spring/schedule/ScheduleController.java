@@ -31,11 +31,11 @@ public class ScheduleController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','LECTURER','STUDENT')")
-    @Operation(summary = "Lấy danh sách lịch học", description = "ai cung xem duoc ds lich hoc ")
-    public ResponseEntity<ApiResponse<Object>> listSchedules(HttpServletRequest servletRequest) {
-        return ResponseEntity.ok(scheduleService.listSchedules(servletRequest));
+    @GetMapping("/me")
+    @PreAuthorize("hasAnyRole('LECTURER','STUDENT')")
+    @Operation(summary = "Lấy lịch cá nhân", description = "Giảng viên lấy lịch giảng dạy, sinh viên lấy lịch học")
+    public ResponseEntity<ApiResponse<Object>> getMySchedule(HttpServletRequest servletRequest) {
+        return ResponseEntity.ok(scheduleService.getMySchedule(servletRequest));
     }
 
     @PutMapping("/{id}")

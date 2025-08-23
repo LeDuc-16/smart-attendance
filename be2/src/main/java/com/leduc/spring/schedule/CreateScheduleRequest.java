@@ -28,8 +28,8 @@ public class CreateScheduleRequest {
     @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime endTime;
 
-    private Long courseId;     // Chỉ cần ID
-    private Long lecturerId;   // Chỉ cần ID
-    private Long classId;      // Chỉ cần ID
-    private Long roomId;       // Chỉ cần ID
+    private Long courseId;
+    private Long lecturerId;
+    private Long classId;
+    private Long roomId;
 }
