@@ -2,6 +2,7 @@ package com.leduc.spring.aws;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -21,13 +22,21 @@ public class AwsConfig {
     private static final Logger logger = LoggerFactory.getLogger(AwsConfig.class);
     private static final String FACE_COLLECTION_ID = "student_faces";
 
-    private final String awsRegion = System.getenv().getOrDefault("AWS_REGION", "ap-southeast-2");
+    @Value("${aws.region:ap-southeast-2}")
+    private String awsRegion;
+
+    @Value("${aws.accessKeyId}")
+    private String accessKey;
+
+    @Value("${aws.secretKey}")
+    private String secretKey;
+
     private final boolean mock = Boolean.parseBoolean(System.getenv().getOrDefault("AWS_S3_MOCK", "false"));
 
     @Bean
     public S3Client s3Client() {
         if (mock) {
-            return new FakeS3();
+            return new FakeS3(); // Giả định FakeS3 là class mock của bạn
         }
         return S3Client.builder()
                 .region(Region.of(awsRegion))
@@ -35,7 +44,6 @@ public class AwsConfig {
                 .credentialsProvider(DefaultCredentialsProvider.create())
                 .build();
     }
-
 
     @Bean
     public RekognitionClient rekognitionClient() {
@@ -58,7 +66,7 @@ public class AwsConfig {
                                 .collectionId(FACE_COLLECTION_ID)
                                 .build()
                 );
-                if (createResponse.statusCode() == 200) {
+                if (createResponse.sdkHttpResponse().isSuccessful()) {
                     logger.info("Collection {} created successfully", FACE_COLLECTION_ID);
                 } else {
                     logger.error("Failed to create collection: {}", FACE_COLLECTION_ID);
@@ -69,14 +77,5 @@ public class AwsConfig {
         } catch (Exception e) {
             logger.error("Failed to check or create Rekognition collection: {}", e.getMessage(), e);
         }
-    }
-
-    @Bean
-    public AmazonRekognition amazonRekognition() {
-        BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKey, secretKey);
-        return AmazonRekognitionClientBuilder.standard()
-                .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
-                .withRegion(region)
-                .build();
     }
 }
