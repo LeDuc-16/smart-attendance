@@ -55,28 +55,6 @@ const DashBoardPage = ({ navigation }: Props) => {
 
   const handleTabPress = (tab: string) => {
     setActiveTab(tab as any);
-
-    switch (tab) {
-      case 'home':
-        break;
-      case 'schedule':
-        navigation.navigate('SchedulePage');
-        break;
-      case 'attendance':
-        navigation.navigate('AttendancePage');
-        break;
-      case 'stats':
-        navigation.navigate('StatsPage');
-        break;
-      case 'profile':
-        navigation.navigate('ProfilePage');
-        break;
-      case 'notification':
-        navigation.navigate('NotificationPage');
-        break;
-      default:
-        Alert.alert('Thông báo', `Tính năng ${tab} đang phát triển`);
-    }
   };
 
   const handleProfilePress = () => {
@@ -226,6 +204,8 @@ const DashBoardPage = ({ navigation }: Props) => {
       onTabPress={handleTabPress}
       headerTitle="Smart Attendance"
       headerSubtitle="Giao diện chính"
+      userRole={userInfo?.role as any}
+      navigation={navigation as any}
     >
       {renderHomeContent()}
     </DashBoardLayout>

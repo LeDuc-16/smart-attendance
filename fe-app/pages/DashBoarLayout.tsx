@@ -74,10 +74,12 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 interface DashBoardLayoutProps {
   children: React.ReactNode;
-  activeTab?: 'home' | 'schedule' | 'attendance' | 'stats' | 'notification' | 'profile';
+  activeTab?: 'home' | 'schedule' | 'attendance' | 'stats' | 'notification' | 'profile' | 'report';
   onTabPress?: (tab: string) => void;
   headerTitle?: string;
   headerSubtitle?: string;
+  userRole?: 'STUDENT' | 'LECTURER';
+  navigation: any;
 }
 
 const DashBoardLayout: React.FC<DashBoardLayoutProps> = ({
@@ -86,14 +88,32 @@ const DashBoardLayout: React.FC<DashBoardLayoutProps> = ({
   onTabPress,
   headerTitle = 'Smart Attendance',
   headerSubtitle = 'Giao diện chính',
+  userRole = 'STUDENT',
+  navigation,
 }) => {
-  const tabs = [
-    { id: 'home', icon: 'home', label: 'Trang chủ' },
-    { id: 'attendance', icon: 'camera', label: 'Điểm danh' },
-    { id: 'stats', icon: 'bar-chart', label: 'Lịch sử' },
-    { id: 'notification', icon: 'notifications', label: 'Thông báo' },
-    { id: 'profile', icon: 'person', label: 'Cá nhân' },
+  const studentTabs = [
+    { id: 'DashBoardPage', icon: 'home', label: 'Trang chủ' },
+    { id: 'AttendancePage', icon: 'camera', label: 'Điểm danh' },
+    { id: 'StatsPage', icon: 'bar-chart', label: 'Lịch sử' },
+    { id: 'NotificationPage', icon: 'notifications', label: 'Thông báo' },
+    { id: 'ProfilePage', icon: 'person', label: 'Cá nhân' },
   ];
+
+  const lecturerTabs = [
+    { id: 'DashBoardPage', icon: 'home', label: 'Trang chủ' },
+    { id: 'TeachingSchedulePage', icon: 'schedule', label: 'Lịch học' },
+    { id: 'AttendancePage', icon: 'camera', label: 'Điểm danh' },
+    { id: 'report', icon: 'assessment', label: 'Báo cáo' },
+  ];
+
+  const tabs = userRole === 'LECTURER' ? lecturerTabs : studentTabs;
+
+  const handleTabPressInternal = (tabId: string) => {
+    if (onTabPress) {
+      onTabPress(tabId);
+    }
+    navigation.navigate(tabId);
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
@@ -115,7 +135,7 @@ const DashBoardLayout: React.FC<DashBoardLayoutProps> = ({
             <TouchableOpacity
               key={tab.id}
               className={`flex-1 items-center px-1 py-2 ${activeTab === tab.id ? 'bg-blue-50' : ''} rounded-lg`}
-              onPress={() => onTabPress?.(tab.id)}
+              onPress={() => handleTabPressInternal(tab.id)}
               activeOpacity={0.7}>
               <MaterialIcons
                 name={tab.icon as any}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
+import { apiAuthService } from '../api/apiAuth';
 import DashBoardLayout from './DashBoarLayout';
 
 type Props = NativeStackScreenProps<any, 'SchedulePage'>;
@@ -10,6 +11,7 @@ const SchedulePage = ({ navigation }: Props) => {
   const [activeTab, setActiveTab] = useState<
     'home' | 'schedule' | 'attendance' | 'stats' | 'notification' | 'profile'
   >('schedule');
+  const userInfo = apiAuthService.getUserInfo();
 
   const handleTabPress = (tab: string) => {
     setActiveTab(tab as any);
@@ -18,11 +20,24 @@ const SchedulePage = ({ navigation }: Props) => {
       case 'home':
         navigation.navigate('DashBoardPage');
         break;
+      case 'schedule':
+        if (userInfo?.role === 'LECTURER') {
+          navigation.navigate('TeachingSchedulePage');
+        } else {
+          navigation.navigate('SchedulePage');
+        }
+        break;
       case 'attendance':
         navigation.navigate('AttendancePage');
         break;
+      case 'stats':
+        navigation.navigate('StatsPage');
+        break;
       case 'profile':
         navigation.navigate('ProfilePage');
+        break;
+      case 'notification':
+        navigation.navigate('NotificationPage');
         break;
       default:
         Alert.alert('Thông báo', `Tính năng ${tab} đang phát triển`);
@@ -81,7 +96,7 @@ const SchedulePage = ({ navigation }: Props) => {
   );
 
   return (
-    <DashBoardLayout activeTab={activeTab} onTabPress={handleTabPress}>
+    <DashBoardLayout activeTab={activeTab} onTabPress={handleTabPress} userRole={userInfo?.role as any} navigation={navigation as any}>
       {renderScheduleContent()}
     </DashBoardLayout>
   );

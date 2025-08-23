@@ -9,8 +9,10 @@ import NewPassWordPage from './pages/NewPassWordPage';
 import DashBoardPage from './pages/DashBoardPage';
 import AttendancePage from './pages/AttendancePage';
 import NotificationPage from './pages/NotificationPage';
-import ProfilePage from 'pages/ProfilePage';
-import StatsPage from 'pages/StatsPage';
+import ProfilePage from './pages/ProfilePage';
+import StatsPage from './pages/StatsPage';
+import TeachingSchedulePage from './pages/TeachingSchedulePage';
+import DashBoarLayout from './pages/DashBoarLayout';
 // Define the type for your stack navigator routes
 export type RootStackParamList = {
   Login: undefined;
@@ -23,6 +25,7 @@ export type RootStackParamList = {
   NotificationPage: undefined;
   ProfilePage: undefined;
   StatsPage: undefined;
+  TeachingSchedulePage: undefined;
 };
 
 // const Stack = createNativeStackNavigator();
@@ -42,10 +45,17 @@ export default function App() {
         <Stack.Screen name="ChangePassPage" component={ChangePassPage} />
         <Stack.Screen name="NewPassWordPage" component={NewPassWordPage} />
         <Stack.Screen name="DashBoardPage" component={DashBoardPage} />
-        <Stack.Screen name="AttendancePage" component={AttendancePage} />
+        <Stack.Screen name="AttendancePage">
+          {(props) => (
+            <DashBoarLayout activeTab="attendance" userRole="LECTURER" navigation={props.navigation as any}>
+              <AttendancePage {...props} />
+            </DashBoarLayout>
+          )}
+        </Stack.Screen>
         <Stack.Screen name="NotificationPage" component={NotificationPage} />
         <Stack.Screen name="ProfilePage" component={ProfilePage} />
         <Stack.Screen name="StatsPage" component={StatsPage} />
+        <Stack.Screen name="TeachingSchedulePage" component={TeachingSchedulePage} />
       </Stack.Navigator>
     </NavigationContainer>
   );
