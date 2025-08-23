@@ -34,12 +34,27 @@ const TeachingSchedulePage = () => {
   else if (location.pathname === "/lecturer-dashboard") activeTab = "dashboard";
   else if (location.pathname === "/attendance") activeTab = "attendance";
 
+  const [currentLecturerId, setCurrentLecturerId] = useState<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        if (user && user.id) {
+          setCurrentLecturerId(user.id);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to get user data from local storage", error);
+    }
+  }, []);
+
   // Hàm lấy ngày đầu tuần (Thứ 2) từ một ngày bất kỳ
   function getMonday(d: Date) {
     const day = d.getDay();
     // Tính toán số ngày cần trừ để về thứ 2
-    // getDay() returns: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
-    const diff = day === 0 ? -6 : 1 - day; // Nếu là chủ nhật (0) thì trừ 6 ngày, ngược lại trừ (day-1) ngày
+    const diff = day === 0 ? -6 : 1 - day;
     const monday = new Date(d);
     monday.setDate(d.getDate() + diff);
     return monday;
@@ -80,7 +95,6 @@ const TeachingSchedulePage = () => {
     if (!d) return "";
     const [year, month, day] = d.split('-').map(Number);
     const date = new Date(Date.UTC(year, month - 1, day));
-    // ISO 8601 week number
     const dayNum = date.getUTCDay() || 7;
     date.setUTCDate(date.getUTCDate() + 4 - dayNum);
     const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
@@ -95,15 +109,13 @@ const TeachingSchedulePage = () => {
   }, [date]);
 
   useEffect(() => {
-    if (weekDates.length === 0) return;
+    if (weekDates.length === 0 || currentLecturerId === null) return;
     setLoading(true);
     (async () => {
       try {
-        // Fetch schedules for each day of the week in parallel
         const dailySchedulesPromises = weekDates.map(d => getSchedulesByDate(d));
         const dailySchedules = await Promise.all(dailySchedulesPromises);
 
-        // Flatten the array of arrays and deduplicate schedules by ID
         const allSchedules = dailySchedules.flat();
         const uniqueSchedules = Array.from(new Map(allSchedules.map(item => [item.id, item])).values());
 
@@ -114,9 +126,12 @@ const TeachingSchedulePage = () => {
         const courses: any[] = (coursesRes as any).data;
         const classes: any[] = (classesRes as any).data;
 
-        // Gom tất cả các lịch học trong tuần thành từng dòng riêng biệt
+        const schedulesForCurrentLecturer = uniqueSchedules.filter(
+          (schedule: any) => schedule.lecturerId === currentLecturerId
+        );
+
         let enriched: any[] = [];
-        uniqueSchedules.forEach((item: any) => { // Use uniqueSchedules here
+        schedulesForCurrentLecturer.forEach((item: any) => {
           const course = courses.find((c: any) => c.id === item.courseId);
           const room = rooms.find((r: any) => r.id === item.roomId);
           const classInfo = classes.find((cl: any) => cl.id === item.classId);
@@ -131,6 +146,7 @@ const TeachingSchedulePage = () => {
               week.studyDays.forEach((day: any) => {
                 if (weekDates.includes(day.date)) {
                   enriched.push({
+                    ...item,
                     date: day.date,
                     dayOfWeek: day.dayOfWeek,
                     courseName: course?.courseName || "",
@@ -146,7 +162,16 @@ const TeachingSchedulePage = () => {
             }
           });
         });
-        setScheduleData(enriched);
+
+        const finalData = search
+          ? enriched.filter(item =>
+              item.courseName.toLowerCase().includes(search.toLowerCase()) ||
+              item.className.toLowerCase().includes(search.toLowerCase()) ||
+              item.roomCode.toLowerCase().includes(search.toLowerCase())
+            )
+          : enriched;
+
+        setScheduleData(finalData);
       } catch (err) {
         console.error("Failed to fetch schedule data:", err);
         setScheduleData([]);
@@ -154,7 +179,7 @@ const TeachingSchedulePage = () => {
         setLoading(false);
       }
     })();
-  }, [weekDates]);
+  }, [weekDates, currentLecturerId, search]);
 
   const handleEditClick = (item: any) => {
     setEditData(item);
