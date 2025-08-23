@@ -19,13 +19,14 @@ export type RootStackParamList = {
   ForgetPass: undefined;
   OtpPage: undefined;
   ChangePassPage: undefined;
-  NewPassWordPage: { otpCode: string };
+  NewPassWordPage: { otpCode?: string };
   DashBoardPage: undefined;
   AttendancePage: undefined;
   NotificationPage: undefined;
   ProfilePage: undefined;
   StatsPage: undefined;
   TeachingSchedulePage: undefined;
+  SchedulePage: undefined;
 };
 
 // const Stack = createNativeStackNavigator();
@@ -48,7 +49,7 @@ export default function App() {
         <Stack.Screen name="AttendancePage">
           {(props) => (
             <DashBoarLayout activeTab="attendance" userRole="LECTURER" navigation={props.navigation as any}>
-              <AttendancePage {...props} />
+              <AttendancePage />
             </DashBoarLayout>
           )}
         </Stack.Screen>

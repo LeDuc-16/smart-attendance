@@ -10,8 +10,18 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
+interface ClassDataItem {
+  id: number;
+  subject: string;
+  className: string;
+  location: string;
+  time: string;
+  status: 'open' | 'closed';
+  attendance: string;
+}
+
 // --- Dữ liệu mẫu ---
-const classesData = [
+const classesData: ClassDataItem[] = [
   {
     id: 1,
     subject: 'Lập trình ứng dụng di động',
@@ -49,7 +59,7 @@ const DateNavigator = () => (
   </View>
 );
 
-const ClassCard = ({ item }) => {
+const ClassCard = ({ item }: { item: ClassDataItem }) => {
   const isOpen = item.status === 'open';
 
   return (

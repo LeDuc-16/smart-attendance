@@ -1,6 +1,5 @@
-// API Services Index - Re-export from main apiService
+import { apiAuthService, AuthResponse, LoginRequest, BackendApiResponse } from './apiAuth';
+import { apiScheduleService } from './apiScheduleService';
 
-export { apiService } from '../services/apiService';
-
-// Export types
-export type { AuthResponse, LoginRequest, BackendApiResponse } from '../services/apiService';
+export { apiAuthService, apiScheduleService };
+export type { AuthResponse, LoginRequest, BackendApiResponse };

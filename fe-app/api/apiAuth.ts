@@ -15,6 +15,7 @@ export interface StudentResponse {
   account: string;
   email: string;
   role: 'STUDENT';
+  faceId?: string;
 }
 
 export interface LecturerResponse {
@@ -27,6 +28,7 @@ export interface LecturerResponse {
   academicRank?: string;
   facultyId?: number;
   userId: number;
+  faceId?: string;
 }
 
 // Union type cho user info
