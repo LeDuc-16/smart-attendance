@@ -20,16 +20,13 @@
         <java.version>17</java.version>
     </properties>
 
-    <!-- AWS SDK BOM -->
     <dependencyManagement>
-
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-rekognition</artifactId>
-            <version>1.12.261</version>
-        </dependency>
-
         <dependencies>
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-rekognition</artifactId>
+                <version>1.12.261</version>
+            </dependency>
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
