@@ -70,4 +70,13 @@ public class AwsConfig {
             logger.error("Failed to check or create Rekognition collection: {}", e.getMessage(), e);
         }
     }
+
+    @Bean
+    public AmazonRekognition amazonRekognition() {
+        BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKey, secretKey);
+        return AmazonRekognitionClientBuilder.standard()
+                .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
+                .withRegion(region)
+                .build();
+    }
 }
