@@ -96,7 +96,7 @@ public class ScheduleService {
                     .collect(Collectors.toList());
         } else if ("STUDENT".equals(currentUser.getRole())) {
             // Lấy tất cả lịch học của sinh viên dựa trên lớp
-            ClassEntity studentClass = classRepository.findByStudentsId(currentUser.getId())
+            ClassEntity studentClass = classRepository.findByStudentId(currentUser.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp cho sinh viên: " + currentUser.getId()));
             schedules = scheduleRepository.findByClassEntityId(studentClass.getId()).stream()
                     .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule, calculateWeeklySchedule(schedule)))

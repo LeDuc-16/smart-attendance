@@ -101,9 +101,9 @@ public class JwtService {
     return Keys.hmacShaKeyFor(keyBytes);
   }
 
-  // Thêm phương thức để lấy User từ token
-  public User getUserFromToken(String username) {
-    return userRepository.findByUsername(username)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+  public User getUserFromToken(String account) {
+    return userRepository.findByAccount(account)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with account: " + account));
   }
+
 }
