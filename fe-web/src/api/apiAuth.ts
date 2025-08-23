@@ -58,7 +58,10 @@ export const login = async (
 
         console.log("Login response:", response);
 
-        return response.data.data;
+        const tokens: AuthTokens = response.data.data;
+        localStorage.setItem('token', tokens.access_token); // Store the access token
+        console.log("Token stored:", tokens.access_token); // Log the token
+        return tokens;
     } catch (error) {
         const axiosError = error as AxiosError<{ message?: string }>;
         throw new Error(axiosError.response?.data?.message || 'Đăng nhập thất bại');

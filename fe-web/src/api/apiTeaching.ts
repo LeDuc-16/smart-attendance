@@ -99,7 +99,13 @@ export const getTeachingSchedules = async (): Promise<TeachingSchedule[]> => {
 export const getSchedulesByDate = async (date: string): Promise<TeachingSchedule[]> => {
     try {
         // Thử API theo date trước
-        const response = await teachingApiClient.get(`/api/v1/schedules/date/${date}`);
+    const token = localStorage.getItem('token');
+    console.log("Fetching schedules with token:", token); // Log the token
+    const response = await teachingApiClient.get(`/api/v1/schedules/date/${date}`, {
+        headers: {
+            Authorization: `Bearer ${token}` // Ensure the token is sent
+        }
+    });
         return response.data.data;
     } catch (error: any) {
         if (error.response?.status === 404 || error.response?.status === 500) {
