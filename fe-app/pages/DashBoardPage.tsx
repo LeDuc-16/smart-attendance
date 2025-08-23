@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+// import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
 import DashBoardLayout from './DashBoarLayout';
 import { apiAuthService } from '../api/apiAuth';
+import React, { useState, useEffect } from 'react';
 
 type Props = NativeStackScreenProps<any, 'DashBoardPage'>;
 
@@ -55,8 +56,9 @@ const DashBoardPage = ({ navigation }: Props) => {
   const handleTabPress = (tab: string) => {
     setActiveTab(tab as any);
 
-    // Handle navigation based on tab
     switch (tab) {
+      case 'home':
+        break;
       case 'schedule':
         navigation.navigate('SchedulePage');
         break;
@@ -67,7 +69,10 @@ const DashBoardPage = ({ navigation }: Props) => {
         navigation.navigate('StatsPage');
         break;
       case 'profile':
-        handleProfilePress();
+        navigation.navigate('ProfilePage');
+        break;
+      case 'notification':
+        navigation.navigate('NotificationPage');
         break;
       default:
         Alert.alert('Thông báo', `Tính năng ${tab} đang phát triển`);
@@ -113,7 +118,6 @@ const DashBoardPage = ({ navigation }: Props) => {
             });
           } catch (error) {
             console.error('Logout error:', error);
-            // Dù có lỗi API cũng vẫn đăng xuất local
             navigation.reset({
               index: 0,
               routes: [{ name: 'Login' }],
@@ -217,7 +221,12 @@ const DashBoardPage = ({ navigation }: Props) => {
   );
 
   return (
-    <DashBoardLayout activeTab={activeTab} onTabPress={handleTabPress}>
+    <DashBoardLayout
+      activeTab={activeTab}
+      onTabPress={handleTabPress}
+      headerTitle="Smart Attendance"
+      headerSubtitle="Giao diện chính"
+    >
       {renderHomeContent()}
     </DashBoardLayout>
   );

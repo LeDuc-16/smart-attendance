@@ -8,7 +8,8 @@ import { ChangePassPage } from './pages/ChangePassPage';
 import NewPassWordPage from './pages/NewPassWordPage';
 import DashBoardPage from './pages/DashBoardPage';
 import AttendancePage from './pages/AttendancePage';
-
+import NotificationPage from './pages/NotificationPage';
+import ProfilePage from 'pages/ProfilePage';
 // Define the type for your stack navigator routes
 export type RootStackParamList = {
   Login: undefined;
@@ -18,9 +19,12 @@ export type RootStackParamList = {
   NewPassWordPage: { otpCode: string };
   DashBoardPage: undefined;
   AttendancePage: undefined;
+  NotificationPage: undefined;
+  ProfilePage: undefined;
 };
 
-const Stack = createNativeStackNavigator();
+// const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   return (
@@ -37,6 +41,8 @@ export default function App() {
         <Stack.Screen name="NewPassWordPage" component={NewPassWordPage} />
         <Stack.Screen name="DashBoardPage" component={DashBoardPage} />
         <Stack.Screen name="AttendancePage" component={AttendancePage} />
+        <Stack.Screen name="NotificationPage" component={NotificationPage} />
+        <Stack.Screen name="ProfilePage" component={ProfilePage} />
       </Stack.Navigator>
     </NavigationContainer>
   );
