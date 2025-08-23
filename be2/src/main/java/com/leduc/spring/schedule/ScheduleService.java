@@ -108,6 +108,23 @@ public class ScheduleService {
         return ApiResponse.success(schedules, "Schedules retrieved successfully", servletRequest.getRequestURI());
     }
 
+    public ApiResponse<Object> getScheduleByLecturerId(Long lecturerId, HttpServletRequest servletRequest) {
+        // Validate lecturer existence
+        Lecturer lecturer = lecturerRepository.findById(lecturerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Lecturer ID không tồn tại: " + lecturerId));
+
+        // Lấy tất cả lịch học của giảng viên
+        List<Schedule> schedules = scheduleRepository.findByLecturerId(lecturerId).stream()
+                .collect(Collectors.toList());
+
+        // Chuyển đổi sang danh sách CreateScheduleResponse
+        List<CreateScheduleResponse> scheduleResponses = schedules.stream()
+                .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule, calculateWeeklySchedule(schedule)))
+                .collect(Collectors.toList());
+
+        return ApiResponse.success(scheduleResponses, "Schedules retrieved for lecturer successfully", servletRequest.getRequestURI());
+    }
+
     public ApiResponse<Object> updateSchedule(HttpServletRequest servletRequest, Long id, UpdateScheduleRequest request) {
         Schedule schedule = scheduleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Schedule not found with id: " + id));
