@@ -10,12 +10,15 @@ import com.leduc.spring.user.Role;
 import com.leduc.spring.user.User;
 import com.leduc.spring.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class LecturerService {
 
     @Autowired
@@ -27,6 +30,7 @@ public class LecturerService {
     @Autowired
     private FacultyRepository facultyRepository;
 
+    private final PasswordEncoder passwordEncoder;
 
     public ApiResponse<Object> createLecturer(CreateLecturerRequest request, HttpServletRequest servletRequest) {
         // Kiểm tra trùng lặp lecturerCode
@@ -51,7 +55,7 @@ public class LecturerService {
         // Tạo User với vai trò LECTURER
         User user = User.builder()
                 .email(request.getEmail())
-                .password(request.getPassword()) // Nên mã hóa password trong thực tế
+                .password(passwordEncoder.encode(request.getPassword())) // Nên mã hóa password trong thực tế
                 .name(request.getName())
                 .account(request.getAccount())
                 .role(Role.LECTURER) // Tự động gán vai trò LECTURER
