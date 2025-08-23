@@ -25,9 +25,9 @@ public class CreateScheduleResponse {
     @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime endTime;
 
-    private Long courseName;
+    private String courseName;
     private String lecturerName;
-    private Long className;
-    private Long roomName;
+    private String className;
+    private String roomName;
     private List<WeekSchedule> weeks;
 }

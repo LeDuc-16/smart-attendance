@@ -17,6 +17,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -42,7 +46,7 @@ public class ScheduleService {
     private JwtService jwtService;
 
     @Autowired
-    private ScheduleMapper scheduleMapper; // Inject ScheduleMapper
+    private ScheduleMapper scheduleMapper;
 
     public ApiResponse<CreateScheduleResponse> createSchedule(CreateScheduleRequest request, HttpServletRequest servletRequest) {
         // Validate and fetch entities
@@ -71,8 +75,11 @@ public class ScheduleService {
 
         Schedule savedSchedule = scheduleRepository.save(schedule);
 
+        // Calculate weekly schedule
+        List<WeekSchedule> weeks = calculateWeeklySchedule(savedSchedule);
+
         // Build response using mapper
-        CreateScheduleResponse response = scheduleMapper.mapToCreateScheduleResponse(savedSchedule);
+        CreateScheduleResponse response = scheduleMapper.mapToCreateScheduleResponse(savedSchedule, weeks);
         return ApiResponse.success(response, "Schedule created successfully", servletRequest.getRequestURI());
     }
 
@@ -85,14 +92,14 @@ public class ScheduleService {
         if ("LECTURER".equals(currentUser.getRole())) {
             // Lấy tất cả lịch giảng dạy của giảng viên
             schedules = scheduleRepository.findByLecturerId(currentUser.getId()).stream()
-                    .map(scheduleMapper::mapToCreateScheduleResponse)
+                    .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule, calculateWeeklySchedule(schedule)))
                     .collect(Collectors.toList());
         } else if ("STUDENT".equals(currentUser.getRole())) {
             // Lấy tất cả lịch học của sinh viên dựa trên lớp
             ClassEntity studentClass = classRepository.findByStudentsId(currentUser.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp cho sinh viên: " + currentUser.getId()));
             schedules = scheduleRepository.findByClassEntityId(studentClass.getId()).stream()
-                    .map(scheduleMapper::mapToCreateScheduleResponse)
+                    .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule, calculateWeeklySchedule(schedule)))
                     .collect(Collectors.toList());
         } else {
             throw new ResourceNotFoundException("Vai trò không được hỗ trợ: " + currentUser.getRole());
@@ -117,7 +124,10 @@ public class ScheduleService {
 
         Schedule updatedSchedule = scheduleRepository.save(schedule);
 
-        CreateScheduleResponse response = scheduleMapper.mapToCreateScheduleResponse(updatedSchedule);
+        // Calculate weekly schedule for updated schedule
+        List<WeekSchedule> weeks = calculateWeeklySchedule(updatedSchedule);
+
+        CreateScheduleResponse response = scheduleMapper.mapToCreateScheduleResponse(updatedSchedule, weeks);
         return ApiResponse.success(response, "Schedule updated successfully", servletRequest.getRequestURI());
     }
 
@@ -126,5 +136,40 @@ public class ScheduleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Schedule not found with id: " + id));
         scheduleRepository.delete(schedule);
         return ApiResponse.success(null, "Schedule deleted successfully", servletRequest.getRequestURI());
+    }
+
+    private List<WeekSchedule> calculateWeeklySchedule(Schedule schedule) {
+        List<WeekSchedule> weeks = new ArrayList<>();
+        LocalDate startDate = schedule.getStartDate();
+        LocalDate endDate = schedule.getEndDate();
+        List<DayOfWeek> daysOfWeek = schedule.getDayOfWeek();
+
+        LocalDate weekStart = startDate;
+        if (weekStart.getDayOfWeek() != DayOfWeek.MONDAY) {
+            weekStart = weekStart.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        }
+
+        int weekNumber = 1;
+        while (!weekStart.isAfter(endDate)) {
+            LocalDate weekEnd = weekStart.plusDays(6);
+            if (weekEnd.isAfter(endDate)) weekEnd = endDate;
+
+            List<StudyDay> studyDays = new ArrayList<>();
+            LocalDate currentDay = weekStart;
+            while (!currentDay.isAfter(weekEnd) && !currentDay.isAfter(endDate)) {
+                if (daysOfWeek.contains(currentDay.getDayOfWeek()) && !currentDay.isBefore(startDate)) {
+                    studyDays.add(new StudyDay(currentDay.getDayOfWeek(), currentDay));
+                }
+                currentDay = currentDay.plusDays(1);
+            }
+
+            if (!studyDays.isEmpty()) {
+                weeks.add(new WeekSchedule(weekNumber++, weekStart, weekEnd, studyDays));
+            }
+
+            weekStart = weekStart.plusDays(7);
+        }
+
+        return weeks;
     }
 }
