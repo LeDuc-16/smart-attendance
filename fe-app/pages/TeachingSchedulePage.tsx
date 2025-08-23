@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import DashBoardLayout from './DashBoarLayout';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { apiAuthService } from '../api/apiAuth';
+import { apiScheduleService, Schedule, Course, Class, Room } from '../api/apiScheduleService';
 
 // --- Calendar Component (Dynamic) ---
 const Calendar = ({ calendarDate, selectedDate, setSelectedDate, onPrevMonth, onNextMonth }) => {
@@ -110,7 +111,49 @@ const TeachingSchedulePage = ({ navigation }: NativeStackScreenProps<any>) => {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [calendarDate, setCalendarDate] = useState(new Date());
     const [activeTab, setActiveTab] = useState('schedule');
+    const [schedules, setSchedules] = useState<Schedule[]>([]);
+    const [courses, setCourses] = useState<Course[]>([]);
+    const [classes, setClasses] = useState<Class[]>([]);
+    const [rooms, setRooms] = useState<Room[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const userInfo = apiAuthService.getUserInfo();
+
+    useEffect(() => {
+        const fetchScheduleData = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                // Set auth token for apiScheduleService
+                const token = apiAuthService.getAuthToken();
+                if (token) {
+                    apiScheduleService.setAuthToken(token);
+                } else {
+                    setError('Authentication token not found.');
+                    setLoading(false);
+                    return;
+                }
+
+                const fetchedSchedules = await apiScheduleService.getSchedules();
+                const fetchedCourses = await apiScheduleService.getCourses();
+                const fetchedClasses = await apiScheduleService.getClasses();
+                const fetchedRooms = await apiScheduleService.getRooms();
+
+                setSchedules(fetchedSchedules);
+                setCourses(fetchedCourses);
+                setClasses(fetchedClasses);
+                setRooms(fetchedRooms);
+            } catch (err) {
+                console.error('Failed to fetch schedule data:', err);
+                setError('Failed to load schedule data. Please try again.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchScheduleData();
+    }, []); // Empty dependency array means this runs once on mount
 
     const handlePrevMonth = () => {
         setCalendarDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -144,6 +187,40 @@ const TeachingSchedulePage = ({ navigation }: NativeStackScreenProps<any>) => {
         }
     };
 
+    const filteredSchedules = schedules.filter(schedule => {
+        // Find the week that contains the selected date
+        return schedule.weeks.some(week => {
+            const selectedDateStr = selectedDate.toISOString().split('T')[0];
+            return week.studyDays.some(day => day.date === selectedDateStr);
+        });
+    });
+
+    const scheduleContent = filteredSchedules.length > 0 ? (
+        filteredSchedules.map((schedule, index) => {
+            const course = courses.find(c => c.id === schedule.courseId);
+            const classObj = classes.find(cls => cls.id === schedule.classId);
+            const roomObj = rooms.find(r => r.id === schedule.roomId);
+            const subject = course ? course.courseName : 'Unknown Course';
+            const className = classObj ? classObj.className : `Lớp: ${schedule.classId}`;
+            const time = `${schedule.startTime.substring(0, 5)} - ${schedule.endTime.substring(0, 5)}`;
+            const room = roomObj ? `Phòng: ${roomObj.roomCode}` : `Phòng: ${schedule.roomId}`;
+            const color = index % 2 === 0 ? 'blue' : 'green'; // Alternating colors
+
+            return (
+                <ScheduleCard
+                    key={schedule.id}
+                    subject={subject}
+                    className={`Lớp: ${className}`}
+                    time={time}
+                    room={room}
+                    color={color}
+                />
+            );
+        })
+    ) : (
+        <Text className="text-center text-gray-500 text-base">Không có lịch học vào ngày này.</Text>
+    );
+
     return (
         <DashBoardLayout
             activeTab={activeTab}
@@ -168,20 +245,13 @@ const TeachingSchedulePage = ({ navigation }: NativeStackScreenProps<any>) => {
                             {selectedDate.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         </Text>
                         <View className="space-y-4">
-                            <ScheduleCard
-                                subject="Lập trình ứng dụng di động"
-                                className="Lớp: 64KTPM3"
-                                time="07:00 - 09:00"
-                                room="207-B5"
-                                color="blue"
-                            />
-                            <ScheduleCard
-                                subject="Công nghệ Web"
-                                className="Lớp: 64KTPM4"
-                                time="09:05 - 11:05"
-                                room="207-B5"
-                                color="green"
-                            />
+                            {loading ? (
+                                <Text className="text-center text-gray-500 text-base">Đang tải lịch học...</Text>
+                            ) : error ? (
+                                <Text className="text-center text-red-500 text-base">{error}</Text>
+                            ) : (
+                                <>{scheduleContent}</>
+                            )}
                         </View>
                     </View>
                 </View>
