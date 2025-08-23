@@ -10,6 +10,7 @@ import DashBoardPage from './pages/DashBoardPage';
 import AttendancePage from './pages/AttendancePage';
 import NotificationPage from './pages/NotificationPage';
 import ProfilePage from 'pages/ProfilePage';
+import StatsPage from 'pages/StatsPage';
 // Define the type for your stack navigator routes
 export type RootStackParamList = {
   Login: undefined;
@@ -21,6 +22,7 @@ export type RootStackParamList = {
   AttendancePage: undefined;
   NotificationPage: undefined;
   ProfilePage: undefined;
+  StatsPage: undefined;
 };
 
 // const Stack = createNativeStackNavigator();
@@ -43,6 +45,7 @@ export default function App() {
         <Stack.Screen name="AttendancePage" component={AttendancePage} />
         <Stack.Screen name="NotificationPage" component={NotificationPage} />
         <Stack.Screen name="ProfilePage" component={ProfilePage} />
+        <Stack.Screen name="StatsPage" component={StatsPage} />
       </Stack.Navigator>
     </NavigationContainer>
   );

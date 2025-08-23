@@ -27,6 +27,9 @@ const ProfilePage = ({ navigation }: Props) => {
             case 'attendance':
                 navigation.navigate('AttendancePage');
                 break;
+            case 'stats':
+                navigation.navigate('StatsPage');
+                break;
             case 'notification':
                 navigation.navigate('NotificationPage');
                 break;

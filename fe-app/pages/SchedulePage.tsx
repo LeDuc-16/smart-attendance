@@ -22,7 +22,7 @@ const SchedulePage = ({ navigation }: Props) => {
         navigation.navigate('AttendancePage');
         break;
       case 'profile':
-        navigation.navigate('ProfilePage');    // <-- thêm dòng này!
+        navigation.navigate('ProfilePage');
         break;
       default:
         Alert.alert('Thông báo', `Tính năng ${tab} đang phát triển`);
