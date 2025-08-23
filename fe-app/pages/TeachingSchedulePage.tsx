@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import DashBoardLayout from './DashBoarLayout';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { apiAuthService } from '../api/apiAuth';
+import { apiAuthService, LecturerResponse } from '../api/apiAuth';
 import { apiScheduleService, Schedule, Course, Class, Room } from '../api/apiScheduleService';
 
 // --- Calendar Component (Dynamic) ---
@@ -140,7 +140,15 @@ const TeachingSchedulePage = ({ navigation }: NativeStackScreenProps<any>) => {
                 const fetchedClasses = await apiScheduleService.getClasses();
                 const fetchedRooms = await apiScheduleService.getRooms();
 
-                setSchedules(fetchedSchedules);
+                const lecturerId = userInfo?.role === 'LECTURER' ? (userInfo as LecturerResponse).id : null;
+
+                if (lecturerId) {
+                    const filteredByLecturer = fetchedSchedules.filter(schedule => schedule.lecturerId === lecturerId);
+                    setSchedules(filteredByLecturer);
+                } else {
+                    setSchedules([]); // No lecturer ID, no schedules
+                }
+
                 setCourses(fetchedCourses);
                 setClasses(fetchedClasses);
                 setRooms(fetchedRooms);
@@ -190,8 +198,14 @@ const TeachingSchedulePage = ({ navigation }: NativeStackScreenProps<any>) => {
     const filteredSchedules = schedules.filter(schedule => {
         // Find the week that contains the selected date
         return schedule.weeks.some(week => {
-            const selectedDateStr = selectedDate.toISOString().split('T')[0];
-            return week.studyDays.some(day => day.date === selectedDateStr);
+            return week.studyDays.some(day => {
+                const studyDate = new Date(day.date);
+                return (
+                    studyDate.getFullYear() === selectedDate.getFullYear() &&
+                    studyDate.getMonth() === selectedDate.getMonth() &&
+                    studyDate.getDate() === selectedDate.getDate()
+                );
+            });
         });
     });
 
