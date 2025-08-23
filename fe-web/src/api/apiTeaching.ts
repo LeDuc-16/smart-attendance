@@ -22,13 +22,13 @@ export interface TeachingSchedule {
     classId: number;
     roomId: number;
     weeks: Week[];
-    // Thêm các trường hiển thị
-    courseName?: string;
-    lecturerName?: string;
-    className?: string;
-    roomCode?: string;
-    capacityStudent?: number;
+    // ✅ Sửa: Backend đã trả về sẵn
+    courseName: string;      // ✅ Có sẵn từ backend
+    lecturerName: string;    // ✅ Có sẵn từ backend
+    className: string;       // ✅ Có sẵn từ backend 
+    roomName: string;        // ✅ Có sẵn từ backend (không phải roomCode)
 }
+
 
 // Payload cho tạo lịch giảng dạy
 export interface TeachingSchedulePayload {
@@ -95,6 +95,12 @@ export const getTeachingSchedules = async (): Promise<TeachingSchedule[]> => {
     return response.data.data;
 };
 
+// Thêm API lấy lịch theo giảng viên ID
+export const getSchedulesByLecturer = async (lecturerId: number): Promise<TeachingSchedule[]> => {
+    const response = await teachingApiClient.get(`/api/v1/schedules/lecturer/${lecturerId}`);
+    return response.data.data || [];
+};
+
 // Thay vì gọi API riêng cho date, dùng API lấy tất cả rồi filter
 export const getSchedulesByDate = async (date: string): Promise<TeachingSchedule[]> => {
     try {
@@ -117,8 +123,6 @@ export const getSchedulesByDate = async (date: string): Promise<TeachingSchedule
         throw error;
     }
 };
-
-
 
 export const createTeachingSchedule = async (data: TeachingSchedulePayload): Promise<ApiResponse<TeachingSchedule>> => {
     const response = await teachingApiClient.post("/api/v1/schedules", data);

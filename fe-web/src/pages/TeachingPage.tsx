@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
     FiEdit,
     FiTrash2,
@@ -7,7 +7,7 @@ import {
     FiSearch,
 } from "react-icons/fi";
 import {
-    getTeachingSchedules,
+    getSchedulesByLecturer,
     createTeachingSchedule,
     updateTeachingSchedule,
     deleteTeachingSchedule,
@@ -21,6 +21,17 @@ import {
 } from "../api/apiTeaching";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
+const formatDate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const getCurrentDate = (): string => {
+    return formatDate(new Date());
+};
 
 const DAYS_OF_WEEK = [
     { value: "MONDAY", label: "Thứ 2" },
@@ -41,7 +52,6 @@ const validateScheduleData = (formData: TeachingSchedulePayload): string[] => {
         return hours * 60 + minutes;
     };
 
-    // 1. Ngày kết thúc >= ngày bắt đầu
     if (formData.startDate && formData.endDate) {
         const startDate = new Date(formData.startDate);
         const endDate = new Date(formData.endDate);
@@ -50,7 +60,6 @@ const validateScheduleData = (formData: TeachingSchedulePayload): string[] => {
         }
     }
 
-    // 2. Thời gian trong khoảng 07:00 - 21:30
     const MIN_TIME = 7 * 60;
     const MAX_TIME = 21 * 60 + 30;
 
@@ -68,7 +77,6 @@ const validateScheduleData = (formData: TeachingSchedulePayload): string[] => {
         }
     }
 
-    // 3. Thời gian kết thúc > thời gian bắt đầu
     if (formData.startTime && formData.endTime) {
         const startMinutes = timeToMinutes(formData.startTime);
         const endMinutes = timeToMinutes(formData.endTime);
@@ -97,7 +105,6 @@ const checkScheduleConflict = (newSchedule: TeachingSchedulePayload, existingSch
 
             const existingStartMinutes = timeToMinutes(existing.startTime.substring(0, 5));
             const existingEndMinutes = timeToMinutes(existing.endTime.substring(0, 5));
-
 
             const hasTimeOverlap = (newStartMinutes < existingEndMinutes) && (existingStartMinutes < newEndMinutes);
 
@@ -162,7 +169,9 @@ const TeachingScheduleModal = ({
                 setFormData({
                     startDate: initialData.weeks[0]?.startDate || "",
                     endDate: initialData.weeks[initialData.weeks.length - 1]?.endDate || "",
-                    dayOfWeek: initialData.weeks[0]?.studyDays.map(day => day.dayOfWeek) || [],
+                    dayOfWeek: initialData.weeks.flatMap(week =>
+                        week.studyDays.map(day => day.dayOfWeek)
+                    ) || [],
                     startTime: initialData.startTime.substring(0, 5),
                     endTime: initialData.endTime.substring(0, 5),
                     courseId: initialData.courseId,
@@ -171,12 +180,13 @@ const TeachingScheduleModal = ({
                     roomId: initialData.roomId,
                 });
             } else {
+                const today = getCurrentDate();
                 setFormData({
-                    startDate: "",
+                    startDate: today,
                     endDate: "",
                     dayOfWeek: [],
-                    startTime: "",
-                    endTime: "",
+                    startTime: "07:00",
+                    endTime: "08:00",
                     courseId: 0,
                     lecturerId: 0,
                     classId: 0,
@@ -529,8 +539,9 @@ const DeleteConfirmModal = ({
 const TeachingPage = () => {
     const [schedules, setSchedules] = useState<TeachingSchedule[]>([]);
     const [allSchedulesForConflictCheck, setAllSchedulesForConflictCheck] = useState<any[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
+    const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
+    const [dataLoaded, setDataLoaded] = useState(false);
 
     const [courses, setCourses] = useState<DropdownOption[]>([]);
     const [lecturers, setLecturers] = useState<DropdownOption[]>([]);
@@ -544,9 +555,11 @@ const TeachingPage = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingSchedule, setDeletingSchedule] = useState<any>(null);
 
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [searchTerm, setSearchTerm] = useState("");
-    const [filteredSchedules, setFilteredSchedules] = useState<any[]>([]);
+    const [selectedLecturerId, setSelectedLecturerId] = useState<number | null>(null);
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 8;
 
     const showSuccessToast = (message: string) => {
         toast.success(message, {
@@ -570,40 +583,38 @@ const TeachingPage = () => {
         });
     };
 
-    const fetchDropdownOptions = useCallback(async () => {
-        try {
-            const [coursesData, lecturersData, classesData, roomsData] = await Promise.all([
-                getAllCourses(),
-                getAllLecturers(),
-                getAllClassesForDropdown(),
-                getAllRooms()
-            ]);
-            setCourses(coursesData);
-            setLecturers(lecturersData);
-            setClasses(classesData);
-            setRooms(roomsData);
-        } catch (err) {
-            console.error("Error fetching dropdown options:", err);
-        }
+    useEffect(() => {
+        const fetchDropdownOptions = async () => {
+            try {
+                const [coursesData, lecturersData, classesData, roomsData] = await Promise.all([
+                    getAllCourses(),
+                    getAllLecturers(),
+                    getAllClassesForDropdown(),
+                    getAllRooms()
+                ]);
+                setCourses(coursesData);
+                setLecturers(lecturersData);
+                setClasses(classesData);
+                setRooms(roomsData);
+                setDataLoaded(true);
+            } catch (err) {
+                console.error("Error fetching dropdown options:", err);
+                setDataLoaded(true);
+            }
+        };
+        fetchDropdownOptions();
     }, []);
 
-    const fetchSchedulesByDate = useCallback(async (date: string) => {
+    const fetchSchedulesByLecturer = useCallback(async (lecturerId: number) => {
+        if (!lecturerId || !dataLoaded) return;
+
         setLoading(true);
         setError(null);
         try {
-            let data: TeachingSchedule[];
-
-            try {
-                const allSchedules = await getTeachingSchedules();
-                data = allSchedules;
-            } catch (dateApiError) {
-                console.log('Error fetching all schedules:', dateApiError);
-                data = [];
-            }
+            const data = await getSchedulesByLecturer(lecturerId);
+            setSchedules(data);
 
             const flattenedData: any[] = [];
-            const allFlattenedData: any[] = [];
-
             data.forEach(schedule => {
                 schedule.weeks.forEach(week => {
                     week.studyDays.forEach(day => {
@@ -613,59 +624,171 @@ const TeachingPage = () => {
                             startTime: schedule.startTime,
                             endTime: schedule.endTime,
                             courseId: schedule.courseId,
-                            courseName: courses.find(c => c.value === schedule.courseId)?.label || `Course ${schedule.courseId}`,
+                            courseName: schedule.courseName || `Môn học ${schedule.courseId}`,
                             lecturerId: schedule.lecturerId,
-                            lecturerName: lecturers.find(l => l.value === schedule.lecturerId)?.label || `Lecturer ${schedule.lecturerId}`,
+                            lecturerName: schedule.lecturerName || `Giảng viên ${schedule.lecturerId}`,
                             classId: schedule.classId,
-                            className: classes.find(c => c.value === schedule.classId)?.label || `Class ${schedule.classId}`,
+                            className: schedule.className || `Lớp ${schedule.classId}`,
                             roomId: schedule.roomId,
-                            roomCode: rooms.find(r => r.value === schedule.roomId)?.label || `Room ${schedule.roomId}`,
+                            roomCode: schedule.roomName || `Phòng ${schedule.roomId}`,
                             date: day.date,
                             dayOfWeek: day.dayOfWeek,
                             weekNumber: week.weekNumber
                         };
-
-                        allFlattenedData.push(scheduleItem);
-
-                        if (day.date === date) {
-                            flattenedData.push(scheduleItem);
-                        }
+                        flattenedData.push(scheduleItem);
                     });
                 });
             });
 
-            setSchedules(data);
-            setAllSchedulesForConflictCheck(allFlattenedData);
-
-            let filtered = flattenedData;
-            if (searchTerm) {
-                filtered = flattenedData.filter(item =>
-                    item.courseName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    item.lecturerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    item.roomCode?.toLowerCase().includes(searchTerm.toLowerCase())
-                );
-            }
-
-            setFilteredSchedules(filtered);
-
+            setAllSchedulesForConflictCheck(flattenedData);
         } catch (err) {
-            console.error(err);
-            setError("Không tải được lịch giảng dạy.");
-            setFilteredSchedules([]);
+            console.error("Error fetching schedules by lecturer:", err);
+            setError("Không tải được lịch giảng dạy của giảng viên.");
+            setSchedules([]);
+            setAllSchedulesForConflictCheck([]);
         } finally {
             setLoading(false);
         }
-    }, [courses, lecturers, classes, rooms, searchTerm]);
+    }, [dataLoaded]);
 
     useEffect(() => {
-        fetchDropdownOptions();
-    }, [fetchDropdownOptions]);
-
-    useEffect(() => {
-        if (courses.length > 0 && lecturers.length > 0 && classes.length > 0 && rooms.length > 0) {
-            fetchSchedulesByDate(selectedDate);
+        if (selectedLecturerId && dataLoaded) {
+            fetchSchedulesByLecturer(selectedLecturerId);
+        } else {
+            setSchedules([]);
+            setAllSchedulesForConflictCheck([]);
+            setError(null);
+            setLoading(false);
         }
-    }, [selectedDate, fetchSchedulesByDate, courses, lecturers, classes, rooms]);
+    }, [selectedLecturerId, fetchSchedulesByLecturer, dataLoaded]);
+
+    const { paginatedSchedules, totalPages, totalItems } = useMemo(() => {
+        if (!dataLoaded || schedules.length === 0) {
+            return {
+                paginatedSchedules: [],
+                totalPages: 0,
+                totalItems: 0
+            };
+        }
+
+        let processedData: any[] = [];
+
+        schedules.forEach(schedule => {
+            schedule.weeks.forEach(week => {
+                week.studyDays.forEach(day => {
+                    const scheduleItem = {
+                        id: `${schedule.id}-${week.weekNumber}-${day.dayOfWeek}`,
+                        scheduleId: schedule.id,
+                        startTime: schedule.startTime,
+                        endTime: schedule.endTime,
+                        courseId: schedule.courseId,
+                        courseName: schedule.courseName || `Môn học ${schedule.courseId}`,
+                        lecturerId: schedule.lecturerId,
+                        lecturerName: schedule.lecturerName || `Giảng viên ${schedule.lecturerId}`,
+                        classId: schedule.classId,
+                        className: schedule.className || `Lớp ${schedule.classId}`,
+                        roomId: schedule.roomId,
+                        roomCode: schedule.roomName || `Phòng ${schedule.roomId}`,
+                        date: day.date,
+                        dayOfWeek: day.dayOfWeek,
+                        weekNumber: week.weekNumber
+                    };
+                    processedData.push(scheduleItem);
+                });
+            });
+        });
+
+        let filteredData = processedData;
+        if (searchTerm) {
+            filteredData = processedData.filter(item =>
+                item.courseName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.roomCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.className?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.date?.includes(searchTerm)
+            );
+        }
+
+        const sortedData = filteredData.sort((a, b) => {
+            return new Date(a.date).getTime() - new Date(b.date).getTime();
+        });
+
+
+        const totalPages = Math.ceil(sortedData.length / ITEMS_PER_PAGE);
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const paginatedData = sortedData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+        return {
+            paginatedSchedules: paginatedData,
+            totalPages: totalPages,
+            totalItems: sortedData.length
+        };
+    }, [schedules, searchTerm, currentPage, dataLoaded]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, selectedLecturerId]);
+
+    const handlePageChange = (page: number) => {
+        if (page >= 1 && page <= totalPages) setCurrentPage(page);
+    };
+
+    const renderPagination = () => {
+        if (totalPages <= 1) return null;
+
+        let pageButtons = [];
+        let pages: number[] = [];
+
+        if (totalPages <= 3) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else if (currentPage <= 2) {
+            pages = [1, 2, 3];
+        } else if (currentPage >= totalPages - 1) {
+            pages = [totalPages - 2, totalPages - 1, totalPages];
+        } else {
+            pages = [currentPage - 1, currentPage, currentPage + 1];
+        }
+
+        pageButtons = pages.map(i => (
+            <button
+                key={i}
+                onClick={() => handlePageChange(i)}
+                className={`px-3 py-1 mx-1 rounded-md text-sm font-medium ${currentPage === i
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+            >
+                {i}
+            </button>
+        ));
+
+        const startItem = totalItems > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0;
+        const endItem = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
+
+        return (
+            <div className="flex items-center justify-between mt-4 px-4 py-3">
+                <span className="text-sm text-gray-600">
+                    Hiển thị {startItem} - {endItem} của {totalItems} lịch giảng dạy
+                </span>
+                <div className="flex items-center">
+                    <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 mx-1 rounded-md bg-white text-gray-700 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    >
+                        &lt; Trước
+                    </button>
+                    {pageButtons}
+                    <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1 mx-1 rounded-md bg-white text-gray-700 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    >
+                        Tiếp &gt;
+                    </button>
+                </div>
+            </div>
+        );
+    };
 
     const openAddModal = () => {
         setEditingSchedule(null);
@@ -691,6 +814,7 @@ const TeachingPage = () => {
 
     const handleFormSubmit = async (data: TeachingSchedulePayload) => {
         setModalError('');
+
         const conflictErrors = checkScheduleConflict(data, allSchedulesForConflictCheck);
         if (conflictErrors.length > 0) {
             setModalError(conflictErrors[0]);
@@ -706,11 +830,13 @@ const TeachingPage = () => {
                 showSuccessToast('Thêm lịch giảng dạy thành công!');
             }
             setIsModalOpen(false);
-            fetchSchedulesByDate(selectedDate);
+
+            if (selectedLecturerId) {
+                await fetchSchedulesByLecturer(selectedLecturerId);
+            }
         } catch (error: any) {
             console.error("API Error:", error);
             const serverMessage = error.response?.data?.message || '';
-
             if (serverMessage.toLowerCase().includes('conflict') ||
                 serverMessage.toLowerCase().includes('trùng lịch') ||
                 serverMessage.toLowerCase().includes('duplicate')) {
@@ -728,19 +854,15 @@ const TeachingPage = () => {
             await deleteTeachingSchedule(deletingSchedule.scheduleId);
             showSuccessToast('Xóa lịch giảng dạy thành công!');
             closeDeleteModal();
-            fetchSchedulesByDate(selectedDate);
+
+            if (selectedLecturerId) {
+                await fetchSchedulesByLecturer(selectedLecturerId);
+            }
         } catch (error) {
             showErrorToast('Lỗi: Không thể xóa lịch giảng dạy.');
             console.error(error);
             closeDeleteModal();
         }
-    };
-
-    const formatDateVietnamese = (dateString: string) => {
-        const date = new Date(dateString);
-        const dayOfWeek = date.getDay();
-        const dayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-        return `${dayNames[dayOfWeek]}, ${date.getDate()} tháng ${date.getMonth() + 1} năm ${date.getFullYear()}`;
     };
 
     return (
@@ -773,7 +895,7 @@ const TeachingPage = () => {
                         Quản lý lịch giảng dạy
                     </h1>
                     <p className="text-[#717182] text-xl">
-                        Quản lý thông tin lịch giảng dạy trong trường Đại học Thủy Lợi
+                        Chọn giảng viên để xem và quản lý lịch giảng dạy
                     </p>
                 </div>
 
@@ -782,7 +904,7 @@ const TeachingPage = () => {
                         <div className="relative flex-grow">
                             <input
                                 type="text"
-                                placeholder="Tìm kiếm theo môn học, phòng, giảng viên..."
+                                placeholder="Tìm kiếm theo môn học, phòng, lớp học, ngày..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -791,18 +913,26 @@ const TeachingPage = () => {
                         </div>
 
                         <div className="flex flex-col">
-                            <label className="text-sm font-medium text-gray-700 mb-1">Chọn ngày:</label>
-                            <input
-                                type="date"
-                                value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
+                            <label className="text-sm font-medium text-gray-700 mb-1">Chọn giảng viên:</label>
+                            <select
+                                value={selectedLecturerId || ''}
+                                onChange={(e) => setSelectedLecturerId(e.target.value ? Number(e.target.value) : null)}
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+                                disabled={!dataLoaded}
+                            >
+                                <option value="">{dataLoaded ? "-- Chọn giảng viên --" : "Đang tải..."}</option>
+                                {lecturers.map((lecturer) => (
+                                    <option key={lecturer.value} value={lecturer.value}>
+                                        {lecturer.label}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         <button
                             onClick={openAddModal}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center font-semibold text-sm"
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center font-semibold text-sm disabled:bg-gray-400"
+                            disabled={!dataLoaded}
                         >
                             <FiPlus className="mr-2" />
                             Thêm lịch giảng dạy
@@ -812,102 +942,102 @@ const TeachingPage = () => {
 
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                     <h2 className="text-lg font-semibold text-[#1E3A8A] p-4 border-b border-gray-200">
-                        Thống kê lịch giảng dạy - {formatDateVietnamese(selectedDate)}
+                        {selectedLecturerId
+                            ? `Lịch giảng dạy của ${lecturers.find(l => l.value === selectedLecturerId)?.label || 'giảng viên'}`
+                            : 'Vui lòng chọn giảng viên để xem lịch giảng dạy'
+                        }
                     </h2>
 
-                    {loading ? (
-                        <p className="p-6 text-center text-gray-500">Đang tải dữ liệu...</p>
+                    {!dataLoaded ? (
+                        <p className="p-6 text-center text-gray-500">Đang tải dữ liệu dropdown...</p>
+                    ) : loading ? (
+                        <p className="p-6 text-center text-gray-500">Đang tải lịch giảng dạy...</p>
                     ) : error ? (
                         <p className="p-6 text-center text-red-600">{error}</p>
+                    ) : !selectedLecturerId ? (
+                        <p className="p-6 text-center text-gray-500">Vui lòng chọn giảng viên từ dropdown để xem lịch giảng dạy.</p>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            STT
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Thời gian bắt đầu
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Thời gian kết thúc
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Môn học
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Phòng học
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Giảng viên
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Thao tác
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {filteredSchedules.length > 0 ? (
-                                        filteredSchedules.map((item, index) => (
-                                            <tr key={item.id} className="hover:bg-gray-50">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {index + 1}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {item.startTime}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {item.endTime}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {item.courseName}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {item.roomCode}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {item.lecturerName}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                    <div className="flex items-center space-x-4">
-                                                        <button
-                                                            onClick={() => {
-                                                                const schedule = schedules.find(s => s.id === item.scheduleId);
-                                                                if (schedule) openEditModal(schedule);
-                                                            }}
-                                                            className="text-indigo-600 hover:text-indigo-900"
-                                                            title="Sửa"
-                                                        >
-                                                            <FiEdit size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => openDeleteModal(item)}
-                                                            className="text-red-600 hover:text-red-900"
-                                                            title="Xóa"
-                                                        >
-                                                            <FiTrash2 size={16} />
-                                                        </button>
-                                                    </div>
+                        <>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày học</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian bắt đầu</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian kết thúc</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Môn học</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lớp học</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phòng học</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {paginatedSchedules.length > 0 ? (
+                                            paginatedSchedules.map((item, index) => (
+                                                <tr key={item.id} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        {/* ✅ Format ngày hiển thị đẹp hơn */}
+                                                        {new Date(item.date).toLocaleDateString('vi-VN', {
+                                                            day: '2-digit',
+                                                            month: '2-digit',
+                                                            year: 'numeric'
+                                                        })}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        {item.startTime}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        {item.endTime}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        {item.courseName}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        {item.className}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        {item.roomCode}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                        <div className="flex items-center space-x-4">
+                                                            <button
+                                                                onClick={() => {
+                                                                    const schedule = schedules.find(s => s.id === item.scheduleId);
+                                                                    if (schedule) openEditModal(schedule);
+                                                                }}
+                                                                className="text-indigo-600 hover:text-indigo-900"
+                                                                title="Sửa"
+                                                            >
+                                                                <FiEdit size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => openDeleteModal(item)}
+                                                                className="text-red-600 hover:text-red-900"
+                                                                title="Xóa"
+                                                            >
+                                                                <FiTrash2 size={16} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={8} className="text-center py-6 text-gray-500">
+                                                    Giảng viên này chưa có lịch giảng dạy nào.
                                                 </td>
                                             </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={7} className="text-center py-6 text-gray-500">
-                                                {selectedDate} - {formatDateVietnamese(selectedDate)} chưa có lịch giảng dạy nào.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
 
-                    {filteredSchedules.length > 0 && (
-                        <div className="px-4 py-3 text-sm text-gray-600 border-t">
-                            Hiển thị 1 - {filteredSchedules.length} của {filteredSchedules.length} lịch giảng dạy
-                        </div>
+                            {renderPagination()}
+                        </>
                     )}
                 </div>
             </div>
