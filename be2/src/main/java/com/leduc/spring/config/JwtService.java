@@ -8,17 +8,16 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import java.security.Key;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
 
 @Service
 @RequiredArgsConstructor
@@ -31,10 +30,27 @@ public class JwtService {
   @Value("${application.security.jwt.refresh-token.expiration}")
   private long refreshExpiration;
 
-  private final UserRepository userRepository; // Cần inject UserRepository
+  private final UserRepository userRepository;
 
   public String extractUsername(String token) {
     return extractClaim(token, Claims::getSubject);
+  }
+
+  public Long extractUserId(String token) {
+    // Giả định userId được lưu trong claims của JWT với key là "userId"
+    String userId = extractClaim(token, claims -> claims.get("userId", String.class));
+    if (userId == null) {
+      // Nếu userId không có trong token, lấy từ UserRepository dựa trên username
+      String username = extractUsername(token);
+      User user = userRepository.findByAccount(username)
+              .orElseThrow(() -> new ResourceNotFoundException("User not found with account: " + username));
+      return user.getId();
+    }
+    try {
+      return Long.parseLong(userId);
+    } catch (NumberFormatException e) {
+      throw new ResourceNotFoundException("Invalid userId format in JWT token: " + userId);
+    }
   }
 
   public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
@@ -43,7 +59,12 @@ public class JwtService {
   }
 
   public String generateToken(UserDetails userDetails) {
-    return generateToken(new HashMap<>(), userDetails);
+    Map<String, Object> extraClaims = new HashMap<>();
+    // Thêm userId vào claims nếu cần
+    User user = userRepository.findByAccount(userDetails.getUsername())
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with account: " + userDetails.getUsername()));
+    extraClaims.put("userId", user.getId().toString());
+    return generateToken(extraClaims, userDetails);
   }
 
   public String generateToken(
@@ -56,7 +77,12 @@ public class JwtService {
   public String generateRefreshToken(
           UserDetails userDetails
   ) {
-    return buildToken(new HashMap<>(), userDetails, refreshExpiration);
+    Map<String, Object> extraClaims = new HashMap<>();
+    // Thêm userId vào refresh token nếu cần
+    User user = userRepository.findByAccount(userDetails.getUsername())
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with account: " + userDetails.getUsername()));
+    extraClaims.put("userId", user.getId().toString());
+    return buildToken(extraClaims, userDetails, refreshExpiration);
   }
 
   private String buildToken(
@@ -89,11 +115,11 @@ public class JwtService {
 
   private Claims extractAllClaims(String token) {
     return Jwts
-            .parser() // ✔ dùng parser() thay vì parserBuilder()
-            .verifyWith(getSignInKey()) // cần SecretKey
+            .parser()
+            .verifyWith(getSignInKey())
             .build()
             .parseSignedClaims(token)
-            .getPayload(); // Claims trả về
+            .getPayload();
   }
 
   private SecretKey getSignInKey() {
@@ -105,5 +131,4 @@ public class JwtService {
     return userRepository.findByAccount(account)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with account: " + account));
   }
-
 }

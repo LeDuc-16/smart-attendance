@@ -11,10 +11,12 @@ import com.leduc.spring.lecturer.Lecturer;
 import com.leduc.spring.lecturer.LecturerRepository;
 import com.leduc.spring.room.Room;
 import com.leduc.spring.room.RoomRepository;
-import com.leduc.spring.user.User;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -26,6 +28,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class ScheduleService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ScheduleService.class);
 
     @Autowired
     private ScheduleRepository scheduleRepository;
@@ -49,6 +53,11 @@ public class ScheduleService {
     private ScheduleMapper scheduleMapper;
 
     public ApiResponse<CreateScheduleResponse> createSchedule(CreateScheduleRequest request, HttpServletRequest servletRequest) {
+        // Authenticate user
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = userDetails.getUsername();
+        logger.info("Authenticated user for createSchedule: {}", username);
+
         // Validate and fetch entities
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Course ID không tồn tại: " + request.getCourseId()));
@@ -70,7 +79,7 @@ public class ScheduleService {
                 .lecturer(lecturer)
                 .classEntity(classEntity)
                 .room(room)
-                .isOpen(true) // Giả định lịch học ban đầu là mở
+                .isOpen(true)
                 .build();
 
         Schedule savedSchedule = scheduleRepository.save(schedule);
@@ -78,37 +87,85 @@ public class ScheduleService {
         // Calculate weekly schedule
         List<WeekSchedule> weeks = calculateWeeklySchedule(savedSchedule);
 
-        // Build response using mapper
+        // Build response
         CreateScheduleResponse response = scheduleMapper.mapToCreateScheduleResponse(savedSchedule, weeks);
         return ApiResponse.success(response, "Schedule created successfully", servletRequest.getRequestURI());
     }
 
     public ApiResponse<Object> getMySchedule(HttpServletRequest servletRequest) {
         // Lấy thông tin người dùng từ SecurityContextHolder
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User currentUser = jwtService.getUserFromToken(username); // Lấy User từ JWT
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = userDetails.getUsername();
+        logger.info("Authenticated user for getMySchedule: {}", username);
 
+        // Validate JWT token
+        String authHeader = servletRequest.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            logger.error("Invalid or missing Authorization header");
+            throw new IllegalArgumentException("Invalid or missing Authorization header");
+        }
+        String jwt = authHeader.substring(7);
+        String extractedUsername = jwtService.extractUsername(jwt);
+        if (!extractedUsername.equals(username)) {
+            logger.error("JWT token username does not match authenticated user: {} vs {}", extractedUsername, username);
+            throw new IllegalArgumentException("JWT token username does not match authenticated user");
+        }
+
+        // Lấy user từ JwtService hoặc repository
+        Long userId = jwtService.extractUserId(jwt); // Giả định JwtService có phương thức extractUserId
         List<CreateScheduleResponse> schedules;
-        if ("LECTURER".equals(currentUser.getRole())) {
-            // Lấy tất cả lịch giảng dạy của giảng viên
-            schedules = scheduleRepository.findByLecturerId(currentUser.getId()).stream()
+
+        // Kiểm tra vai trò từ authorities
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+        boolean isLecturer = userDetails.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_LECTURER"));
+        boolean isStudent = userDetails.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_STUDENT"));
+
+        if (isAdmin) {
+            // Admin có thể xem tất cả lịch học
+            schedules = scheduleRepository.findAll().stream()
                     .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule, calculateWeeklySchedule(schedule)))
                     .collect(Collectors.toList());
-        } else if ("STUDENT".equals(currentUser.getRole())) {
-            // Lấy tất cả lịch học của sinh viên dựa trên lớp
-            ClassEntity studentClass = classRepository.findByStudentId(currentUser.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp cho sinh viên: " + currentUser.getId()));
+        } else if (isLecturer) {
+            // Giảng viên: lấy lịch giảng dạy
+            schedules = scheduleRepository.findByLecturerId(userId).stream()
+                    .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule, calculateWeeklySchedule(schedule)))
+                    .collect(Collectors.toList());
+        } else if (isStudent) {
+            // Sinh viên: lấy lịch học dựa trên lớp
+            ClassEntity studentClass = classRepository.findByStudentId(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp cho sinh viên: " + userId));
             schedules = scheduleRepository.findByClassEntityId(studentClass.getId()).stream()
                     .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule, calculateWeeklySchedule(schedule)))
                     .collect(Collectors.toList());
         } else {
-            throw new ResourceNotFoundException("Vai trò không được hỗ trợ: " + currentUser.getRole());
+            throw new ResourceNotFoundException("Vai trò không được hỗ trợ: " + userDetails.getAuthorities());
         }
 
         return ApiResponse.success(schedules, "Schedules retrieved successfully", servletRequest.getRequestURI());
     }
 
     public ApiResponse<Object> getScheduleByLecturerId(Long lecturerId, HttpServletRequest servletRequest) {
+        // Authenticate user
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = userDetails.getUsername();
+        logger.info("Authenticated user for getScheduleByLecturerId: {}", username);
+
+        // Validate JWT token
+        String authHeader = servletRequest.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            logger.error("Invalid or missing Authorization header");
+            throw new IllegalArgumentException("Invalid or missing Authorization header");
+        }
+        String jwt = authHeader.substring(7);
+        String extractedUsername = jwtService.extractUsername(jwt);
+        if (!extractedUsername.equals(username)) {
+            logger.error("JWT token username does not match authenticated user: {} vs {}", extractedUsername, username);
+            throw new IllegalArgumentException("JWT token username does not match authenticated user");
+        }
+
         // Validate lecturer existence
         Lecturer lecturer = lecturerRepository.findById(lecturerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Lecturer ID không tồn tại: " + lecturerId));
@@ -126,6 +183,24 @@ public class ScheduleService {
     }
 
     public ApiResponse<Object> updateSchedule(HttpServletRequest servletRequest, Long id, UpdateScheduleRequest request) {
+        // Authenticate user
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = userDetails.getUsername();
+        logger.info("Authenticated user for updateSchedule: {}", username);
+
+        // Validate JWT token
+        String authHeader = servletRequest.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            logger.error("Invalid or missing Authorization header");
+            throw new IllegalArgumentException("Invalid or missing Authorization header");
+        }
+        String jwt = authHeader.substring(7);
+        String extractedUsername = jwtService.extractUsername(jwt);
+        if (!extractedUsername.equals(username)) {
+            logger.error("JWT token username does not match authenticated user: {} vs {}", extractedUsername, username);
+            throw new IllegalArgumentException("JWT token username does not match authenticated user");
+        }
+
         Schedule schedule = scheduleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Schedule not found with id: " + id));
 
@@ -149,6 +224,24 @@ public class ScheduleService {
     }
 
     public ApiResponse<Object> deleteSchedule(HttpServletRequest servletRequest, Long id) {
+        // Authenticate user
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = userDetails.getUsername();
+        logger.info("Authenticated user for deleteSchedule: {}", username);
+
+        // Validate JWT token
+        String authHeader = servletRequest.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            logger.error("Invalid or missing Authorization header");
+            throw new IllegalArgumentException("Invalid or missing Authorization header");
+        }
+        String jwt = authHeader.substring(7);
+        String extractedUsername = jwtService.extractUsername(jwt);
+        if (!extractedUsername.equals(username)) {
+            logger.error("JWT token username does not match authenticated user: {} vs {}", extractedUsername, username);
+            throw new IllegalArgumentException("JWT token username does not match authenticated user");
+        }
+
         Schedule schedule = scheduleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Schedule not found with id: " + id));
         scheduleRepository.delete(schedule);
