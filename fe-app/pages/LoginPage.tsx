@@ -37,13 +37,19 @@ export default function LoginPage({ navigation }: Props) {
 
       // Get user info from login response
       const userInfo = authResponse.user;
-      const isRegistered = userInfo?.isRegistered;
+      // Backend returns 'registered' field, not 'isRegistered'
+      const isRegistered = userInfo?.registered || userInfo?.isRegistered;
+
+      console.log('User info:', userInfo);
+      console.log('Registration status:', isRegistered);
 
       if (isRegistered === true) {
-        // Navigate to AttendancePage if user already registered their face
-        navigation.navigate('AttendancePage');
+        console.log('User is registered, navigating to DashBoardPage');
+        // Navigate to DashBoardPage if user already registered their face
+        navigation.navigate('DashBoardPage');
       } else {
-        // Navigate to FaceRegisterPage if not registered (isRegistered === false)
+        console.log('User is not registered, navigating to FaceRegisterPage');
+        // Navigate to FaceRegisterPage if not registered
         navigation.navigate('FaceRegisterPage');
       }
     } catch (err: any) {

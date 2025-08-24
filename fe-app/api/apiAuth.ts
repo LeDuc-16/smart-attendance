@@ -16,6 +16,7 @@ export interface StudentResponse {
   email: string;
   role: 'STUDENT';
   isRegistered: boolean; // Required field, defaults to false in backend
+  registered: boolean; // Backend actually returns this field name
 }
 
 export interface LecturerResponse {
@@ -29,6 +30,7 @@ export interface LecturerResponse {
   facultyId?: number;
   userId: number;
   isRegistered: boolean; // Required field, defaults to false in backend
+  registered: boolean; // Backend actually returns this field name
 }
 
 // Union type cho user info
