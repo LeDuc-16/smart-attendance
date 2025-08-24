@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 
 interface DashBoardLayoutProps {
@@ -33,7 +34,7 @@ const DashBoardLayout: React.FC<DashBoardLayoutProps> = ({
     { id: 'DashBoardPage', icon: 'home', label: 'Trang chủ' },
     { id: 'TeachingSchedulePage', icon: 'schedule', label: 'Lịch học' },
     { id: 'AttendancePage', icon: 'camera', label: 'Điểm danh' },
-    { id: 'report', icon: 'assessment', label: 'Báo cáo' },
+    { id: 'AttendanceReport', icon: 'assessment', label: 'Báo cáo' },
   ];
 
   const tabs = userRole === 'LECTURER' ? lecturerTabs : studentTabs;

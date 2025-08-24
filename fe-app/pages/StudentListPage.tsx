@@ -1,172 +1,201 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, SafeAreaView, TouchableOpacity } from 'react-native';
-import { useRoute, RouteProp } from '@react-navigation/native';
-import { apiScheduleService, Student } from '../api/apiScheduleService';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import StudentDetailCard from '../components/StudentDetailCard';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { apiScheduleService } from '../api/apiScheduleService';
+import { apiAuthService } from '../api/apiAuth';
 
-type StudentListRouteParams = {
-  className: string;
-};
+const StudentListPage = () => {
+  const navigation = useNavigation();
+  const route = useRoute();
+  const { className, scheduleId, date } = route.params; // Get params from navigation
 
-type StudentListPageProps = NativeStackScreenProps<Record<string, StudentListRouteParams>, 'StudentListPage'>;
-
-const StudentListPage: React.FC<StudentListPageProps> = ({ navigation }) => {
-  const route = useRoute<RouteProp<Record<string, StudentListRouteParams>, 'StudentListPage'>>();
-  const { className } = route.params;
-
-  console.log('StudentListPage: Received className:', className);
-
-  const [students, setStudents] = useState<Student[]>([]);
+  const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showStudentDetailCard, setShowStudentDetailCard] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<{ name: string; id: string } | null>(null);
 
   useEffect(() => {
     const fetchStudents = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        setLoading(true);
-        setError(null);
-        const fetchedStudents = await apiScheduleService.getStudents();
-        console.log('StudentListPage: Fetched students (before filter):', fetchedStudents);
-        const filteredStudents = fetchedStudents.filter(student => {
-          console.log(`Student: ${student.studentName}, Class: ${student.className}`);
-          return student.className === className;
-        });
-        setStudents(filteredStudents);
-      } catch (err: any) {
-        console.error('Failed to fetch students:', err);
-        setError('Failed to load student data. Please try again.');
+        const token = apiAuthService.getAuthToken();
+        // console.log('Auth Token:', token); // Removed this line
+        if (!token) {
+          setError('Authentication token not found.');
+          setLoading(false);
+          return;
+        }
+        apiScheduleService.setAuthToken(token);
+        const fetchedStudents = await apiScheduleService.getStudentsByClass(className); // Changed API call
+        
+        // Transform data to match existing student card structure
+        const transformedStudents = fetchedStudents.map(student => ({
+          id: student.id,
+          name: student.studentName,
+          studentCode: student.studentCode,
+          status: 'absent', // Default status, as it's not in API response
+        }));
+
+        setStudents(transformedStudents);
+      } catch (err) {
+        console.error('Error fetching students:', err);
+        setError('Failed to load student list.');
       } finally {
         setLoading(false);
       }
     };
-
     fetchStudents();
-  }, [className]);
+  }, [className]); // Re-fetch if className changes
 
-  const handleStudentCardPress = (student: Student) => {
-    setSelectedStudent({ name: student.studentName, id: student.studentCode });
-    setShowStudentDetailCard(true);
+  const handleStudentPress = (studentId) => {
+    Alert.alert('Student Details', `Student ID: ${studentId}`);
+    // Here you might navigate to a student detail page or mark attendance
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Danh sách sinh viên lớp {className}</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Icon name="arrow-back" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Danh sách sinh viên</Text>
+        <View style={{ width: 24 }} /> {/* Spacer */}
       </View>
-      <ScrollView style={styles.scrollView}>
-        {loading ? (
-          <ActivityIndicator size="large" color="#007BFF" style={styles.loadingIndicator} />
-        ) : error ? (
-          <Text style={styles.errorText}>{error}</Text>
-        ) : students.length > 0 ? (
-          students.map((student) => (
-            <TouchableOpacity key={student.id} style={styles.studentCard} onPress={() => handleStudentCardPress(student)}>
-              <Text style={styles.studentName}>{student.studentName}</Text>
-              <Text style={styles.studentCode}>Mã SV: {student.studentCode}</Text>
-              <Text style={styles.studentEmail}>Email: {student.email}</Text>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <Text style={styles.noDataText}>Không có sinh viên nào trong lớp này.</Text>
-        )}
-      </ScrollView>
-      {showStudentDetailCard && selectedStudent && (
-        <View style={styles.overlay}>
-          <StudentDetailCard
-            studentName={selectedStudent.name}
-            studentId={selectedStudent.id}
-            isVisible={showStudentDetailCard}
-          />
-          <TouchableOpacity style={styles.closeButton} onPress={() => setShowStudentDetailCard(false)}>
-            <Text style={styles.closeButtonText}>Đóng</Text>
-          </TouchableOpacity>
+
+      <View style={styles.classInfo}>
+        <Text style={styles.classInfoText}>Lớp: {className}</Text>
+        <Text style={styles.classInfoText}>Ngày: {new Date(date).toLocaleDateString('vi-VN')}</Text>
+      </View>
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007BFF" />
+          <Text style={styles.loadingText}>Đang tải danh sách sinh viên...</Text>
         </View>
+      ) : error ? (
+        <Text style={styles.errorText}>Lỗi: {error}</Text>
+      ) : students.length > 0 ? (
+        <ScrollView style={styles.scrollView}>
+          {students.map((student) => (
+            <TouchableOpacity
+              key={student.id}
+              style={styles.studentCard}
+              onPress={() => handleStudentPress(student.id)}
+            >
+              <Text style={styles.studentName}>{student.name}</Text>
+              <Text style={styles.studentCode}>{student.studentCode}</Text>
+              <Text style={[styles.studentStatus, student.status === 'present' ? styles.statusPresent : styles.statusAbsent]}>
+                {student.status === 'present' ? 'Có mặt' : 'Vắng mặt'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      ) : (
+        <Text style={styles.noStudentsText}>Không có sinh viên nào trong lớp này.</Text>
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: '#F4F7FC',
   },
   header: {
-    padding: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
+  },
+  backButton: {
+    padding: 5,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
   },
+  classInfo: {
+    padding: 16,
+    backgroundColor: '#E6F2FF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#B3D9FF',
+  },
+  classInfoText: {
+    fontSize: 16,
+    color: '#0056B3',
+    marginBottom: 4,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    textAlign: 'center',
+    marginTop: 10,
+    fontSize: 16,
+    color: '#888',
+  },
+  errorText: {
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
+    color: 'red',
+  },
   scrollView: {
     flex: 1,
     padding: 16,
   },
-  loadingIndicator: {
-    marginTop: 50,
-  },
-  errorText: {
-    textAlign: 'center',
-    color: 'red',
-    marginTop: 20,
-    fontSize: 16,
-  },
-  noDataText: {
-    textAlign: 'center',
-    color: '#666',
-    marginTop: 20,
-    fontSize: 16,
-  },
   studentCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E0E0E0',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
   },
   studentName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 4,
+    flex: 2,
   },
   studentCode: {
     fontSize: 14,
     color: '#555',
-    marginBottom: 2,
+    flex: 1,
+    textAlign: 'right',
   },
-  studentEmail: {
+  studentStatus: {
     fontSize: 14,
-    color: '#555',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButton: {
-    marginTop: 20,
-    backgroundColor: '#007BFF',
-    padding: 10,
-    borderRadius: 5,
-  },
-  closeButtonText: {
-    color: 'white',
     fontWeight: 'bold',
+    marginLeft: 10,
+  },
+  statusPresent: {
+    color: '#28a745',
+  },
+  statusAbsent: {
+    color: '#dc3545',
+  },
+  noStudentsText: {
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
+    color: '#888',
   },
 });
 

@@ -1,264 +1,266 @@
-
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Alert, ActivityIndicator, StyleSheet } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert, // Added Alert for error message
+} from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { apiScheduleService, Schedule } from '../api/apiScheduleService';
 import { apiAuthService } from '../api/apiAuth';
-import LoginBackGround from './LoginBackGround';
-import { StatusBar } from 'expo-status-bar';
-import { apiFaceService } from '../api/apiFace';
+import { useNavigation } from '@react-navigation/native';
 
-const AttendancePage = () => {
-  const navigation = useNavigation<any>();
-  const cameraRef = useRef<CameraView>(null);
-  const [permission, requestPermission] = useCameraPermissions();
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [faceDetected, setFaceDetected] = useState(false);
-  const [attendanceCompleted, setAttendanceCompleted] = useState(false);
+// --- Các thành phần giao diện ---
 
-  useEffect(() => {
-    if (!permission?.granted) {
-      requestPermission();
-    } else {
-      createLivenessSession();
-    }
-  }, [permission]);
+const DateNavigator = ({ calendarDate, selectedDate, onPrevMonth, onNextMonth, onPress }) => {
+    const monthNames = ["Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"];
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
 
-  const createLivenessSession = async () => {
-    try {
-      // Prefer in-memory token first to avoid AsyncStorage race
-      let token = apiAuthService.getAuthToken();
-      if (!token) {
-        token = await AsyncStorage.getItem('jwtToken');
-      }
-      if (!token) {
-        throw new Error('JWT token không tồn tại. Vui lòng đăng nhập lại.');
-      }
-      apiFaceService.setAuthToken(token);
+    return (
+        <View style={styles.dateNavigatorContainer}>
+            <TouchableOpacity onPress={onPrevMonth} style={styles.arrowButton}>
+                <Icon name="chevron-back" size={24} color="#666" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onPress} style={styles.dateDisplayArea}>
+                <Text style={styles.dateNavigatorToday}>{`${monthNames[month]}, ${year}`}</Text>
+                <Text style={styles.dateNavigatorDate}>
+                    {selectedDate.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'numeric', year: 'numeric' })}
+                </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onNextMonth} style={styles.arrowButton}>
+                <Icon name="chevron-forward" size={24} color="#666" />
+            </TouchableOpacity>
+        </View>
+    );
+};
 
-      const response = await apiFaceService.createLivenessSession();
-      setSessionId(response.sessionId);
-      Alert.alert(
-        'Thành công',
-        'Phiên liveness đã được tạo. Vui lòng thực hiện kiểm tra khuôn mặt.'
-      );
-    } catch (error) {
-      console.error('Liveness session error:', error);
-      Alert.alert('Lỗi', 'Không thể tạo phiên liveness. Vui lòng thử lại.');
-    }
-  };
+const ClassCard = ({ item, navigation }) => {
+  // item.status will be 'past', 'present', 'future'
+  // item.attendanceStatusText will be 'Đang mở', 'Sắp diễn ra', 'Đã đóng'
 
-  const markAttendance = async () => {
-    if (!cameraRef.current || !sessionId) return;
-
-    try {
-      setIsProcessing(true);
-      setFaceDetected(false);
-
-      // Chụp ảnh từ camera
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
-        base64: true,
+  const handleOpenAttendance = () => {
+    if (navigation) {
+      navigation.navigate('StudentListPage', {
+        className: item.className,
+        scheduleId: item.id,
+        date: item.date,
       });
-
-      if (photo) {
-        setFaceDetected(true);
-
-        // Giả sử liveness check thành công (nếu tích hợp AWS Amplify Face Liveness, thay bằng logic thực tế)
-        let token = apiAuthService.getAuthToken();
-        if (!token) {
-          token = await AsyncStorage.getItem('jwtToken');
-        }
-        if (!token) throw new Error('JWT token không tồn tại. Vui lòng đăng nhập lại.');
-        apiFaceService.setAuthToken(token);
-
-        const imageFile = { uri: photo.uri, type: 'image/jpeg', name: 'face.jpg' };
-        const response = await apiFaceService.compareFace(imageFile as any);
-        setAttendanceCompleted(true);
-
-        Alert.alert(
-          'Điểm danh thành công!',
-          `Xin chào ${response.studentName}! Điểm danh đã được ghi nhận.`,
-          [
-            {
-              text: 'Xem chi tiết',
-              onPress: () => {
-                Alert.alert('Chi tiết điểm danh', JSON.stringify(response, null, 2));
-              },
-            },
-            {
-              text: 'Đóng',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
-      }
-    } catch (error) {
-      console.error('Attendance error:', error);
-      Alert.alert('Lỗi', 'Không thể điểm danh. Vui lòng thử lại hoặc đăng ký khuôn mặt.', [
-        {
-          text: 'Thử lại',
-          onPress: () => setIsProcessing(false),
-        },
-        {
-          text: 'Đăng ký khuôn mặt',
-          onPress: () => navigation.navigate('FaceRegisterPage'),
-        },
-      ]);
-    } finally {
-      setIsProcessing(false);
+    } else {
+      console.error('Navigation object is undefined in ClassCard');
+      Alert.alert('Error', 'Navigation is not available.');
     }
   };
-
-  if (!permission) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
-      </SafeAreaView>
-    );
-  }
-
-  if (error) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <Text style={styles.errorText}>Lỗi: {error}</Text>
-      </SafeAreaView>
-    );
-  }
 
   return (
-    <LoginBackGround>
-      <View className="flex-1">
-        {/* Header */}
-        <View className="absolute left-4 right-4 top-12 z-10">
-          <View className="flex-row items-center justify-between">
-            <TouchableOpacity
-              className="rounded-full bg-black/50 p-3"
-              onPress={() => navigation.goBack()}>
-              <Text className="text-lg text-white">←</Text>
-            </TouchableOpacity>
-            <View className="rounded-2xl bg-black/50 px-4 py-2">
-              <Text className="text-center text-lg font-bold text-white">Điểm danh</Text>
-            </View>
-            <View className="w-12" />
-          </View>
-        </View>
-
-        {/* Camera View */}
-        <View className="flex-1">
-          <CameraView
-            ref={cameraRef}
-            style={StyleSheet.absoluteFillObject}
-            facing="front"
-            animateShutter={false}
-          />
-
-          {/* Face detection overlay */}
-          {faceDetected && (
-            <View className="absolute inset-0 items-center justify-center">
-              <View className="h-64 w-64 rounded-full border-4 border-green-400 bg-green-400/20" />
-              <Text className="mt-4 text-lg font-bold text-green-400">Đã phát hiện khuôn mặt</Text>
-            </View>
-          )}
-
-          {/* Processing overlay */}
-          {isProcessing && (
-            <View className="absolute inset-0 items-center justify-center bg-black/50">
-              <View className="rounded-2xl bg-white p-6">
-                <Text className="mb-4 text-center text-lg font-bold">
-                  {faceDetected ? 'Đang xử lý điểm danh...' : 'Đang chụp ảnh...'}
-                </Text>
-                <View className="h-2 w-48 rounded-full bg-gray-200">
-                  <View className="h-2 w-24 rounded-full bg-blue-600" />
-                </View>
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* Bottom Controls */}
-        <View className="absolute bottom-8 left-4 right-4">
-          <View className="items-center">
-            {/* Status */}
-            <View className="mb-4 rounded-2xl bg-white/95 px-4 py-2">
-              <View className="flex-row items-center">
-                <View className="mr-2 h-2 w-2 rounded-full bg-green-500" />
-                <Text className="text-sm font-medium text-gray-800">
-                  {sessionId ? 'Hệ thống sẵn sàng điểm danh' : 'Đang tạo phiên liveness...'}
-                </Text>
-              </View>
-            </View>
-
-            {/* Action Button */}
-            <TouchableOpacity
-              className={`h-20 w-20 items-center justify-center rounded-full border-4 border-white ${
-                isProcessing ? 'bg-gray-400' : 'bg-blue-600'
-              } shadow-lg`}
-              onPress={markAttendance}
-              disabled={isProcessing || !sessionId}>
-              <Text className="text-center text-sm font-bold text-white">
-                {isProcessing ? 'Đang xử lý' : 'Điểm danh'}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Instructions */}
-            <Text className="mt-4 text-center text-sm text-white">
-              {attendanceCompleted
-                ? 'Điểm danh hoàn tất!'
-                : 'Nhìn vào camera và nhấn nút để điểm danh'}
-            </Text>
-          </View>
+    <View style={[styles.card, item.attendanceStatusText === 'Đang mở' && styles.cardOpen]}>
+      <Text style={styles.cardSubject}>{item.subject}</Text>
+      <View style={styles.cardRow}>
+        <Text style={styles.cardClass}>Lớp: {item.className}</Text>
+        <View style={styles.cardIconText}>
+          <Icon name="time-outline" size={16} color="#555" />
+          <Text style={styles.cardInfoText}>{item.time}</Text>
         </View>
       </View>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
-        <DateNavigator
-          selectedDate={selectedDate}
-          onDateChange={setSelectedDate}
-          onPress={showMode}
+      <View style={[styles.cardIconText, { marginBottom: 12 }]}>
+        <Icon name="location-outline" size={16} color={item.attendanceStatusText === 'Đang mở' ? '#007BFF' : '#555'} />
+        <Text style={[styles.cardInfoText, item.attendanceStatusText === 'Đang mở' && { color: '#007BFF', fontWeight: 'bold' }]}>
+          {item.location}
+        </Text>
+      </View>
+      <Text style={styles.cardStatusText}>
+        Trạng thái: {item.attendanceStatusText}
+      </Text>
+      <Text style={styles.cardAttendanceText}>{item.attendance}</Text>
+      
+      {item.status === 'present' ? ( // If class is on the selected date, always show "Mở điểm danh"
+        <TouchableOpacity style={styles.cardButtonOpen} onPress={handleOpenAttendance}> 
+          <Text style={styles.cardButtonTextWhite}>Mở điểm danh</Text>
+        </TouchableOpacity>
+      ) : item.status === 'future' ? ( // If class is in the future, show "Chưa đến ngày mở điểm danh"
+        <TouchableOpacity style={[styles.cardButtonOpen, { backgroundColor: '#ccc' }]} disabled={true}>
+          <Text style={styles.cardButtonTextWhite}>Chưa đến ngày mở điểm danh</Text>
+        </TouchableOpacity>
+      ) : ( // If class is in the past, show "Đã đóng"
+        <TouchableOpacity style={[styles.cardButtonOpen, { backgroundColor: '#ccc' }]} disabled={true}>
+          <Text style={styles.cardButtonTextWhite}>Đã đóng</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
+// --- Màn hình chính ---
+
+const AttendancePage = () => {
+  const navigation = useNavigation();
+  console.log('Navigation object in AttendancePage:', navigation); // Add this line
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchSchedules = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const token = apiAuthService.getAuthToken();
+            if (!token) {
+                setError('Authentication token not found.');
+                setLoading(false);
+                return;
+            }
+            apiScheduleService.setAuthToken(token);
+            const fetchedSchedules = await apiScheduleService.getSchedulesForLecturer();
+            setSchedules(fetchedSchedules);
+        } catch (err) {
+            console.error('Error fetching schedules:', err);
+            setError('Failed to load schedules.');
+        } finally {
+            setLoading(false);
+        }
+    };
+    fetchSchedules();
+  }, []);
+
+  const handleDateChange = (event, date) => {
+    setShowDatePicker(false);
+    if (date) {
+      setSelectedDate(date);
+    }
+  };
+
+  const showMode = (currentMode) => {
+    setShowDatePicker(true);
+  };
+
+  const handlePrevDay = () => {
+    setSelectedDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setDate(prev.getDate() - 1);
+      return newDate;
+    });
+  };
+
+  const handleNextDay = () => {
+    setSelectedDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setDate(prev.getDate() + 1);
+      return newDate;
+    });
+  };
+
+  const transformedClassesData = schedules.flatMap(schedule => {
+    const relevantStudyDays = schedule.weeks.flatMap(week =>
+      week.studyDays.filter(studyDay => {
+        const studyDate = new Date(studyDay.date);
+        return (
+          studyDate.getFullYear() === selectedDate.getFullYear() &&
+          studyDate.getMonth() === selectedDate.getMonth() &&
+          studyDate.getDate() === selectedDate.getDate()
+        );
+      })
+    );
+
+    return relevantStudyDays.map(studyDay => {
+      const classDate = new Date(studyDay.date); // The date of the class
+      const today = new Date(); // Current actual date
+
+      let status = ''; // Will be 'past', 'present', 'future'
+
+      // Compare classDate with today
+      if (classDate.getFullYear() === today.getFullYear() &&
+          classDate.getMonth() === today.getMonth() &&
+          classDate.getDate() === today.getDate()) {
+          status = 'present'; // Class is today
+      } else if (classDate < today) { // Class date is before today
+          status = 'past';
+      } else { // Class date is after today
+          status = 'future';
+      }
+
+      // Let's keep the 'open' status for the 'Trạng thái' text, but not for the button logic.
+      const scheduleStartTime = new Date(studyDay.date + ' ' + schedule.startTime);
+      const scheduleEndTime = new Date(studyDay.date + ' ' + schedule.endTime);
+      const now = new Date();
+
+      let attendanceStatusText = ''; // For the "Trạng thái" text
+      if (now >= scheduleStartTime && now <= scheduleEndTime) {
+          attendanceStatusText = 'Đang mở';
+      } else if (now < scheduleStartTime) {
+          attendanceStatusText = 'Sắp diễn ra';
+      } else {
+          attendanceStatusText = 'Đã đóng';
+      }
+
+      return {
+        id: `${schedule.id}-${studyDay.date}`,
+        subject: schedule.courseName,
+        className: schedule.className,
+        location: schedule.roomName,
+        time: `${schedule.startTime.substring(0, 5)} - ${schedule.endTime.substring(0, 5)}`,
+        status: status, // 'past', 'present', 'future'
+        attendanceStatusText: attendanceStatusText, // For display in "Trạng thái"
+        attendance: 'Chưa có dữ liệu điểm danh',
+        date: studyDay.date,
+      };
+    });
+  });
+
+  transformedClassesData.sort((a, b) => {
+    const timeA = a.time.split(' - ')[0];
+    const timeB = b.time.split(' - ')[0];
+    return timeA.localeCompare(timeB);
+  });
+
+  return (
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={styles.scrollViewContent}
+    >
+      <DateNavigator
+        selectedDate={selectedDate}
+        calendarDate={selectedDate}
+        onPrevMonth={handlePrevDay}
+        onNextMonth={handleNextDay}
+        onPress={() => showMode('date')}
+      />
+      {showDatePicker && (
+        <DateTimePicker
+          testID="dateTimePicker"
+          value={selectedDate}
+          mode="date"
+          display="default"
+          onChange={handleDateChange}
         />
-        {showDatePicker && (
-          <DateTimePicker
-            testID="dateTimePicker"
-            value={selectedDate}
-            mode="date"
-            display="default"
-            onChange={handleDateChange}
-          />
-        )}
-        {filteredClassesData.length > 0 ? (
-          filteredClassesData.map(item => <ClassCard key={item.id} item={item} navigation={navigation} />)
-        ) : (
-          <Text style={styles.noDataText}>Không có lớp học nào vào ngày này.</Text>
-        )}
-      </ScrollView>
-    </LoginBackGround>
+      )}
+      {loading ? (
+        <Text style={styles.noDataText}>Đang tải lịch học...</Text>
+      ) : error ? (
+        <Text style={[styles.noDataText, { color: 'red' }]}>Lỗi: {error}</Text>
+      ) : transformedClassesData.length > 0 ? (
+        transformedClassesData.map(item => <ClassCard key={item.id} item={item} navigation={navigation} />)
+      ) : (
+        <Text style={styles.noDataText}>Không có lớp học nào vào ngày này.</Text>
+      )}
+    </ScrollView>
   );
 };
 
 // --- StyleSheet ---
 
 const styles = StyleSheet.create({
-  safeArea: {
+  scrollView: {
     flex: 1,
     backgroundColor: '#F4F7FC',
   },
-  header: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  scrollView: {
-    flex: 1,
-  },
   scrollViewContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    padding: 16,
   },
   dateNavigatorContainer: {
     flexDirection: 'row',
@@ -272,7 +274,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
-  dateNavigatorCenter: {
+  arrowButton: {
+    padding: 5, // Add some padding to make it easier to tap
+  },
+  dateDisplayArea: {
+    flex: 1, // Allow this area to take up available space
     alignItems: 'center',
   },
   dateNavigatorToday: {
@@ -351,12 +357,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
-    paddingHorizontal: 24,
   },
   cardButtonTextWhite: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  noDataText: {
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
+    color: '#888',
   },
 });
 

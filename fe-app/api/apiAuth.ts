@@ -16,6 +16,7 @@ export interface StudentResponse {
   email: string;
   role: 'STUDENT';
   isRegistered: boolean; // Required field, defaults to false in backend
+}
 
 export interface LecturerResponse {
   id: number;
@@ -86,9 +87,10 @@ class ApiAuthService {
       const LAN_BASE_URL = 'http://192.168.68.109:8080';   // IP LAN của máy tú
       const LOCALHOST_BASE_URL = 'http://localhost:8080'; // Dùng cho emulator
       this.baseURL = baseURL || envBaseURL || LAN_BASE_URL || LOCALHOST_BASE_URL;
+    }
 
+    console.log('ApiAuthService baseURL =', this.baseURL);
   }
-
   setAuthToken(token: string) {
     this.authToken = token;
   }

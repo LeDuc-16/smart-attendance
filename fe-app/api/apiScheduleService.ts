@@ -130,7 +130,6 @@ class ApiScheduleService {
       });
 
       const responseText = await response.text();
-      console.log('Raw response from /api/v1/schedules/me:', responseText);
 
       if (!response.ok) {
         try {
@@ -141,12 +140,12 @@ class ApiScheduleService {
         }
       }
 
-      if (responseText === null || responseText === '') {
+      if (!responseText.trim()) {
         return [];
       }
 
       const result: BackendApiResponse<Schedule[]> = JSON.parse(responseText);
-      return result.data;
+      return result.data || [];
     } catch (error) {
       console.error('Error fetching schedules:', error);
       throw error;
@@ -229,6 +228,26 @@ class ApiScheduleService {
       return result.data;
     } catch (error) {
       console.error('Error fetching students:', error);
+      throw error;
+    }
+  }
+
+  async getStudentsByClass(className: string): Promise<Student[]> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/v1/students/by-class/${className}`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || `Failed to fetch students for class ${className}`);
+      }
+
+      const result: BackendApiResponse<Student[]> = await response.json();
+      return result.data;
+    } catch (error) {
+      console.error(`Error fetching students for class ${className}:`, error);
       throw error;
     }
   }
