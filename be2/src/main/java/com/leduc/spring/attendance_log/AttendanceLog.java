@@ -47,17 +47,6 @@ public class AttendanceLog {
     @Column(nullable = false)
     private LocalDate sessionDate;
 
-    // Giờ học theo lịch
-    @Column(nullable = false)
-    private LocalTime scheduledStartTime;
-
-    @Column(nullable = false)
-    private LocalTime scheduledEndTime;
-
-    // Thời điểm thực tế sinh viên điểm danh
-    @Column(nullable = false)
-    private LocalDateTime attendanceTime;
-
     // Trạng thái điểm danh (Đúng giờ, Muộn, Có phép, Vắng)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
