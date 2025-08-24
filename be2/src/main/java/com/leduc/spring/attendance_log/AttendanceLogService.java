@@ -41,9 +41,8 @@ public class AttendanceLogService {
      * Ghi log điểm danh cho sinh viên
      */
     @Transactional
-
     public ApiResponse<AttendanceLog> recordHistory(Long studentId, Long scheduleId, AttendanceStatus status,
-            String note, HttpServletRequest servletRequest) {
+                                                    String note, HttpServletRequest servletRequest) {
         // Tìm sinh viên
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy sinh viên với ID: " + studentId));
@@ -66,7 +65,6 @@ public class AttendanceLogService {
                 .student(student)
                 .classEntity(classEntity)
                 .course(course)
-
                 .schedule(schedule)
                 .lecturer(lecturer)
                 .sessionDate(sessionDate)
@@ -79,7 +77,6 @@ public class AttendanceLogService {
 
         // Lưu vào CSDL
         AttendanceLog savedLog = attendanceLogRepository.save(attendanceLog);
-
         logger.info("Đã ghi log điểm danh cho sinh viên ID: {} trong lịch ID: {} với trạng thái: {}", studentId,
                 scheduleId, status);
 
@@ -95,14 +92,12 @@ public class AttendanceLogService {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy sinh viên với ID: " + studentId));
 
-
         List<AttendanceLog> attendanceLogs = attendanceLogRepository.findByStudentIdAndClassEntityId(studentId,
                 classId);
         if (attendanceLogs.isEmpty()) {
             logger.info("Không tìm thấy lịch sử điểm danh cho sinh viên ID: {} trong lớp ID: {}", studentId, classId);
             return ApiResponse.success(attendanceLogs, "Không có lịch sử điểm danh", servletRequest.getRequestURI());
         }
-
 
         logger.info("Lấy được {} bản ghi điểm danh cho sinh viên ID: {} trong lớp ID: {}", attendanceLogs.size(),
                 studentId, classId);
@@ -111,14 +106,9 @@ public class AttendanceLogService {
 
     /**
      * Lấy lịch sử điểm danh của sinh viên theo khóa học
-<<<<<<< HEAD
-     * @param studentId ID của sinh viên
-     * @param courseId ID của khóa học
-=======
-     * 
+     *
      * @param studentId      ID của sinh viên
      * @param courseId       ID của khóa học
->>>>>>> f82db7366760b358df0511bd61daa959bae64cf1
      * @param servletRequest Request HTTP để lấy đường dẫn
      * @return ApiResponse chứa danh sách lịch sử điểm danh
      */
@@ -130,7 +120,6 @@ public class AttendanceLogService {
 
         List<AttendanceLog> attendanceLogs = attendanceLogRepository.findByStudentIdAndCourseId(studentId, courseId);
         if (attendanceLogs.isEmpty()) {
-
             logger.info("Không tìm thấy lịch sử điểm danh cho sinh viên ID: {} trong khóa học ID: {}", studentId,
                     courseId);
             return ApiResponse.success(attendanceLogs, "Không có lịch sử điểm danh", servletRequest.getRequestURI());
@@ -143,14 +132,9 @@ public class AttendanceLogService {
 
     /**
      * Lấy thống kê điểm danh của sinh viên theo lớp
-<<<<<<< HEAD
-     * @param studentId ID của sinh viên
-     * @param classId ID của lớp học
-=======
-     * 
+     *
      * @param studentId      ID của sinh viên
      * @param classId        ID của lớp học
->>>>>>> f82db7366760b358df0511bd61daa959bae64cf1
      * @param servletRequest Request HTTP để lấy đường dẫn
      * @return ApiResponse chứa thống kê (số lần PRESENT, LATE, ABSENT)
      */
@@ -178,12 +162,8 @@ public class AttendanceLogService {
 
     /**
      * Lấy danh sách điểm danh của một buổi học
-<<<<<<< HEAD
-     * @param scheduleId ID của lịch học
-=======
-     * 
+     *
      * @param scheduleId     ID của lịch học
->>>>>>> f82db7366760b358df0511bd61daa959bae64cf1
      * @param servletRequest Request HTTP để lấy đường dẫn
      * @return ApiResponse chứa danh sách điểm danh
      */
@@ -200,19 +180,14 @@ public class AttendanceLogService {
         }
 
         logger.info("Lấy được {} bản ghi điểm danh cho lịch học ID: {}", attendanceLogs.size(), scheduleId);
-
         return ApiResponse.success(attendanceLogs, "Lấy danh sách điểm danh thành công",
                 servletRequest.getRequestURI());
     }
 
     /**
      * Lấy lịch sử điểm danh của toàn bộ lớp
-<<<<<<< HEAD
-     * @param classId ID của lớp học
-=======
-     * 
+     *
      * @param classId        ID của lớp học
->>>>>>> f82db7366760b358df0511bd61daa959bae64cf1
      * @param servletRequest Request HTTP để lấy đường dẫn
      * @return ApiResponse chứa danh sách lịch sử điểm danh
      */
@@ -228,5 +203,4 @@ public class AttendanceLogService {
         logger.info("Lấy được {} bản ghi điểm danh cho lớp ID: {}", attendanceLogs.size(), classId);
         return ApiResponse.success(attendanceLogs, "Lấy lịch sử điểm danh thành công", servletRequest.getRequestURI());
     }
-
 }

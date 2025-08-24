@@ -3,7 +3,6 @@ package com.leduc.spring.attendance_log;
 import com.leduc.spring.classes.ClassEntity;
 import com.leduc.spring.course.Course;
 import com.leduc.spring.lecturer.Lecturer;
-import com.leduc.spring.schedule.Schedule;
 import com.leduc.spring.student.Student;
 import com.leduc.spring.schedule.Schedule;
 import jakarta.persistence.*;
@@ -45,13 +44,30 @@ public class AttendanceLog {
     @JoinColumn(name = "lecturer_id", nullable = false)
     private Lecturer lecturer;
 
+    // Lịch học (tham chiếu tới Schedule)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "schedule_id", nullable = false)
+    private Schedule schedule;
+
+    // Ngày học
+    @Column(nullable = false)
+    private LocalDate sessionDate;
+
+    // Giờ học theo lịch
+    @Column(nullable = false)
+    private LocalTime scheduledStartTime;
+
+    @Column(nullable = false)
+    private LocalTime scheduledEndTime;
+
+    // Thời điểm thực tế sinh viên điểm danh
+    @Column(nullable = false)
+    private LocalDateTime attendanceTime;
+
     // Trạng thái điểm danh (Đúng giờ, Muộn, Có phép, Vắng)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AttendanceStatus status;
-
-    // Thêm mối quan hệ
-    private Schedule schedule;
 
     // Ghi chú thêm
     @Column(length = 500)
