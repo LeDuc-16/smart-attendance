@@ -77,15 +77,41 @@ class ApiAuthService {
   private authToken: string | null = null;
   private userInfo: UserInfo | null = null;
 
-  constructor(baseURL?: string) {
-    if (process.env.NODE_ENV === 'production') {
-      this.baseURL = baseURL || process.env.REACT_APP_API_BASE_URL || 'http://14.225.210.41:8080'; // server public
+   constructor(baseURL?: string) {
+  const envBaseURL =
+    process.env.REACT_NATIVE_APP_API_BASE_URL ||
+    process.env.REACT_APP_API_BASE_URL;
+
+  if (process.env.NODE_ENV === 'production') {
+    this.baseURL =
+      baseURL || envBaseURL || 'http://14.225.210.41:8080';
+  } else {
+    const Constants = require('expo-constants').default;
+    const hostUri =
+      Constants.expoConfig?.hostUri ||
+      Constants.manifest?.hostUri ||
+      '';
+    const lanHost = hostUri ? hostUri.split(':')[0] : '192.168.11.105';
+
+    const LAN_BASE_URL = `http://${lanHost}:8080`;
+    const ANDROID_LOCALHOST = 'http://10.0.2.2:8080';
+    const IOS_LOCALHOST = 'http://localhost:8080';
+
+    // Dùng Platform để phân biệt emulator vs device thật
+    const Platform = require('react-native').Platform;
+
+    if (Platform.OS === 'android' && !hostUri) {
+      this.baseURL = ANDROID_LOCALHOST; // Android emulator
+    } else if (Platform.OS === 'ios' && !hostUri) {
+      this.baseURL = IOS_LOCALHOST; // iOS simulator
     } else {
-      // trong dev thì lấy IP LAN thay vì localhost
-      const LAN_IP = '172.20.10.2'; // mỗi lần Expo show, copy IP này
-      this.baseURL = baseURL || `http://${LAN_IP}:8080`;
+      this.baseURL = baseURL || envBaseURL || LAN_BASE_URL;
     }
   }
+}
+
+
+
 
   setAuthToken(token: string) {
     this.authToken = token;

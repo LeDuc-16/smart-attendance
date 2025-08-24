@@ -19,6 +19,7 @@ const DashBoardLayout: React.FC<DashBoardLayoutProps> = ({
 }) => {
   const tabs = [
     { id: 'home', icon: 'home', label: 'Trang chủ' },
+    { id: 'schedule', icon: 'schedule', label: 'Lịch học' },
     { id: 'attendance', icon: 'camera', label: 'Điểm danh' },
     { id: 'stats', icon: 'bar-chart', label: 'Lịch sử' },
     { id: 'notification', icon: 'notifications', label: 'Thông báo' },
