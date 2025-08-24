@@ -1,6 +1,5 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 
-// Interface cho lịch giảng dạy
 export interface StudyDay {
     dayOfWeek: string;
     date: string;
@@ -22,15 +21,13 @@ export interface TeachingSchedule {
     classId: number;
     roomId: number;
     weeks: Week[];
-    // ✅ Sửa: Backend đã trả về sẵn
-    courseName: string;      // ✅ Có sẵn từ backend
-    lecturerName: string;    // ✅ Có sẵn từ backend
-    className: string;       // ✅ Có sẵn từ backend 
-    roomName: string;        // ✅ Có sẵn từ backend (không phải roomCode)
+    courseName: string;
+    lecturerName: string;
+    className: string;
+    roomName: string;
 }
 
 
-// Payload cho tạo lịch giảng dạy
 export interface TeachingSchedulePayload {
     startDate: string;
     endDate: string;
@@ -43,7 +40,7 @@ export interface TeachingSchedulePayload {
     roomId: number;
 }
 
-// Option cho dropdown
+
 export interface DropdownOption {
     value: number;
     label: string;
@@ -56,7 +53,6 @@ export interface ApiResponse<T> {
     data: T;
 }
 
-// Tạo axios instance riêng cho teaching API
 const teachingApiClient = axios.create({
     baseURL: 'http://localhost:8080',
     headers: {
@@ -65,7 +61,6 @@ const teachingApiClient = axios.create({
     withCredentials: true,
 });
 
-// request interceptor để auto gửi token
 teachingApiClient.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
         const token = localStorage.getItem('token');
@@ -77,7 +72,7 @@ teachingApiClient.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// response interceptor để handle 403 (login timeout)
+
 teachingApiClient.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -89,27 +84,25 @@ teachingApiClient.interceptors.response.use(
     }
 );
 
-// --------- API TEACHING SCHEDULE CRUD ---------
 export const getTeachingSchedules = async (): Promise<TeachingSchedule[]> => {
     const response = await teachingApiClient.get("/api/v1/schedules");
     return response.data.data;
 };
 
-// Thêm API lấy lịch theo giảng viên ID
+
 export const getSchedulesByLecturer = async (lecturerId: number): Promise<TeachingSchedule[]> => {
     const response = await teachingApiClient.get(`/api/v1/schedules/lecturer/${lecturerId}`);
     return response.data.data || [];
 };
 
-// Thay vì gọi API riêng cho date, dùng API lấy tất cả rồi filter
+
 export const getSchedulesByDate = async (date: string): Promise<TeachingSchedule[]> => {
     try {
-        // Thử API theo date trước
+
         const response = await teachingApiClient.get(`/api/v1/schedules/date/${date}`);
         return response.data.data;
     } catch (error: any) {
         if (error.response?.status === 404 || error.response?.status === 500) {
-            // Nếu API không tồn tại hoặc lỗi, fallback lấy tất cả
             console.log('Fallback to get all schedules and filter');
             const allResponse = await teachingApiClient.get("/api/v1/schedules");
             const allSchedules = allResponse.data.data;
@@ -139,7 +132,6 @@ export const deleteTeachingSchedule = async (id: number): Promise<ApiResponse<nu
     return response.data;
 };
 
-// --------- API Lấy danh sách option dropdown ---------
 export const getAllCourses = async (): Promise<DropdownOption[]> => {
     try {
         const response = await teachingApiClient.get("/api/v1/courses");
