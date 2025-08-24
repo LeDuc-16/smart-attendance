@@ -32,4 +32,18 @@ public interface AttendanceLogRepository extends JpaRepository<AttendanceLog, Lo
             @Param("endDate") LocalDateTime endDate
     );
 
+    @Query("SELECT al FROM AttendanceLog al WHERE al.classEntity = :classEntity AND al.createdAt >= :date AND al.createdAt < :date + 1")
+    List<AttendanceLog> findByClassEntityAndDate(
+            @Param("classEntity") ClassEntity classEntity,
+            @Param("date") LocalDate date
+    );
+
+    // Đếm số lần điểm danh của một sinh viên theo trạng thái trong một lịch học
+    @Query("SELECT COUNT(al) FROM AttendanceLog al WHERE al.student = :student AND al.schedule = :schedule AND al.status = :status")
+    long countByStudentAndScheduleAndStatus(
+            @Param("student") Student student,
+            @Param("schedule") Schedule schedule,
+            @Param("status") AttendanceStatus status
+    );
+
 }
