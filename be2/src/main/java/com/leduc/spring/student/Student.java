@@ -27,8 +27,8 @@ public class Student {
     @Column(name = "student_code", unique = true, nullable = false)
     private String studentCode;
 
-    @Column(name = "isRegisted")
-    private boolean isRegisted;
+    @Column(name = "is_registered", nullable = false)
+    private boolean isRegistered = false; // Default to false
 
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId
