@@ -153,14 +153,6 @@ public class StudentFaceController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Điểm danh bằng nhận diện khuôn mặt
-     * @param studentId ID của sinh viên
-     * @param scheduleId ID của lịch học
-     * @param file Ảnh khuôn mặt để điểm danh
-     * @param servletRequest Request HTTP để lấy thông tin xác thực
-     * @return ApiResponse chứa kết quả điểm danh
-     */
     @PostMapping(value = "/{studentId}/attendance", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Điểm danh sinh viên", description = "Điểm danh bằng nhận diện khuôn mặt cho một lịch học cụ thể")
     public ResponseEntity<ApiResponse<FaceCompareResponse>> attendance(

@@ -4,6 +4,7 @@ import com.leduc.spring.classes.ClassEntity;
 import com.leduc.spring.course.Course;
 import com.leduc.spring.lecturer.Lecturer;
 import com.leduc.spring.student.Student;
+import com.leduc.spring.schedule.Schedule;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -42,6 +43,11 @@ public class AttendanceLog {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lecturer_id", nullable = false)
     private Lecturer lecturer;
+
+    // Lịch học (tham chiếu tới Schedule)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "schedule_id", nullable = false)
+    private Schedule schedule;
 
     // Ngày học
     @Column(nullable = false)

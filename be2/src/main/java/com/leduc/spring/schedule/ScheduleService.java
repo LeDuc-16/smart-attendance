@@ -248,14 +248,6 @@ public class ScheduleService {
         return ApiResponse.success(null, "Schedule deleted successfully", servletRequest.getRequestURI());
     }
 
-
-
-    /**
-     * Mở lịch học để cho phép sinh viên điểm danh
-     * @param scheduleId ID của lịch học
-     * @param servletRequest Request HTTP để lấy đường dẫn
-     * @return ApiResponse chứa trạng thái isOpen
-     */
     @Transactional
     public ApiResponse<Boolean> openAttendance(Long scheduleId, HttpServletRequest servletRequest) {
         // Xác thực người dùng
@@ -275,8 +267,6 @@ public class ScheduleService {
             logger.error("JWT token username does not match authenticated user: {} vs {}", extractedUsername, username);
             throw new IllegalArgumentException("JWT token username does not match authenticated user");
         }
-
-        // Kiểm tra quyền: Chỉ admin hoặc giảng viên được mở
 
         // Tìm lịch học
         Schedule schedule = scheduleRepository.findById(scheduleId)
@@ -298,12 +288,6 @@ public class ScheduleService {
         return ApiResponse.success(true, "Đã mở điểm danh thành công", servletRequest.getRequestURI());
     }
 
-    /**
-     * Đóng lịch học và trả về thời gian đóng
-     * @param scheduleId ID của lịch học
-     * @param servletRequest Request HTTP để lấy đường dẫn
-     * @return ApiResponse chứa thời gian đóng (LocalDateTime)
-     */
     @Transactional
     public ApiResponse<LocalDateTime> closeAttendance(Long scheduleId, HttpServletRequest servletRequest) {
         // Xác thực người dùng
