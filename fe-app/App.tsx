@@ -15,13 +15,15 @@ import TeachingSchedulePage from './pages/TeachingSchedulePage';
 import DashBoarLayout from './pages/DashBoarLayout';
 import StudentAttendanceViewPage from './pages/StudentAttendanceViewPage';
 import StudentListPage from './pages/StudentListPage';
+
 // Define the type for your stack navigator routes
 export type RootStackParamList = {
   Login: undefined;
   ForgetPass: undefined;
   OtpPage: undefined;
   ChangePassPage: undefined;
-  NewPassWordPage: { otpCode?: string };
+  NewPassWordPage: { otpCode: string };
+  FaceRegisterPage: undefined;
   DashBoardPage: undefined;
   AttendancePage: undefined;
   NotificationPage: undefined;

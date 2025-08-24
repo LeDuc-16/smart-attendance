@@ -34,7 +34,7 @@ export default function LoginPage({ navigation }: Props) {
         password: password,
       });
 
-      navigation.navigate('DashBoardPage'); // Navigate to dashboard if face check fails
+      navigation.navigate('FaceRegisterPage'); // Navigate to Face Register Page
     } catch (err: any) {
       // API service đã xử lý lỗi, chỉ cần lấy message
       setError(err?.message || 'Đăng nhập thất bại');
