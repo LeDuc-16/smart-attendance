@@ -33,21 +33,7 @@ const TeachingSchedulePage = () => {
   else if (location.pathname === "/lecturer-dashboard") activeTab = "dashboard";
   else if (location.pathname === "/attendance") activeTab = "attendance";
 
-  const [currentLecturerId, setCurrentLecturerId] = useState<number | null>(null);
-
-  useEffect(() => {
-    try {
-      const userData = localStorage.getItem('user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        if (user && user.id) {
-          setCurrentLecturerId(user.id);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to get user data from local storage", error);
-    }
-  }, []);
+  
 
   // Hàm lấy ngày đầu tuần (Thứ 2) từ một ngày bất kỳ
   function getMonday(d: Date) {
@@ -83,11 +69,11 @@ const TeachingSchedulePage = () => {
     return `${yyyy}-${mm}-${dd}`;
   }
 
-  const [date, setDate] = useState(getTodayString());
+  const [date, setDate] = useState("2025-08-26");
   const [scheduleData, setScheduleData] = useState<TeachingSchedule[]>([]);
   const [loading, setLoading] = useState(false);
   const [weekDates, setWeekDates] = useState<string[]>(
-    getWeekDates(getTodayString())
+    getWeekDates("2025-08-26")
   );
 
   function getWeekStringForInput(d: string): string {
@@ -108,22 +94,28 @@ const TeachingSchedulePage = () => {
   }, [date]);
 
   useEffect(() => {
-    if (currentLecturerId === null) return;
     setLoading(true);
     (async () => {
-      console.log("Fetching schedules for lecturer ID:", currentLecturerId); // Add this line
+      console.log("Fetching schedules for lecturer"); 
       try {
-        const schedules = await getSchedulesByLecturer(currentLecturerId);
-        console.log("Schedules fetched:", schedules); // Add this line
+        const schedules = await getSchedulesByLecturer();
+        console.log("Schedules fetched:", schedules); 
 
         console.log("Fetching classes...");
         const classesRes = await getClasses();
         console.log("Classes fetched:", classesRes);
-        const classes: any[] = (classesRes as any).data.content; // Access content for pageable response
+        let classes: any[] = [];
+        if (classesRes && classesRes.data) {
+            if (Array.isArray(classesRes.data)) {
+                classes = classesRes.data;
+            } else if (Array.isArray(classesRes.data.content)) {
+                classes = classesRes.data.content;
+            }
+        }
 
         let enriched: any[] = [];
         schedules.forEach((item: any) => {
-          const classInfo = classes.find((cl: any) => cl.id === item.classId);
+          const classInfo = classes ? classes.find((cl: any) => cl.className === item.className) : undefined;
 
           item.weeks.forEach((week: any) => {
             const weekStartStr = week.startDate;
@@ -168,7 +160,7 @@ const TeachingSchedulePage = () => {
         setLoading(false);
       }
     })();
-  }, [weekDates, currentLecturerId, search]);
+  }, [weekDates, search]);
 
   const handleEditClick = (item: any) => {
     setEditData(item);

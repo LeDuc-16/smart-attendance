@@ -35,44 +35,53 @@ const LecturerDashboard = () => {
   else if (location.pathname === "/attendance") activeTab = "attendance";
   const [scheduleToday, setScheduleToday] = useState<any[]>([]);
   const todayStr = getTodayString();
-  const [currentLecturerId, setCurrentLecturerId] = useState<number | null>(null);
 
   useEffect(() => {
-    try {
-      const userData = localStorage.getItem('user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        if (user && user.id) {
-          setCurrentLecturerId(user.id);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to get user data from local storage", error);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (currentLecturerId === null) return;
     (async () => {
       try {
-        const schedules = await getSchedulesByLecturer(currentLecturerId);
+        const schedules = await getSchedulesByLecturer();
         const coursesRes = await getCourses();
-        const rooms = await getClassRooms();
+        const roomsRes = await getClassRooms();
         const classesRes = await getClasses();
-        const courses: any[] = (coursesRes as any).data;
-        const classes: any[] = (classesRes as any).data;
+
+        let courses: any[] = [];
+        if (coursesRes && coursesRes.data) {
+            if (Array.isArray(coursesRes.data)) {
+                courses = coursesRes.data;
+            } else if (Array.isArray(coursesRes.data.content)) {
+                courses = coursesRes.data.content;
+            }
+        }
+
+        let rooms: any[] = [];
+        if (roomsRes && roomsRes.data) {
+            if (Array.isArray(roomsRes.data)) {
+                rooms = roomsRes.data;
+            } else if (Array.isArray(roomsRes.data.content)) {
+                rooms = roomsRes.data.content;
+            }
+        }
+        
+        let classes: any[] = [];
+        if (classesRes && classesRes.data) {
+            if (Array.isArray(classesRes.data)) {
+                classes = classesRes.data;
+            } else if (Array.isArray(classesRes.data.content)) {
+                classes = classesRes.data.content;
+            }
+        }
 
         const enriched = schedules.flatMap((item: any) => {
-          const course = courses.find((c: any) => c.id === item.courseId);
-          const room = rooms.find((r: any) => r.id === item.roomId);
-          const classInfo = classes.find((cl: any) => cl.id === item.classId);
+          const course = courses.find((c: any) => c.courseName === item.courseName);
+          const room = rooms.find((r: any) => r.roomCode === item.roomName);
+          const classInfo = classes.find((cl: any) => cl.className === item.className);
 
           return item.weeks.flatMap((week: any) => {
             return week.studyDays.filter((day: any) => day.date === todayStr).map((day: any) => {
               // Xác định trạng thái
               const now = new Date();
-              const [startHour, startMinute] = (day.startTime || item.startTime).split(':').map(Number);
-              const [endHour, endMinute] = (day.endTime || item.endTime).split(':').map(Number);
+              const [startHour, startMinute] = (item.startTime).split(':').map(Number);
+              const [endHour, endMinute] = (item.endTime).split(':').map(Number);
 
               const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startHour, startMinute);
               const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endHour, endMinute);
@@ -96,10 +105,10 @@ const LecturerDashboard = () => {
               }
 
               return {
-                subject: course?.courseName || "",
-                className: classInfo?.className || "",
-                time: `${formatTime(day.startTime || item.startTime)} - ${formatTime(day.endTime || item.endTime)}`,
-                room: room?.roomCode || "",
+                subject: item.courseName || "",
+                className: item.className || "",
+                time: `${formatTime(item.startTime)} - ${formatTime(item.endTime)}`,
+                room: item.roomName || "",
                 students: classInfo?.capacityStudent || "-",
                 status,
                 statusType,
@@ -109,11 +118,12 @@ const LecturerDashboard = () => {
         });
 
         setScheduleToday(enriched);
-      } catch {
+      } catch(e) {
+        console.error("Failed to fetch dashboard data", e);
         setScheduleToday([]);
       }
     })();
-  }, [currentLecturerId, todayStr]);
+  }, [todayStr]);
 
   return (
     <div className="flex min-h-screen bg-gray-100 font-sans">

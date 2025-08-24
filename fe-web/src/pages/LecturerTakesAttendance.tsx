@@ -22,21 +22,7 @@ const LecturerTakesAttendance = () => {
   const [date, setDate] = useState(`${yyyy}-${mm}-${dd}`);
   // Lấy dữ liệu từ API giống như trang lịch giảng dạy
   const [attendanceList, setAttendanceList] = useState<any[]>([]);
-  const [currentLecturerId, setCurrentLecturerId] = useState<number | null>(null);
-
-  useEffect(() => {
-    try {
-      const userData = localStorage.getItem('user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        if (user && user.id) {
-          setCurrentLecturerId(user.id);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to get user data from local storage", error);
-    }
-  }, []);
+  
 
   // Hàm cập nhật trạng thái điểm danh khi có kết quả từ API xác thực khuôn mặt
   // Gọi hàm này khi nhận được response từ /api/v1/student-faces/compare
@@ -50,27 +36,32 @@ const LecturerTakesAttendance = () => {
   // const response = { data: { studentId: 4, ... } };
   // markStudentPresent(response.data.studentId);
   useEffect(() => {
-    if (currentLecturerId === null) return;
     (async () => {
       try {
-        const schedules = await getSchedulesByLecturer(currentLecturerId);
+        const schedules = await getSchedulesByLecturer();
         
         const classesRes = await getClasses();
 
-        
-        const classes: any[] = (classesRes as any).data;
+        let classes: any[] = [];
+        if (classesRes && classesRes.data) {
+            if (Array.isArray(classesRes.data)) {
+                classes = classesRes.data;
+            } else if (Array.isArray(classesRes.data.content)) {
+                classes = classesRes.data.content;
+            }
+        }
 
         const filteredSchedules = schedules.flatMap((item: any) => {
-          const classInfo = classes.find((cl: any) => cl.id === item.classId); // Keep this for capacityStudent
+          const classInfo = classes ? classes.find((cl: any) => cl.className === item.className) : undefined;
 
           return item.weeks.flatMap((week: any) => {
             return week.studyDays.filter((day: any) => day.date === date).map((day: any) => {
               return {
-                subject: item.courseName || "", // Use directly from item
-                className: item.className || "", // Use directly from item
-                time: `${formatTime(item.startTime)} - ${formatTime(item.endTime)}`, // Use directly from item
-                room: item.roomName || "", // Use directly from item
-                students: classInfo?.capacityStudent ?? "-", // Still need classInfo for this
+                subject: item.courseName || "",
+                className: item.className || "",
+                time: `${formatTime(item.startTime)} - ${formatTime(item.endTime)}`,
+                room: item.roomName || "",
+                students: classInfo?.capacityStudent ?? "-",
                 status: "Sắp tới",
                 statusType: "upcoming",
               };
@@ -83,7 +74,7 @@ const LecturerTakesAttendance = () => {
         setAttendanceList([]);
       }
     })();
-  }, [date, currentLecturerId]);
+  }, [date]);
 
   function formatTime(str: string) {
     if (!str) return "";
