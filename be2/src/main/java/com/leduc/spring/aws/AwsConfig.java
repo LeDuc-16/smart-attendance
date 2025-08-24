@@ -2,7 +2,6 @@ package com.leduc.spring.aws;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -22,21 +21,13 @@ public class AwsConfig {
     private static final Logger logger = LoggerFactory.getLogger(AwsConfig.class);
     private static final String FACE_COLLECTION_ID = "student_faces";
 
-    @Value("${aws.region:ap-southeast-2}")
-    private String awsRegion;
-
-    @Value("${aws.accessKeyId}")
-    private String accessKey;
-
-    @Value("${aws.secretKey}")
-    private String secretKey;
-
+    private final String awsRegion = System.getenv().getOrDefault("AWS_REGION", "ap-southeast-2");
     private final boolean mock = Boolean.parseBoolean(System.getenv().getOrDefault("AWS_S3_MOCK", "false"));
 
     @Bean
     public S3Client s3Client() {
         if (mock) {
-            return new FakeS3(); // Giả định FakeS3 là class mock của bạn
+            return new FakeS3();
         }
         return S3Client.builder()
                 .region(Region.of(awsRegion))
@@ -45,16 +36,19 @@ public class AwsConfig {
                 .build();
     }
 
+
     @Bean
     public RekognitionClient rekognitionClient() {
         RekognitionClient client = RekognitionClient.builder()
-                .region(Region.of(awsRegion))
+                .region(Region.of(awsRegion))// region hỗ trợ Face Liveness
                 .credentialsProvider(DefaultCredentialsProvider.create())
                 .build();
 
         createCollectionIfNotExists(client);
         return client;
     }
+
+
 
     private void createCollectionIfNotExists(RekognitionClient client) {
         try {
@@ -66,7 +60,7 @@ public class AwsConfig {
                                 .collectionId(FACE_COLLECTION_ID)
                                 .build()
                 );
-                if (createResponse.sdkHttpResponse().isSuccessful()) {
+                if (createResponse.statusCode() == 200) {
                     logger.info("Collection {} created successfully", FACE_COLLECTION_ID);
                 } else {
                     logger.error("Failed to create collection: {}", FACE_COLLECTION_ID);

@@ -21,6 +21,7 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -118,7 +119,7 @@ public class StudentFaceDataService {
                 String profileImageId = UUID.randomUUID().toString();
                 String s3Key = "profile-images/students/%s/%s".formatted(studentId, profileImageId);
 
-                // Upload ảnh lên S3
+                // Upload to S3
                 s3Service.putObject(
                         s3Buckets.getStudent(),
                         s3Key,
@@ -127,20 +128,18 @@ public class StudentFaceDataService {
                 );
                 logger.info("Uploaded image {} to S3 with key: {}", i + 1, s3Key);
 
-                // Kiểm tra object tồn tại
+                // Verify S3 object
                 s3Service.headObject(s3Buckets.getStudent(), s3Key);
                 logger.info("Verified S3 object exists for image {}: {}", i + 1, s3Key);
 
-                // Kiểm tra có đúng 1 khuôn mặt
+                // Detect face
                 if (!detectFace(file)) {
-                    s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
                     throw new ResourceNotFoundException("Face detection failed for image %d: must have exactly 1 face".formatted(i + 1));
                 }
 
-                // Trích xuất đặc trưng khuôn mặt
+                // Index face
                 String faceId = indexFace(file, studentId);
                 if (faceId == null) {
-                    s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
                     throw new ResourceNotFoundException("Failed to extract face features for image %d".formatted(i + 1));
                 }
 
@@ -149,26 +148,36 @@ public class StudentFaceDataService {
                 s3Keys.add(s3Key);
             }
 
-            // Cập nhật profileImageId và lưu face data
-            studentRepository.updateProfileImageId(profileImageIds.get(0), studentId); // Lưu ảnh đầu tiên làm profile chính
+            // Update database only if all images are processed successfully
+            studentRepository.updateProfileImageId(profileImageIds.get(0), studentId);
             for (String faceId : faceIds) {
                 saveFaceData(student, faceId);
             }
 
-            // Tạo response với thông tin sinh viên và tất cả faceIds, profileImageIds
             FaceRegisterResponse response = mapper.toFaceRegisterResponse(student, faceIds, profileImageIds, LocalDateTime.now());
             return ApiResponse.success(response, "Student faces registered successfully", servletRequest.getRequestURI());
-        } catch (IOException e) {
-            // Rollback: Xóa tất cả ảnh đã upload nếu có lỗi
+
+        } catch (ResourceNotFoundException e) {
+            // Clean up S3 objects on face detection or indexing failure
             for (String s3Key : s3Keys) {
                 s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
+                logger.info("Cleaned up S3 object: {}", s3Key);
+            }
+            logger.error("Face processing failed for studentId {}: {}", studentId, e.getMessage(), e);
+            throw e; // Re-throw to trigger transaction rollback
+        } catch (IOException e) {
+            // Clean up S3 objects on IO failure
+            for (String s3Key : s3Keys) {
+                s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
+                logger.info("Cleaned up S3 object: {}", s3Key);
             }
             logger.error("Failed to process images for studentId {}: {}", studentId, e.getMessage(), e);
             throw new RuntimeException("Failed to process images", e);
         } catch (S3Exception e) {
-            // Rollback: Xóa tất cả ảnh đã upload nếu có lỗi
+            // Clean up S3 objects on S3 failure
             for (String s3Key : s3Keys) {
                 s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
+                logger.info("Cleaned up S3 object: {}", s3Key);
             }
             logger.error("Failed to verify S3 object for studentId {}: {}", studentId, e.getMessage(), e);
             throw new RuntimeException("Failed to verify S3 object: " + e.getMessage(), e);
@@ -203,22 +212,18 @@ public class StudentFaceDataService {
     @Transactional(readOnly = true)
     public ApiResponse<FaceCompareResponse> compareFace(Long studentId, MultipartFile file, HttpServletRequest servletRequest) {
         try {
-            // Kiểm tra có đúng 1 khuôn mặt
             if (!detectFace(file)) {
                 throw new ResourceNotFoundException("Face detection failed: must have exactly 1 face");
             }
 
-            // Kiểm tra sinh viên tồn tại
             Student student = studentRepository.findById(studentId)
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Student with id [%s] not found".formatted(studentId)));
 
-            // Tạo Image từ MultipartFile
             Image awsImage = Image.builder()
                     .bytes(SdkBytes.fromByteArray(file.getBytes()))
                     .build();
 
-            // Gọi SearchFacesByImage
             SearchFacesByImageRequest request = SearchFacesByImageRequest.builder()
                     .collectionId(FACE_COLLECTION_ID)
                     .image(awsImage)
@@ -232,7 +237,6 @@ public class StudentFaceDataService {
                 throw new ResourceNotFoundException("No matching faces found in collection for studentId [%s]".formatted(studentId));
             }
 
-            // Tìm face khớp với studentId
             for (FaceMatch faceMatch : response.faceMatches()) {
                 String faceId = faceMatch.face().faceId();
                 Float similarity = faceMatch.similarity();
@@ -258,4 +262,46 @@ public class StudentFaceDataService {
             throw new RuntimeException("Failed to compare face: " + e.getMessage(), e);
         }
     }
+
+    /**
+     * Tạo một session mới cho Face Liveness kiểm tra trực tiếp với AWS API.
+     */
+    @Transactional
+    public ApiResponse<LivenessSessionResponse> createLivenessSession(HttpServletRequest servletRequest) {
+        try {
+            // Tạo clientRequestToken duy nhất
+            String clientRequestToken = String.valueOf(System.currentTimeMillis());
+
+            // Tạo request với AWS
+            CreateFaceLivenessSessionRequest awsRequest = CreateFaceLivenessSessionRequest.builder()
+                    .clientRequestToken(clientRequestToken)
+                    .settings(CreateFaceLivenessSessionRequestSettings.builder()
+                            .auditImagesLimit(0) // Disable audit images
+                            .build())
+                    .build();
+
+            // Gọi API AWS để tạo session
+            CreateFaceLivenessSessionResponse awsResponse = rekognitionClient.createFaceLivenessSession(awsRequest);
+
+            logger.info("Created liveness session with sessionId: {} and clientRequestToken: {}",
+                    awsResponse.sessionId(), clientRequestToken);
+
+            // Chuyển đổi sang DTO, sử dụng token bạn tự tạo
+            LivenessSessionResponse dto = new LivenessSessionResponse(
+                    awsResponse.sessionId(),
+                    clientRequestToken
+            );
+
+            return ApiResponse.success(dto, "Liveness session created successfully", servletRequest.getRequestURI());
+
+        } catch (RekognitionException e) {
+            logger.error("Failed to create liveness session: {}", e.getMessage(), e);
+            throw new ResourceNotFoundException("Failed to create liveness session: " + e.getMessage());
+        } catch (Exception e) {
+            logger.error("Unexpected error during liveness session creation: {}", e.getMessage(), e);
+            throw new ResourceNotFoundException("Unexpected error: " + e.getMessage());
+        }
+    }
+
+
 }
