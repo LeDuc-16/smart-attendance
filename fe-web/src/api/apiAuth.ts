@@ -21,14 +21,7 @@ interface ForgotPasswordResponse {
     };
 }
 
-interface VerifyOTPResponse {
-    statusCode: number;
-    message: string;
-    path: string;
-    data: {
-        otpCode: string;
-    };
-}
+
 
 interface ResetPasswordResponse {
     statusCode: number;

@@ -2,9 +2,9 @@ import SidebarLecturer from "../components/SidebarLecturer";
 import HeaderLecturer from "../components/HeaderLecturer";
 import { useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { getSchedulesByLecturerId } from "../api/apiTeaching";
-import { getCourses } from "../api/apiCourse";
-import { getClassRooms } from "../api/apiClassRoom";
+import { getSchedulesByLecturer } from "../api/apiTeaching";
+
+
 import { getClasses } from "../api/apiClass";
 
 const LecturerTakesAttendance = () => {
@@ -53,29 +53,26 @@ const LecturerTakesAttendance = () => {
     if (currentLecturerId === null) return;
     (async () => {
       try {
-        const schedules = await getSchedulesByLecturerId(currentLecturerId);
-        const coursesRes = await getCourses();
-        const rooms = await getClassRooms();
+        const schedules = await getSchedulesByLecturer(currentLecturerId);
+        
         const classesRes = await getClasses();
 
-        const courses: any[] = (coursesRes as any).data;
+        
         const classes: any[] = (classesRes as any).data;
 
         const filteredSchedules = schedules.flatMap((item: any) => {
-          const course = courses.find((c: any) => c.id === item.courseId);
-          const room = rooms.find((r: any) => r.id === item.roomId);
-          const classInfo = classes.find((cl: any) => cl.id === item.classId);
+          const classInfo = classes.find((cl: any) => cl.id === item.classId); // Keep this for capacityStudent
 
           return item.weeks.flatMap((week: any) => {
             return week.studyDays.filter((day: any) => day.date === date).map((day: any) => {
               return {
-                subject: course?.courseName || "",
-                className: classInfo?.className || "",
-                time: `${formatTime(day.startTime || item.startTime)} - ${formatTime(day.endTime || item.endTime)}`,
-                room: room?.roomCode || "",
-                students: classInfo?.capacityStudent ?? "-",
-                status: "Sắp tới", // Có thể cập nhật trạng thái thực tế nếu có
-                statusType: "upcoming", // Có thể cập nhật trạng thái thực tế nếu có
+                subject: item.courseName || "", // Use directly from item
+                className: item.className || "", // Use directly from item
+                time: `${formatTime(item.startTime)} - ${formatTime(item.endTime)}`, // Use directly from item
+                room: item.roomName || "", // Use directly from item
+                students: classInfo?.capacityStudent ?? "-", // Still need classInfo for this
+                status: "Sắp tới",
+                statusType: "upcoming",
               };
             });
           });

@@ -2,7 +2,7 @@ import HeaderLecturer from "../components/HeaderLecturer";
 import SidebarLecturer from "../components/SidebarLecturer";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { getSchedulesByLecturerId } from "../api/apiTeaching";
+import { getSchedulesByLecturer } from "../api/apiTeaching";
 import { getCourses } from "../api/apiCourse";
 import { getClassRooms } from "../api/apiClassRoom";
 import { getClasses } from "../api/apiClass";
@@ -55,7 +55,7 @@ const LecturerDashboard = () => {
     if (currentLecturerId === null) return;
     (async () => {
       try {
-        const schedules = await getSchedulesByLecturerId(currentLecturerId);
+        const schedules = await getSchedulesByLecturer(currentLecturerId);
         const coursesRes = await getCourses();
         const rooms = await getClassRooms();
         const classesRes = await getClasses();

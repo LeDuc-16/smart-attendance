@@ -3,10 +3,9 @@ import { useLocation } from "react-router-dom";
 import SidebarLecturer from "../components/SidebarLecturer";
 import HeaderLecturer from "../components/HeaderLecturer";
 import EditScheduleModal from "../components/EditScheduleModal";
-import { getSchedulesByLecturerId } from "../api/apiTeaching";
+import { getSchedulesByLecturer } from "../api/apiTeaching";
 import type { TeachingSchedule } from "../api/apiTeaching";
-import { getCourses } from "../api/apiCourse";
-import { getClassRooms } from "../api/apiClassRoom";
+
 import { getClasses } from "../api/apiClass";
 
 const TeachingSchedulePage = () => {
@@ -112,20 +111,16 @@ const TeachingSchedulePage = () => {
     if (currentLecturerId === null) return;
     setLoading(true);
     (async () => {
+      console.log("Fetching schedules for lecturer ID:", currentLecturerId); // Add this line
       try {
-        const schedules = await getSchedulesByLecturerId(currentLecturerId);
+        const schedules = await getSchedulesByLecturer(currentLecturerId);
+        console.log("Schedules fetched:", schedules); // Add this line
 
-        const coursesRes = await getCourses();
-        const rooms = await getClassRooms();
         const classesRes = await getClasses();
-
-        const courses: any[] = (coursesRes as any).data;
-        const classes: any[] = (classesRes as any).data;
+        const classes: any[] = (classesRes as any).data.content; // Access content for pageable response
 
         let enriched: any[] = [];
         schedules.forEach((item: any) => {
-          const course = courses.find((c: any) => c.id === item.courseId);
-          const room = rooms.find((r: any) => r.id === item.roomId);
           const classInfo = classes.find((cl: any) => cl.id === item.classId);
 
           item.weeks.forEach((week: any) => {
@@ -141,11 +136,11 @@ const TeachingSchedulePage = () => {
                     ...item,
                     date: day.date,
                     dayOfWeek: day.dayOfWeek,
-                    courseName: course?.courseName || "",
-                    className: classInfo?.className || "",
-                    startTime: day.startTime || item.startTime,
-                    endTime: day.endTime || item.endTime,
-                    roomCode: room?.roomCode || "",
+                    courseName: item.courseName,
+                    className: item.className,
+                    startTime: item.startTime,
+                    endTime: item.endTime,
+                    roomCode: item.roomName,
                     capacityStudent: classInfo?.capacityStudent,
                     raw: item,
                   });
