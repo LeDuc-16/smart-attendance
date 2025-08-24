@@ -54,7 +54,7 @@ public class StudentController {
             value = "/{studentId}/profile-image",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN','LECTURER')")
     @Operation(summary = "Tải lên ảnh hồ sơ sinh viên", description = "Tải lên ảnh hồ sơ cho sinh viên theo ID, chỉ admin và giảng viên")
     public ResponseEntity<ApiResponse<Object>> uploadStudentProfileImage(
             @PathVariable("studentId") Long studentId,
@@ -69,7 +69,7 @@ public class StudentController {
             value = "/{studentId}/profile-image",
             produces = MediaType.IMAGE_JPEG_VALUE
     )
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasAnyRole('ADMIN','LECTURER','STUDENT')")
     @Operation(summary = "Lấy ảnh hồ sơ sinh viên", description = "Lấy ảnh hồ sơ của sinh viên theo ID (ai cũng có thể xem nếu có quyền truy cập)")
     public ResponseEntity<byte[]> getStudentProfileImage(
             @PathVariable("studentId") Long studentId,
