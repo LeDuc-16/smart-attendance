@@ -13,22 +13,24 @@ import java.util.List;
 @Component
 public class StudentFaceDataMapper {
 
-    public FaceRegisterResponse toFaceRegisterResponse(Student student, List<String> faceIds, List<String> profileImageIds, LocalDateTime registeredAt) {
+    public FaceRegisterResponse toFaceRegisterResponse(Student student, List<String> faceIds,
+            List<String> profileImageIds, LocalDateTime registeredAt) {
         return FaceRegisterResponse.builder()
                 .studentId(student.getId())
-                .studentName(student.getUser().getName())
+                .studentName(student.getUser().getName()) // Adjusted to use Student.user.name
                 .studentCode(student.getStudentCode())
                 .studentClass(student.getClasses() != null ? student.getClasses().getClassName() : "N/A")
-                .faceIds(faceIds) // Trả về danh sách faceIds
-                .profileImageIds(profileImageIds) // Trả về danh sách profileImageIds
+                .faceIds(faceIds)
+                .profileImageIds(profileImageIds)
                 .registeredAt(registeredAt)
+                .isRegistered(student.isRegisted()) // Include isRegisted from Student
                 .build();
     }
 
     public FaceCompareResponse toFaceCompareResponse(Student student, String faceId, Float similarity) {
         return FaceCompareResponse.builder()
                 .studentId(student.getId())
-                .studentName(student.getUser().getName())
+                .studentName(student.getUser().getName()) // Adjusted to use Student.user.name
                 .studentCode(student.getStudentCode())
                 .studentClass(student.getClasses() != null ? student.getClasses().getClassName() : "N/A")
                 .faceId(faceId)

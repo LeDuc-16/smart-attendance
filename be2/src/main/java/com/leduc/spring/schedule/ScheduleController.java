@@ -21,7 +21,7 @@ public class ScheduleController {
     private final ScheduleService scheduleService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @Operation(summary = "Tạo lịch học mới", description = "Chỉ admin có quyền tạo lịch học mới")
     public ResponseEntity<ApiResponse<CreateScheduleResponse>> createSchedule(
             @RequestBody CreateScheduleRequest request,
@@ -32,15 +32,15 @@ public class ScheduleController {
     }
 
     @GetMapping("/me")
-    @PreAuthorize("hasAnyRole('LECTURER','STUDENT','ADMIN')")
-    @Operation(summary = "Lấy lịch cá nhân", description = "Giảng viên lấy lịch giảng dạy, sinh viên lấy lịch học")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_LECTURER', 'ROLE_STUDENT')")
+    @Operation(summary = "Lấy lịch cá nhân", description = "Giảng viên lấy lịch giảng dạy, sinh viên lấy lịch học, admin lấy tất cả lịch")
     public ResponseEntity<ApiResponse<Object>> getMySchedule(HttpServletRequest servletRequest) {
         ApiResponse<Object> response = scheduleService.getMySchedule(servletRequest);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/lecturer/{lecturerId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @Operation(summary = "Lấy lịch học theo ID giảng viên", description = "Chỉ admin có quyền lấy lịch học của giảng viên")
     public ResponseEntity<ApiResponse<Object>> getScheduleByLecturerId(
             @PathVariable("lecturerId") Long lecturerId,
@@ -51,7 +51,7 @@ public class ScheduleController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @Operation(summary = "Cập nhật lịch học", description = "Chỉ admin có quyền cập nhật thông tin lịch học")
     public ResponseEntity<ApiResponse<Object>> updateSchedule(
             @PathVariable("id") Long id,
@@ -63,7 +63,7 @@ public class ScheduleController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @Operation(summary = "Xóa lịch học", description = "Chỉ admin có quyền xóa lịch học")
     public ResponseEntity<ApiResponse<Object>> deleteSchedule(
             @PathVariable("id") Long id,
