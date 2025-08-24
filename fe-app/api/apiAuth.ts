@@ -15,6 +15,7 @@ export interface StudentResponse {
   account: string;
   email: string;
   role: 'STUDENT';
+  isRegistered: boolean; // Required field, defaults to false in backend
 }
 
 export interface LecturerResponse {
@@ -27,6 +28,7 @@ export interface LecturerResponse {
   academicRank?: string;
   facultyId?: number;
   userId: number;
+  isRegistered: boolean; // Required field, defaults to false in backend
 }
 
 // Union type cho user info
@@ -73,30 +75,15 @@ class ApiAuthService {
   private authToken: string | null = null;
   private userInfo: UserInfo | null = null;
 
-constructor(baseURL?: string) {
-    if (baseURL) {
-      this.baseURL = baseURL;
-      return;
-    }
-
-    const envBaseURL =
-      process.env.REACT_NATIVE_APP_API_BASE_URL ||
-      process.env.REACT_APP_API_BASE_URL;
-
+  constructor(baseURL?: string) {
     if (process.env.NODE_ENV === 'production') {
-      this.baseURL = envBaseURL || 'http://14.225.210.41:8080';
+      this.baseURL = baseURL || process.env.REACT_APP_API_BASE_URL || 'http://14.225.210.41:8080'; // server public
     } else {
-      // Development
-      // LAN IP của máy dev (dùng cho thiết bị thật)
-      const LAN_BASE_URL = 'http://192.168.11.105:8080';
-      // Localhost cho simulator/emulator
-      const LOCALHOST_BASE_URL = 'http://localhost:8080';
-      this.baseURL = envBaseURL || LAN_BASE_URL || LOCALHOST_BASE_URL;
+      // trong dev thì lấy IP LAN thay vì localhost
+      const LAN_IP = '172.20.10.2'; // mỗi lần Expo show, copy IP này
+      this.baseURL = baseURL || `http://${LAN_IP}:8080`;
     }
-
-    console.log('ApiAuthService baseURL =', this.baseURL);
   }
-
 
   setAuthToken(token: string) {
     this.authToken = token;
