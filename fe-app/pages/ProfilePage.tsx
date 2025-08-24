@@ -5,7 +5,6 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { apiAuthService } from '../api/apiAuth';
 import DashBoardLayout from './DashBoarLayout';
 import { RootStackParamList } from '../App';
-import { apiAuthService } from '../api/apiAuth';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProfilePage'>;
 
@@ -13,8 +12,7 @@ const ProfilePage = ({ navigation }: Props) => {
     const [activeTab, setActiveTab] = useState<'home' | 'schedule' | 'attendance' | 'stats' | 'notification' | 'profile'>('profile');
     const userInfo = apiAuthService.getUserInfo();
 
-    // Lấy thông tin user thực từ API
-    const userInfo = apiAuthService.getUserInfo();
+    
 
     // Helper functions để lấy thông tin theo role
     const getUserName = () => {

@@ -233,7 +233,7 @@ const AttendancePage = () => {
           <Text style={styles.noDataText}>Không có lớp học nào vào ngày này.</Text>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </LoginBackGround>
   );
 };
 
@@ -360,4 +360,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AttendanceScreen;
+export default AttendancePage;
