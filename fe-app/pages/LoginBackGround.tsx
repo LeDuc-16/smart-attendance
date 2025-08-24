@@ -4,16 +4,17 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
-  View
+  View,
 } from 'react-native';
 
 interface LoginBackGroundProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
-const LoginBackGround = ({ children }: LoginBackGroundProps) => {
+const LoginBackGround = (props: LoginBackGroundProps) => {
+  const { children } = props || {};
   return (
-    //Bat su kien ngoai out put 
+    //Bat su kien ngoai out put
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

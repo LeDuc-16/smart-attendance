@@ -11,6 +11,7 @@ import AttendancePage from './pages/AttendancePage';
 import NotificationPage from './pages/NotificationPage';
 import ProfilePage from 'pages/ProfilePage';
 import StatsPage from 'pages/StatsPage';
+import FaceRegisterPage from './pages/FaceRegisterPage';
 // Define the type for your stack navigator routes
 export type RootStackParamList = {
   Login: undefined;
@@ -18,6 +19,7 @@ export type RootStackParamList = {
   OtpPage: undefined;
   ChangePassPage: undefined;
   NewPassWordPage: { otpCode: string };
+  FaceRegisterPage: undefined;
   DashBoardPage: undefined;
   AttendancePage: undefined;
   NotificationPage: undefined;
@@ -42,6 +44,7 @@ export default function App() {
         <Stack.Screen name="ChangePassPage" component={ChangePassPage} />
         <Stack.Screen name="NewPassWordPage" component={NewPassWordPage} />
         <Stack.Screen name="DashBoardPage" component={DashBoardPage} />
+        <Stack.Screen name="FaceRegisterPage" component={FaceRegisterPage} />
         <Stack.Screen name="AttendancePage" component={AttendancePage} />
         <Stack.Screen name="NotificationPage" component={NotificationPage} />
         <Stack.Screen name="ProfilePage" component={ProfilePage} />
