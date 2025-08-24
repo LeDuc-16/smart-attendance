@@ -116,7 +116,9 @@ const TeachingSchedulePage = () => {
         const schedules = await getSchedulesByLecturer(currentLecturerId);
         console.log("Schedules fetched:", schedules); // Add this line
 
+        console.log("Fetching classes...");
         const classesRes = await getClasses();
+        console.log("Classes fetched:", classesRes);
         const classes: any[] = (classesRes as any).data.content; // Access content for pageable response
 
         let enriched: any[] = [];
