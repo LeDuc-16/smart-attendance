@@ -15,8 +15,6 @@ export interface StudentResponse {
   account: string;
   email: string;
   role: 'STUDENT';
-  isRegistered: boolean; // Required field, defaults to false in backend
-  registered: boolean; // Backend actually returns this field name
 }
 
 export interface LecturerResponse {
@@ -29,8 +27,6 @@ export interface LecturerResponse {
   academicRank?: string;
   facultyId?: number;
   userId: number;
-  isRegistered: boolean; // Required field, defaults to false in backend
-  registered: boolean; // Backend actually returns this field name
 }
 
 // Union type cho user info
@@ -77,40 +73,29 @@ class ApiAuthService {
   private authToken: string | null = null;
   private userInfo: UserInfo | null = null;
 
-   constructor(baseURL?: string) {
-  const envBaseURL =
-    process.env.REACT_NATIVE_APP_API_BASE_URL ||
-    process.env.REACT_APP_API_BASE_URL;
-
-  if (process.env.NODE_ENV === 'production') {
-    this.baseURL =
-      baseURL || envBaseURL || 'http://14.225.210.41:8080';
-  } else {
-    const Constants = require('expo-constants').default;
-    const hostUri =
-      Constants.expoConfig?.hostUri ||
-      Constants.manifest?.hostUri ||
-      '';
-    const lanHost = hostUri ? hostUri.split(':')[0] : '192.168.11.105';
-
-    const LAN_BASE_URL = `http://${lanHost}:8080`;
-    const ANDROID_LOCALHOST = 'http://10.0.2.2:8080';
-    const IOS_LOCALHOST = 'http://localhost:8080';
-
-    // Dùng Platform để phân biệt emulator vs device thật
-    const Platform = require('react-native').Platform;
-
-    if (Platform.OS === 'android' && !hostUri) {
-      this.baseURL = ANDROID_LOCALHOST; // Android emulator
-    } else if (Platform.OS === 'ios' && !hostUri) {
-      this.baseURL = IOS_LOCALHOST; // iOS simulator
-    } else {
-      this.baseURL = baseURL || envBaseURL || LAN_BASE_URL;
+constructor(baseURL?: string) {
+    if (baseURL) {
+      this.baseURL = baseURL;
+      return;
     }
+
+    const envBaseURL =
+      process.env.REACT_NATIVE_APP_API_BASE_URL ||
+      process.env.REACT_APP_API_BASE_URL;
+
+    if (process.env.NODE_ENV === 'production') {
+      this.baseURL = envBaseURL || 'http://14.225.210.41:8080';
+    } else {
+      // Development
+      // LAN IP của máy dev (dùng cho thiết bị thật)
+      const LAN_BASE_URL = 'http://192.168.11.105:8080';
+      // Localhost cho simulator/emulator
+      const LOCALHOST_BASE_URL = 'http://localhost:8080';
+      this.baseURL = envBaseURL || LAN_BASE_URL || LOCALHOST_BASE_URL;
+    }
+
+    console.log('ApiAuthService baseURL =', this.baseURL);
   }
-}
-
-
 
 
   setAuthToken(token: string) {

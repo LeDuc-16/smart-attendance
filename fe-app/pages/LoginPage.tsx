@@ -8,7 +8,6 @@ import ErrorMessage from '../components/ErrorMessage';
 import SuccessMessage from '../components/SuccessMessage';
 import LoginBackGround from './LoginBackGround';
 import { apiAuthService } from '../api/apiAuth';
-import { apiFaceService } from '../api/apiFace';
 
 type Props = NativeStackScreenProps<any, 'Login'>;
 
@@ -35,23 +34,7 @@ export default function LoginPage({ navigation }: Props) {
         password: password,
       });
 
-      // Get user info from login response
-      const userInfo = authResponse.user;
-      // Backend returns 'registered' field, not 'isRegistered'
-      const isRegistered = userInfo?.registered || userInfo?.isRegistered;
-
-      console.log('User info:', userInfo);
-      console.log('Registration status:', isRegistered);
-
-      if (isRegistered === true) {
-        console.log('User is registered, navigating to DashBoardPage');
-        // Navigate to DashBoardPage if user already registered their face
-        navigation.navigate('DashBoardPage');
-      } else {
-        console.log('User is not registered, navigating to FaceRegisterPage');
-        // Navigate to FaceRegisterPage if not registered
-        navigation.navigate('FaceRegisterPage');
-      }
+      navigation.navigate('FaceRegisterPage'); // Navigate to Face Register Page
     } catch (err: any) {
       // API service đã xử lý lỗi, chỉ cần lấy message
       setError(err?.message || 'Đăng nhập thất bại');
