@@ -8,6 +8,7 @@ import ErrorMessage from '../components/ErrorMessage';
 import SuccessMessage from '../components/SuccessMessage';
 import LoginBackGround from './LoginBackGround';
 import { apiAuthService } from '../api/apiAuth';
+import { apiFaceService } from '../api/apiFace';
 
 type Props = NativeStackScreenProps<any, 'Login'>;
 

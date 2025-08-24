@@ -4,6 +4,8 @@ import { useNavigation } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoginBackGround from './LoginBackGround';
+import ErrorMessage from '../components/ErrorMessage';
+import SuccessMessage from '../components/SuccessMessage';
 import { apiFaceService } from '../api/apiFace';
 
 const instructions = [
@@ -25,6 +27,8 @@ const FaceRegisterPage = () => {
   );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
   const [permission, requestPermission] = useCameraPermissions();
 
   useEffect(() => {
@@ -36,6 +40,8 @@ const FaceRegisterPage = () => {
   };
 
   const captureImage = async () => {
+    setError(''); // Clear any previous errors
+    setSuccess(''); // Clear any previous success messages
     try {
       await ensurePermission();
       if (!cameraRef.current) throw new Error('Camera not ready');
@@ -55,21 +61,25 @@ const FaceRegisterPage = () => {
       setCurrentIndex((ci) => Math.min(4, ci + 1));
     } catch (err) {
       console.error(err);
-      Alert.alert('Lỗi', 'Không thể chụp ảnh.');
+      setError('Không thể chụp ảnh. Vui lòng thử lại.');
     }
   };
 
   const resetImages = () => {
     setImages(Array(5).fill(null));
     setCurrentIndex(0);
+    setError(''); // Clear errors when resetting
+    setSuccess(''); // Clear success when resetting
   };
 
   const submitImages = async () => {
     if (images.some((img) => !img)) {
-      Alert.alert('Lỗi', 'Vui lòng chụp đủ 5 ảnh.');
+      setError('Vui lòng chụp đủ 5 ảnh.');
       return;
     }
 
+    setError(''); // Clear any previous errors
+    setSuccess(''); // Clear any previous success messages
     setLoading(true);
     try {
       const { apiAuthService } = await import('../api/apiAuth');
@@ -99,26 +109,23 @@ const FaceRegisterPage = () => {
         console.log('Register face response:', resp);
       }
 
-      Alert.alert('Thành công', 'Đăng ký khuôn mặt thành công!');
+      // Show success message
+      setSuccess('Đăng ký khuôn mặt thành công!');
       resetImages(); // Clear images after success
-      navigation.navigate('AttendancePage');
+
+      // Navigate after a short delay to show the success message
+      setTimeout(() => {
+        navigation.navigate('DashBoardPage');
+      }, 2000);
     } catch (err: any) {
       console.error(err);
       // Extract specific error message for face detection failure
       let errorMessage = err?.message || 'Đăng ký thất bại';
       if (errorMessage.includes('Face detection failed for image')) {
-        errorMessage += '\nVui lòng chụp lại ảnh theo hướng dẫn.';
+        errorMessage =
+          'Không phát hiện được khuôn mặt trong ảnh. Vui lòng chụp lại ảnh theo hướng dẫn.';
       }
-      Alert.alert('Lỗi', errorMessage, [
-        {
-          text: 'Chụp lại toàn bộ',
-          onPress: resetImages,
-        },
-        {
-          text: 'Hủy',
-          style: 'cancel',
-        },
-      ]);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -134,6 +141,9 @@ const FaceRegisterPage = () => {
           <Text className="mb-6 text-center text-sm text-gray-500">
             Hoàn tất 5 ảnh theo hướng dẫn
           </Text>
+
+          {error ? <ErrorMessage text={error} /> : null}
+          {success ? <SuccessMessage text={success} /> : null}
 
           <View className="mb-4 h-80 w-full overflow-hidden rounded-lg bg-black">
             {!permission?.granted ? (
@@ -153,7 +163,11 @@ const FaceRegisterPage = () => {
             {positions.map((pos, idx) => (
               <TouchableOpacity
                 key={pos}
-                onPress={() => setCurrentIndex(idx)}
+                onPress={() => {
+                  setCurrentIndex(idx);
+                  setError(''); // Clear error when user selects a position
+                  setSuccess(''); // Clear success when user selects a position
+                }}
                 className="flex-1 items-center">
                 <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-gray-200">
                   {images[idx] ? (
@@ -174,6 +188,12 @@ const FaceRegisterPage = () => {
             <Text className="text-center font-bold text-white">Chụp tại đây</Text>
           </TouchableOpacity>
 
+          {error && (
+            <TouchableOpacity className="mb-3 rounded-2xl bg-red-500 p-3" onPress={resetImages}>
+              <Text className="text-center font-bold text-white">Chụp lại toàn bộ</Text>
+            </TouchableOpacity>
+          )}
+
           <View className="flex-row gap-2">
             <TouchableOpacity
               className="flex-1 rounded-2xl bg-yellow-400 p-3"
@@ -181,6 +201,8 @@ const FaceRegisterPage = () => {
                 const copy = [...images];
                 copy[currentIndex] = null;
                 setImages(copy);
+                setError(''); // Clear error when user takes action
+                setSuccess(''); // Clear success when user takes action
               }}>
               <Text className="text-center font-bold text-black">Chụp lại</Text>
             </TouchableOpacity>
