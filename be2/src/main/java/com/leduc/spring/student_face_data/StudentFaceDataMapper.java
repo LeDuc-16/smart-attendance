@@ -23,7 +23,7 @@ public class StudentFaceDataMapper {
                 .faceIds(faceIds)
                 .profileImageIds(profileImageIds)
                 .registeredAt(registeredAt)
-                .isRegistered(student.isRegisted()) // Include isRegisted from Student
+                .isRegistered(student.isRegistered()) // Include isRegisted from Student
                 .build();
     }
 

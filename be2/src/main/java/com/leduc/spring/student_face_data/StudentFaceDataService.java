@@ -154,7 +154,7 @@ public class StudentFaceDataService {
             }
 
             // Set isRegistered = true for the student
-            student.setRegisted(true);
+            student.setRegistered(true);
             studentRepository.save(student); // Save the updated student entity
 
             FaceRegisterResponse response = mapper.toFaceRegisterResponse(student, faceIds, profileImageIds, LocalDateTime.now());
