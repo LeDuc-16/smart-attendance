@@ -201,7 +201,6 @@ public class AuthenticationService {
   }
 
 
-
   public Object getAccountInfoByRole(User user) {
     switch (user.getRole()) {
       case STUDENT:
