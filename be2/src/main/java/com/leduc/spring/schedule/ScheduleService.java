@@ -12,15 +12,18 @@ import com.leduc.spring.lecturer.LecturerRepository;
 import com.leduc.spring.room.Room;
 import com.leduc.spring.room.RoomRepository;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
@@ -143,6 +146,7 @@ public class ScheduleService {
 
         return ApiResponse.success(schedules, "Schedules retrieved successfully", servletRequest.getRequestURI());
     }
+
     public ApiResponse<Object> getScheduleByLecturerId(Long lecturerId, HttpServletRequest servletRequest) {
         // Authenticate user
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -242,6 +246,88 @@ public class ScheduleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Schedule not found with id: " + id));
         scheduleRepository.delete(schedule);
         return ApiResponse.success(null, "Schedule deleted successfully", servletRequest.getRequestURI());
+    }
+
+    @Transactional
+    public ApiResponse<Boolean> openAttendance(Long scheduleId, HttpServletRequest servletRequest) {
+        // Xác thực người dùng
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = userDetails.getUsername();
+        logger.info("Authenticated user for openAttendance: {}", username);
+
+        // Kiểm tra JWT token
+        String authHeader = servletRequest.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            logger.error("Invalid or missing Authorization header");
+            throw new IllegalArgumentException("Invalid or missing Authorization header");
+        }
+        String jwt = authHeader.substring(7);
+        String extractedUsername = jwtService.extractUsername(jwt);
+        if (!extractedUsername.equals(username)) {
+            logger.error("JWT token username does not match authenticated user: {} vs {}", extractedUsername, username);
+            throw new IllegalArgumentException("JWT token username does not match authenticated user");
+        }
+
+        // Tìm lịch học
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
+
+        // Nếu là giảng viên, kiểm tra xem lịch học thuộc về giảng viên này
+            Long userId = jwtService.extractUserId(jwt);
+            Lecturer lecturer = lecturerRepository.findByUserId(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên cho userId: " + userId));
+            if (!schedule.getLecturer().getId().equals(lecturer.getId())) {
+                throw new IllegalArgumentException("Giảng viên không có quyền mở lịch học này");
+            }
+
+        // Đặt isOpen = true
+        schedule.setOpen(true);
+        scheduleRepository.save(schedule);
+        logger.info("Đã mở điểm danh cho lịch học ID: {}", scheduleId);
+
+        return ApiResponse.success(true, "Đã mở điểm danh thành công", servletRequest.getRequestURI());
+    }
+
+    @Transactional
+    public ApiResponse<LocalDateTime> closeAttendance(Long scheduleId, HttpServletRequest servletRequest) {
+        // Xác thực người dùng
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = userDetails.getUsername();
+        logger.info("Authenticated user for closeAttendance: {}", username);
+
+        // Kiểm tra JWT token
+        String authHeader = servletRequest.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            logger.error("Invalid or missing Authorization header");
+            throw new IllegalArgumentException("Invalid or missing Authorization header");
+        }
+        String jwt = authHeader.substring(7);
+        String extractedUsername = jwtService.extractUsername(jwt);
+        if (!extractedUsername.equals(username)) {
+            logger.error("JWT token username does not match authenticated user: {} vs {}", extractedUsername, username);
+            throw new IllegalArgumentException("JWT token username does not match authenticated user");
+        }
+
+        // Tìm lịch học
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
+
+        //  kiểm tra xem lịch học thuộc về giảng viên này
+            Long userId = jwtService.extractUserId(jwt);
+            Lecturer lecturer = lecturerRepository.findByUserId(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên cho userId: " + userId));
+            if (!schedule.getLecturer().getId().equals(lecturer.getId())) {
+                throw new IllegalArgumentException("Giảng viên không có quyền đóng lịch học này");
+            }
+
+        // Đặt isOpen = false và ghi lại thời gian đóng
+        schedule.setOpen(false);
+        LocalDateTime closeTime = LocalDateTime.now();
+        schedule.setCloseTime(closeTime); // Giả định Schedule có trường closeTime
+        scheduleRepository.save(schedule);
+        logger.info("Đã đóng điểm danh cho lịch học ID: {} tại thời điểm: {}", scheduleId, closeTime);
+
+        return ApiResponse.success(closeTime, "Đã đóng điểm danh thành công", servletRequest.getRequestURI());
     }
 
     private List<WeekSchedule> calculateWeeklySchedule(Schedule schedule) {

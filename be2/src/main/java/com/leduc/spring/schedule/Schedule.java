@@ -10,6 +10,7 @@ import lombok.*;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -64,4 +65,6 @@ public class Schedule {
     @Column(name = "is_open")
     private boolean isOpen = false;
 
+    @Column(name="close_time")
+    private LocalDateTime closeTime;
 }

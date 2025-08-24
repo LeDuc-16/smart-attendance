@@ -1,9 +1,16 @@
 package com.leduc.spring.student_face_data;
 
+import com.leduc.spring.attendance_log.AttendanceLog;
+import com.leduc.spring.attendance_log.AttendanceLogService;
+import com.leduc.spring.attendance_log.AttendanceStatus;
 import com.leduc.spring.aws.S3Buckets;
 import com.leduc.spring.aws.S3Service;
+import com.leduc.spring.classes.ClassEntity;
+import com.leduc.spring.classes.ClassRepository;
 import com.leduc.spring.exception.ApiResponse;
 import com.leduc.spring.exception.ResourceNotFoundException;
+import com.leduc.spring.schedule.Schedule;
+import com.leduc.spring.schedule.ScheduleRepository;
 import com.leduc.spring.student.Student;
 import com.leduc.spring.student.StudentRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +27,7 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -32,11 +40,14 @@ public class StudentFaceDataService {
     private final StudentRepository studentRepository;
     private final S3Service s3Service;
     private final S3Buckets s3Buckets;
+    private final ScheduleRepository scheduleRepository;
+    private final ClassRepository classRepository;
     private final RekognitionClient rekognitionClient;
     private final StudentFaceDataMapper mapper;
+    private final AttendanceLogService attendanceLogService;
     private static final String FACE_COLLECTION_ID = "student_faces";
     private static final float SIMILARITY_THRESHOLD = 90.0f;
-
+    private static final long LATE_THRESHOLD_MINUTES = 5; // 5 phút sau khi đóng vẫn cho phép điểm danh (LATE)
     private boolean detectFace(MultipartFile file) throws IOException {
         try {
             Image awsImage = Image.builder()
@@ -301,5 +312,61 @@ public class StudentFaceDataService {
             logger.error("Unexpected error during liveness session creation: {}", e.getMessage(), e);
             throw new ResourceNotFoundException("Unexpected error: " + e.getMessage());
         }
+    }
+
+    @Transactional
+    public ApiResponse<FaceCompareResponse> attendance(Long studentId, Long scheduleId, MultipartFile file, HttpServletRequest servletRequest) {
+        // Tìm sinh viên
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy sinh viên với ID: " + studentId));
+
+        // Kiểm tra sinh viên đã đăng ký khuôn mặt chưa
+        if (!student.isRegistered()) {
+            throw new IllegalStateException("Sinh viên chưa đăng ký khuôn mặt");
+        }
+
+        // Tìm lịch học
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
+
+        // Kiểm tra xem lịch học có thuộc về lớp của sinh viên
+        ClassEntity studentClass = classRepository.findByStudentId(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp cho sinh viên: " + studentId));
+        if (!schedule.getClassEntity().getId().equals(studentClass.getId())) {
+            throw new IllegalArgumentException("Lịch học không thuộc lớp của sinh viên");
+        }
+
+        // Kiểm tra trạng thái isOpen và thời gian đóng
+        AttendanceStatus status;
+        LocalDateTime now = LocalDateTime.now();
+        if (schedule.isOpen()) {
+            // Lịch đang mở: Điểm danh bình thường
+            status = AttendanceStatus.PRESENT;
+        } else {
+            // Lịch đã đóng: Kiểm tra thời gian đóng
+            LocalDateTime closeTime = schedule.getCloseTime();
+            if (closeTime == null) {
+                throw new IllegalStateException("Lịch học đã đóng nhưng không có thời gian đóng");
+            }
+
+            long minutesSinceClose = ChronoUnit.MINUTES.between(closeTime, now);
+            if (minutesSinceClose <= LATE_THRESHOLD_MINUTES) {
+                // Trong vòng 5 phút sau khi đóng: Điểm danh muộn
+                status = AttendanceStatus.LATE;
+            } else {
+                throw new IllegalStateException("Không thể điểm danh: Đã quá 5 phút sau khi lịch đóng");
+            }
+        }
+
+        // So sánh khuôn mặt
+        ApiResponse<FaceCompareResponse> compareResponse = compareFace(studentId, file, servletRequest);
+        FaceCompareResponse faceCompareResponse = compareResponse.getData();
+
+        // Ghi log điểm danh
+        String note = "Điểm danh bằng nhận diện khuôn mặt, độ tương đồng: " + faceCompareResponse.getSimilarity();
+        ApiResponse<AttendanceLog> logResponse = attendanceLogService.recordHistory(studentId, scheduleId, status, note, servletRequest);
+
+        logger.info("Sinh viên ID: {} đã điểm danh cho lịch ID: {} với trạng thái: {}", studentId, scheduleId, status);
+        return ApiResponse.success(faceCompareResponse, "Điểm danh thành công với trạng thái: " + status, servletRequest.getRequestURI());
     }
 }

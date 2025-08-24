@@ -99,4 +99,5 @@ public class AttendanceLogController {
         ApiResponse<List<AttendanceLog>> response = attendanceLogService.getAttendanceHistoryByClass(classId, servletRequest);
         return ResponseEntity.ok(response);
     }
+
 }

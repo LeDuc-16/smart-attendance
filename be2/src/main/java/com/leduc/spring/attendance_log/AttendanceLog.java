@@ -5,6 +5,7 @@ import com.leduc.spring.course.Course;
 import com.leduc.spring.lecturer.Lecturer;
 import com.leduc.spring.schedule.Schedule;
 import com.leduc.spring.student.Student;
+import com.leduc.spring.schedule.Schedule;
 import jakarta.persistence.*;
 import lombok.*;
 

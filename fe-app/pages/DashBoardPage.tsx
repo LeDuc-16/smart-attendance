@@ -214,7 +214,7 @@ const DashBoardPage = ({ navigation }: Props) => {
               onPress={() => {
                 try {
                   setScheduleError('');
-                  navigation.navigate('AttendancePage');
+                  navigation.navigate('SchedulePage');
                 } catch (error: any) {
                   setScheduleError('Không thể mở trang lịch học. Vui lòng thử lại.');
                 }
@@ -265,7 +265,7 @@ const DashBoardPage = ({ navigation }: Props) => {
                     onPress={() => {
                       try {
                         setError('');
-                        navigation.navigate('AttendancePage');
+                        navigation.navigate('SchedulePage');
                       } catch (error: any) {
                         setError('Không thể mở trang điểm danh. Vui lòng thử lại.');
                       }
@@ -284,7 +284,7 @@ const DashBoardPage = ({ navigation }: Props) => {
                 onPress={() => {
                   try {
                     setError('');
-                    navigation.navigate('AttendancePage');
+                    navigation.navigate('SchedulePage');
                   } catch (error: any) {
                     setError('Không thể mở trang lịch học. Vui lòng thử lại.');
                   }
