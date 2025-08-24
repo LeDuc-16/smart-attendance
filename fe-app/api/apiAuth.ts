@@ -74,29 +74,17 @@ class ApiAuthService {
   private userInfo: UserInfo | null = null;
 
   constructor(baseURL?: string) {
-    if (process.env.NODE_ENV === 'production') {
-      this.baseURL =
-        baseURL ||
-        process.env.REACT_APP_API_BASE_URL ||
-        'http://14.225.210.41:8080';
-    } else {
-      // Dùng IP LAN thay vì localhost
-      this.baseURL = baseURL || 'http://192.168.1.3:8080';
-    }
-
     const envBaseURL =
       process.env.REACT_NATIVE_APP_API_BASE_URL ||
       process.env.REACT_APP_API_BASE_URL;
 
     if (process.env.NODE_ENV === 'production') {
-      this.baseURL = envBaseURL || 'http://14.225.210.41:8080';
+      this.baseURL = baseURL || envBaseURL || 'http://14.225.210.41:8080';
     } else {
       // Development
-      // LAN IP của máy dev (dùng cho thiết bị thật)
-      const LAN_BASE_URL = 'http://192.168.11.105:8080';
-      // Localhost cho simulator/emulator
-      const LOCALHOST_BASE_URL = 'http://localhost:8080';
-      this.baseURL = envBaseURL || LAN_BASE_URL || LOCALHOST_BASE_URL;
+      const LAN_BASE_URL = 'http://192.168.1.3:8080';   // IP LAN của máy Vinh
+      const LOCALHOST_BASE_URL = 'http://localhost:8080'; // Dùng cho emulator
+      this.baseURL = baseURL || envBaseURL || LAN_BASE_URL || LOCALHOST_BASE_URL;
     }
 
     console.log('ApiAuthService baseURL =', this.baseURL);
