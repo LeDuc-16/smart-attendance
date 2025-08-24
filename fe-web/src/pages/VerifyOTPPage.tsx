@@ -105,7 +105,7 @@ const VerifyOTPPage = () => {
                 setOtp("");
 
                 setTimeout(() => {
-                    console.log("🚀 Navigating to reset password with:", { email, otpCode: verifiedOtp });
+                    console.log("Navigating to reset password with:", { email, otpCode: verifiedOtp });
                     navigate("/reset-password", {
                         state: {
                             email: email,
@@ -117,7 +117,7 @@ const VerifyOTPPage = () => {
 
 
             } else {
-                console.log("❌ Frontend: OTP verification failed");
+                console.log("Frontend: OTP verification failed");
                 setMessage("Mã OTP không chính xác hoặc đã được sử dụng");
                 setIsError(true);
                 setOtp("");

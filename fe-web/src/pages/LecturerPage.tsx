@@ -378,8 +378,8 @@ const LecturerPage = () => {
         const message = serverMessage.toLowerCase();
         console.log('Analyzing server error:', serverMessage);
 
-        if (message.includes('account') || message.includes('username') || message.includes('tài khoản')) {
-            return 'Tài khoản đã tồn tại. Vui lòng chọn tài khoản khác.';
+        if (message.includes('account already exists') || message.includes('account') || message.includes('username')) {
+            return 'Tài khoản "gv001" đã tồn tại trong hệ thống. Vui lòng chọn tên tài khoản khác.';
         }
 
         if (message.includes('email')) {

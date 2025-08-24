@@ -1,6 +1,5 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 
-// Interface cho sinh viên
 export interface Student {
     id: number;
     studentCode: string;
@@ -10,10 +9,9 @@ export interface Student {
     facultyName: string | null;
     account: string;
     email: string;
-    avatar?: string; // URL ảnh đại diện
+    avatar?: string;
 }
 
-// Thêm interface cho Major với facultyId
 export interface Major {
     id: number;
     majorName: string;
@@ -26,7 +24,6 @@ export interface Faculty {
     facultyName: string;
 }
 
-// Payload cho tạo/sửa sinh viên
 export interface StudentPayload {
     className: string;
     studentCode: string;
@@ -38,13 +35,11 @@ export interface StudentPayload {
     majorName: string;
 }
 
-// Option cho dropdown
 export interface DropdownOption {
     value: string;
     label: string;
 }
 
-// Interface cho preview data
 export interface PreviewData {
     studentCode?: string;
     studentName?: string;
@@ -56,8 +51,6 @@ export interface PreviewData {
     className?: string;
     [key: string]: any;
 }
-
-// Tạo axios instance riêng cho student API
 const studentApiClient = axios.create({
     baseURL: 'http://localhost:8080',
     headers: {
@@ -66,7 +59,6 @@ const studentApiClient = axios.create({
     withCredentials: true,
 });
 
-// request interceptor để auto gửi token
 studentApiClient.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
         const token = localStorage.getItem('token');
@@ -78,7 +70,6 @@ studentApiClient.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// response interceptor để handle 403 (login timeout)
 studentApiClient.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -90,7 +81,6 @@ studentApiClient.interceptors.response.use(
     }
 );
 
-// --------- API STUDENT CRUD ---------
 export const getStudents = async (): Promise<Student[]> => {
     const response = await studentApiClient.get("/api/v1/students");
     return response.data.data || response.data;
@@ -111,7 +101,6 @@ export const deleteStudent = async (id: number) => {
     return response.data;
 };
 
-// --------- API upload và lấy ảnh sinh viên -------
 export const uploadStudentImage = async (id: number, file: File) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -130,7 +119,6 @@ export const getStudentImage = async (id: number): Promise<string> => {
             responseType: 'blob'
         });
 
-        // Tạo URL từ blob để hiển thị ảnh
         const imageUrl = URL.createObjectURL(response.data);
         return imageUrl;
     } catch (error) {
@@ -139,7 +127,6 @@ export const getStudentImage = async (id: number): Promise<string> => {
     }
 };
 
-// --------- API Preview và Import Excel ---------
 export const previewExcelFile = async (file: File): Promise<PreviewData[]> => {
     const formData = new FormData();
     formData.append('file', file);
@@ -170,15 +157,12 @@ export const importStudentsFromExcel = async (file: File, className?: string) =>
     return response.data;
 };
 
-// --------- API kiểm tra capacity lớp học -------
 export const checkClassCapacityBeforeAdd = async (className: string): Promise<{ canAdd: boolean; currentCount: number; capacity: number }> => {
     try {
-        // Gọi API lấy danh sách sinh viên để đếm
         const studentsResponse = await studentApiClient.get('/api/v1/students');
         const allStudents = studentsResponse.data.data || studentsResponse.data;
         const classStudents = allStudents.filter((s: any) => s.className === className);
 
-        // Lấy thông tin capacity từ API classes
         const classesResponse = await studentApiClient.get('/api/v1/classes');
         const classes = classesResponse.data.data || classesResponse.data;
         const targetClass = classes.find((c: any) => c.className === className);
@@ -197,7 +181,6 @@ export const checkClassCapacityBeforeAdd = async (className: string): Promise<{ 
     }
 };
 
-// --------- API Lấy danh sách option dropdown ---------
 export const getAllFaculties = async (): Promise<Faculty[]> => {
     try {
         const response = await studentApiClient.get("/api/v1/faculties");

@@ -359,7 +359,6 @@ const StudentFormModal = ({
     );
 };
 
-
 const DeleteConfirmModal = ({
     isOpen,
     onClose,
@@ -417,7 +416,6 @@ const DeleteConfirmModal = ({
         </div>
     );
 };
-
 
 const ImportExcelModal = ({
     isOpen,
@@ -531,7 +529,6 @@ const StudentPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-
     const [faculties, setFaculties] = useState<Faculty[]>([]);
     const [allMajors, setAllMajors] = useState<Major[]>([]);
     const [filteredMajors, setFilteredMajors] = useState<Major[]>([]);
@@ -541,10 +538,8 @@ const StudentPage = () => {
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
     const [modalError, setModalError] = useState('');
 
-
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingStudent, setDeletingStudent] = useState<Student | null>(null);
-
 
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
@@ -587,7 +582,6 @@ const StudentPage = () => {
         });
     }, []);
 
-
     useEffect(() => {
         const fetchDropdownOptions = async () => {
             try {
@@ -610,7 +604,6 @@ const StudentPage = () => {
 
         fetchDropdownOptions();
     }, [showErrorToast]);
-
 
     useEffect(() => {
         const fetchStudents = async () => {
@@ -641,7 +634,6 @@ const StudentPage = () => {
         fetchStudents();
     }, [debouncedSearchTerm, showErrorToast]);
 
-
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearchTerm(searchTerm);
@@ -649,7 +641,6 @@ const StudentPage = () => {
         }, 500);
         return () => clearTimeout(handler);
     }, [searchTerm]);
-
 
     useEffect(() => {
         if (formData.facultyName && allMajors.length > 0 && faculties.length > 0) {
@@ -659,7 +650,6 @@ const StudentPage = () => {
                     major => major.facultyId === selectedFaculty.id
                 );
                 setFilteredMajors(majorsForSelectedFaculty);
-
 
                 const currentMajorValid = majorsForSelectedFaculty.some(
                     major => major.majorName === formData.majorName
@@ -751,7 +741,6 @@ const StudentPage = () => {
             }
             setIsModalOpen(false);
 
-
             setDebouncedSearchTerm(prev => prev + " ");
             setTimeout(() => setDebouncedSearchTerm(searchTerm), 100);
         } catch (err: any) {
@@ -774,7 +763,6 @@ const StudentPage = () => {
             if (students.length === 1 && currentPage > 1) {
                 setCurrentPage(currentPage - 1);
             }
-
 
             setDebouncedSearchTerm(prev => prev + " ");
             setTimeout(() => setDebouncedSearchTerm(searchTerm), 100);
@@ -806,7 +794,6 @@ const StudentPage = () => {
 
                 const updatedStudents = await getStudents();
 
-
                 let filteredData = updatedStudents;
                 if (debouncedSearchTerm) {
                     filteredData = updatedStudents.filter(
@@ -829,14 +816,12 @@ const StudentPage = () => {
         input.click();
     };
 
-
     const handleImportExcel = async (file: File, className: string) => {
         try {
             setLoading(true);
             await importStudentsFromExcel(file, className);
             showSuccessToast("Import sinh viên từ Excel thành công!");
             setIsImportModalOpen(false);
-
 
             setDebouncedSearchTerm(prev => prev + " ");
             setTimeout(() => setDebouncedSearchTerm(searchTerm), 100);
@@ -850,65 +835,65 @@ const StudentPage = () => {
         }
     };
 
+    // ✅ THÊM: Hàm xử lý thay đổi trang và render pagination
     const handlePageChange = (page: number) => {
         if (page >= 1 && page <= totalPages) setCurrentPage(page);
     };
 
     const renderPagination = () => {
         if (totalPages <= 1) return null;
+
+        let pageButtons = [];
         let pages: number[] = [];
 
-        if (totalPages <= 5) {
+        // Logic tạo các trang hiển thị
+        if (totalPages <= 3) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
-        } else if (currentPage <= 3) {
-            pages = [1, 2, 3, 4, 5];
-        } else if (currentPage >= totalPages - 2) {
-            pages = [totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+        } else if (currentPage <= 2) {
+            pages = [1, 2, 3];
+        } else if (currentPage >= totalPages - 1) {
+            pages = [totalPages - 2, totalPages - 1, totalPages];
         } else {
-            pages = [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
+            pages = [currentPage - 1, currentPage, currentPage + 1];
         }
+
+        pageButtons = pages.map(i => (
+            <button
+                key={i}
+                onClick={() => handlePageChange(i)}
+                className={`px-3 py-1 mx-1 rounded-md text-sm font-medium ${currentPage === i
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+            >
+                {i}
+            </button>
+        ));
 
         const startItem = students.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
         const endItem = Math.min(currentPage * itemsPerPage, students.length);
 
         return (
-            <div className="bg-white border-t border-gray-200 px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between">
-                <div className="mb-2 md:mb-0">
-                    <p className="text-sm text-gray-700">
-                        Hiển thị <span className="font-medium">{startItem}</span> đến{' '}
-                        <span className="font-medium">{endItem}</span> trong{' '}
-                        <span className="font-medium">{students.length}</span> kết quả
-                    </p>
-                </div>
-                <div>
-                    <nav className="inline-flex gap-1" aria-label="Pagination">
-                        <button
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage === 1}
-                            className="border px-3 py-1 rounded-l-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <span aria-hidden="true">&lt;</span>
-                        </button>
-                        {pages.map((page) => (
-                            <button
-                                key={page}
-                                onClick={() => handlePageChange(page)}
-                                className={`border px-3 py-1 ${currentPage === page
-                                    ? 'bg-blue-600 text-white border-blue-600'
-                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                                    }`}
-                            >
-                                {page}
-                            </button>
-                        ))}
-                        <button
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                            className="border px-3 py-1 rounded-r-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <span aria-hidden="true">&gt;</span>
-                        </button>
-                    </nav>
+            <div className="flex items-center justify-between mt-4 px-4 py-3">
+                <span className="text-sm text-gray-600">
+                    Hiển thị {startItem} - {endItem} của {students.length} sinh viên
+                </span>
+                <div className="flex items-center">
+                    <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 mx-1 rounded-md bg-white text-gray-700 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    >
+                        &lt; Trước
+                    </button>
+                    {pageButtons}
+                    <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1 mx-1 rounded-md bg-white text-gray-700 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    >
+                        Tiếp &gt;
+                    </button>
                 </div>
             </div>
         );
@@ -1019,6 +1004,7 @@ const StudentPage = () => {
                                     ))}
                                 </div>
                             </div>
+                            {/* ✅ SỬA: Thay thế renderPagination cũ bằng renderPagination mới */}
                             {renderPagination()}
                         </>
                     ) : (

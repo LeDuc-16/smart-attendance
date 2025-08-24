@@ -1,18 +1,19 @@
 package com.leduc.spring.user;
 
 import com.leduc.spring.faculty.Faculty;
+import com.leduc.spring.notification.Notification;
 import com.leduc.spring.token.Token;
 import jakarta.persistence.*;
-
-import java.time.LocalDate;
-import java.util.Collection;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+
+import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
 
 @Data
 @Builder
@@ -50,6 +51,14 @@ public class User implements UserDetails {
 
   @OneToOne(mappedBy = "user")
   private Faculty faculty;
+
+  @ManyToMany
+  @JoinTable(
+          name = "user_notification", // Tên bảng liên kết
+          joinColumns = @JoinColumn(name = "user_id"),
+          inverseJoinColumns = @JoinColumn(name = "notification_id")
+  )
+  private List<Notification> notifications; // Thêm danh sách notifications
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {

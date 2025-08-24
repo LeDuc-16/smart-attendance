@@ -56,7 +56,7 @@ const DashBoardLayout: React.FC<DashBoardLayoutProps> = ({
       </View>
 
       {/* Main Content */}
-      <View className="flex-1">{children}</View>
+      <View className="flex-1">{children}</View> 
 
       {/* Bottom Tab Navigation */}
       <View className="border-t border-gray-200 bg-white px-2 py-2 shadow-lg">

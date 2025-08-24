@@ -68,3 +68,11 @@ export const getAllFaculties = async (): Promise<Faculty[]> => {
     });
     return response.data.data;
 };
+// Thêm hàm check tài khoản 
+export const checkAccountExists = async (account: string) => {
+    const token = localStorage.getItem("token");
+    const response = await axios.get(`http://localhost:8080/api/v1/users/check-account/${account}`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+};
