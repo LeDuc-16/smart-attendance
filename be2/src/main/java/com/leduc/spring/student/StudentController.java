@@ -100,7 +100,7 @@ public class StudentController {
     }
 
     @GetMapping("/by-class/{className}")
-    @PreAuthorize("hasAnyRole('ADMIN','LECTURER)")
+    @PreAuthorize("hasAnyRole('ADMIN','LECTURER')")
     @Operation(summary = "Lấy danh sách sinh viên theo tên lớp", description = "Chỉ admin và giảng viên có quyền xem")
     public ResponseEntity<ApiResponse<Object>> getStudentsByClassName(
             @PathVariable("className") String className,
