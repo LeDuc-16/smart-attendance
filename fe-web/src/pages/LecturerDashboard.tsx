@@ -2,7 +2,7 @@ import HeaderLecturer from "../components/HeaderLecturer";
 import SidebarLecturer from "../components/SidebarLecturer";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { getSchedulesByDate } from "../api/apiTeaching";
+import { getSchedulesByLecturerId } from "../api/apiTeaching";
 import { getCourses } from "../api/apiCourse";
 import { getClassRooms } from "../api/apiClassRoom";
 import { getClasses } from "../api/apiClass";
@@ -35,60 +35,85 @@ const LecturerDashboard = () => {
   else if (location.pathname === "/attendance") activeTab = "attendance";
   const [scheduleToday, setScheduleToday] = useState<any[]>([]);
   const todayStr = getTodayString();
+  const [currentLecturerId, setCurrentLecturerId] = useState<number | null>(null);
 
   useEffect(() => {
+    try {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        if (user && user.id) {
+          setCurrentLecturerId(user.id);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to get user data from local storage", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentLecturerId === null) return;
     (async () => {
       try {
-        const schedules = await getSchedulesByDate(todayStr);
+        const schedules = await getSchedulesByLecturerId(currentLecturerId);
         const coursesRes = await getCourses();
         const rooms = await getClassRooms();
         const classesRes = await getClasses();
         const courses: any[] = (coursesRes as any).data;
         const classes: any[] = (classesRes as any).data;
-        const filteredSchedules = schedules.filter((item: any) =>
-          item.weeks.some((week: any) =>
-            week.studyDays.some((day: any) => day.date === todayStr)
-          )
-        );
-        const enriched = filteredSchedules.map((item: any) => {
+
+        const enriched = schedules.flatMap((item: any) => {
           const course = courses.find((c: any) => c.id === item.courseId);
           const room = rooms.find((r: any) => r.id === item.roomId);
           const classInfo = classes.find((cl: any) => cl.id === item.classId);
-          // Xác định trạng thái
-          const now = new Date();
-          const start = new Date(item.startTime);
-          const end = new Date(item.endTime);
-          let status = "Sắp tới";
-          let statusType = "upcoming";
-          if (now >= start && now <= end) {
-            status = "Đang diễn ra";
-            statusType = "active";
-          } else if (now > end) {
-            status = "Đã kết thúc";
-            statusType = "ended";
-          }
-          function formatTime(str: string) {
-            if (/^\d{2}:\d{2}$/.test(str)) return str;
-            const d = new Date(str);
-            if (isNaN(d.getTime())) return str;
-            return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
-          }
-          return {
-            subject: course?.courseName || "",
-            className: classInfo?.className || "",
-            time: `${formatTime(item.startTime)} - ${formatTime(item.endTime)}`,
-            room: room?.roomCode || "",
-            students: classInfo?.capacityStudent || "-",
-            status,
-            statusType,
-          };
+
+          return item.weeks.flatMap((week: any) => {
+            return week.studyDays.filter((day: any) => day.date === todayStr).map((day: any) => {
+              // Xác định trạng thái
+              const now = new Date();
+              const [startHour, startMinute] = (day.startTime || item.startTime).split(':').map(Number);
+              const [endHour, endMinute] = (day.endTime || item.endTime).split(':').map(Number);
+
+              const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startHour, startMinute);
+              const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endHour, endMinute);
+
+              let status = "Sắp tới";
+              let statusType = "upcoming";
+              if (now >= start && now <= end) {
+                status = "Đang diễn ra";
+                statusType = "active";
+              } else if (now > end) {
+                status = "Đã kết thúc";
+                statusType = "ended";
+              }
+
+              function formatTime(str: string) {
+                if (!str) return "";
+                if (/^\d{2}:\d{2}$/.test(str)) return str;
+                const d = new Date(str);
+                if (isNaN(d.getTime())) return str;
+                return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+              }
+
+              return {
+                subject: course?.courseName || "",
+                className: classInfo?.className || "",
+                time: `${formatTime(day.startTime || item.startTime)} - ${formatTime(day.endTime || item.endTime)}`,
+                room: room?.roomCode || "",
+                students: classInfo?.capacityStudent || "-",
+                status,
+                statusType,
+              };
+            });
+          });
         });
+
         setScheduleToday(enriched);
       } catch {
         setScheduleToday([]);
       }
     })();
-  }, []);
+  }, [currentLecturerId, todayStr]);
 
   return (
     <div className="flex min-h-screen bg-gray-100 font-sans">

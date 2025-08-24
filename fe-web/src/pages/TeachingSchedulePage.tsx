@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import SidebarLecturer from "../components/SidebarLecturer";
 import HeaderLecturer from "../components/HeaderLecturer";
 import EditScheduleModal from "../components/EditScheduleModal";
-import { getSchedulesByDate } from "../api/apiTeaching";
+import { getSchedulesByLecturerId } from "../api/apiTeaching";
 import type { TeachingSchedule } from "../api/apiTeaching";
 import { getCourses } from "../api/apiCourse";
 import { getClassRooms } from "../api/apiClassRoom";
@@ -109,15 +109,11 @@ const TeachingSchedulePage = () => {
   }, [date]);
 
   useEffect(() => {
-    if (weekDates.length === 0 || currentLecturerId === null) return;
+    if (currentLecturerId === null) return;
     setLoading(true);
     (async () => {
       try {
-        const dailySchedulesPromises = weekDates.map(d => getSchedulesByDate(d));
-        const dailySchedules = await Promise.all(dailySchedulesPromises);
-
-        const allSchedules = dailySchedules.flat();
-        const uniqueSchedules = Array.from(new Map(allSchedules.map(item => [item.id, item])).values());
+        const schedules = await getSchedulesByLecturerId(currentLecturerId);
 
         const coursesRes = await getCourses();
         const rooms = await getClassRooms();
@@ -126,12 +122,8 @@ const TeachingSchedulePage = () => {
         const courses: any[] = (coursesRes as any).data;
         const classes: any[] = (classesRes as any).data;
 
-        const schedulesForCurrentLecturer = uniqueSchedules.filter(
-          (schedule: any) => schedule.lecturerId === currentLecturerId
-        );
-
         let enriched: any[] = [];
-        schedulesForCurrentLecturer.forEach((item: any) => {
+        schedules.forEach((item: any) => {
           const course = courses.find((c: any) => c.id === item.courseId);
           const room = rooms.find((r: any) => r.id === item.roomId);
           const classInfo = classes.find((cl: any) => cl.id === item.classId);

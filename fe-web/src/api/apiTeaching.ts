@@ -96,31 +96,13 @@ export const getTeachingSchedules = async (): Promise<TeachingSchedule[]> => {
 };
 
 // Thay vì gọi API riêng cho date, dùng API lấy tất cả rồi filter
-export const getSchedulesByDate = async (date: string): Promise<TeachingSchedule[]> => {
+export const getSchedulesByLecturerId = async (lecturerId: number): Promise<TeachingSchedule[]> => {
     try {
-        // Thử API theo date trước
-    const token = localStorage.getItem('token');
-    console.log("Fetching schedules with token:", token); // Log the token
-    const response = await teachingApiClient.get(`/api/v1/schedules/date/${date}`, {
-        headers: {
-            Authorization: `Bearer ${token}` // Ensure the token is sent
-        }
-    });
+        const response = await teachingApiClient.get(`/api/v1/schedules/lecturer/${lecturerId}`);
         return response.data.data;
-    } catch (error: any) {
-        if (error.response?.status === 404 || error.response?.status === 500) {
-            // Nếu API không tồn tại hoặc lỗi, fallback lấy tất cả
-            console.log('Fallback to get all schedules and filter');
-            const allResponse = await teachingApiClient.get("/api/v1/schedules");
-            const allSchedules = allResponse.data.data;
-
-            return allSchedules.filter((schedule: TeachingSchedule) => {
-                return schedule.weeks.some(week =>
-                    week.studyDays.some(day => day.date === date)
-                );
-            });
-        }
-        throw error;
+    } catch (error) {
+        console.error(`Error fetching schedules for lecturer ${lecturerId}:`, error);
+        return [];
     }
 };
 
