@@ -34,7 +34,17 @@ export default function LoginPage({ navigation }: Props) {
         password: password,
       });
 
-      navigation.navigate('FaceRegisterPage'); // Navigate to Face Register Page
+      // Sau khi đăng nhập thành công, lấy thông tin người dùng
+      const userInfo = apiAuthService.getUserInfo();
+
+      if (userInfo?.role === 'LECTURER') {
+        navigation.navigate('DashBoardPage'); // Điều hướng đến trang của giảng viên
+      } else if (userInfo?.role === 'STUDENT') {
+        navigation.navigate('StudentAttendanceViewPage'); // Điều hướng đến trang của sinh viên
+      } else {
+        // Fallback nếu không có vai trò hoặc vai trò không xác định
+        navigation.navigate('FaceRegisterPage');
+      }
     } catch (err: any) {
       // API service đã xử lý lỗi, chỉ cần lấy message
       setError(err?.message || 'Đăng nhập thất bại');

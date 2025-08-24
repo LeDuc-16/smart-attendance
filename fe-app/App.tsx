@@ -15,6 +15,7 @@ import TeachingSchedulePage from './pages/TeachingSchedulePage';
 import DashBoarLayout from './pages/DashBoarLayout';
 import StudentAttendanceViewPage from './pages/StudentAttendanceViewPage';
 import StudentListPage from './pages/StudentListPage';
+import FaceRegisterPage from './pages/FaceRegisterPage';
 
 // Define the type for your stack navigator routes
 export type RootStackParamList = {
@@ -71,6 +72,7 @@ export default function App() {
           )}
         </Stack.Screen>
         <Stack.Screen name="StudentListPage" component={StudentListPage} />
+        <Stack.Screen name="FaceRegisterPage" component={FaceRegisterPage} />
       </Stack.Navigator>
     </NavigationContainer>
   );

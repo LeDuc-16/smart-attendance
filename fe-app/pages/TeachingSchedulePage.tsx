@@ -3,8 +3,8 @@ import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import DashBoardLayout from './DashBoarLayout';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { apiAuthService, LecturerResponse } from '../api/apiAuth';
-import { apiScheduleService, Schedule, Course, Class, Room } from '../api/apiScheduleService';
+import { apiAuthService } from '../api/apiAuth';
+import { apiScheduleService, Schedule } from '../api/apiScheduleService';
 
 // --- Calendar Component (Dynamic) ---
 const Calendar = ({ calendarDate, selectedDate, setSelectedDate, onPrevMonth, onNextMonth }) => {
@@ -112,9 +112,6 @@ const TeachingSchedulePage = ({ navigation }: NativeStackScreenProps<any>) => {
     const [calendarDate, setCalendarDate] = useState(new Date());
     const [activeTab, setActiveTab] = useState('schedule');
     const [schedules, setSchedules] = useState<Schedule[]>([]);
-    const [courses, setCourses] = useState<Course[]>([]);
-    const [classes, setClasses] = useState<Class[]>([]);
-    const [rooms, setRooms] = useState<Room[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const userInfo = apiAuthService.getUserInfo();
@@ -125,7 +122,6 @@ const TeachingSchedulePage = ({ navigation }: NativeStackScreenProps<any>) => {
                 setLoading(true);
                 setError(null);
 
-                // Set auth token for apiScheduleService
                 const token = apiAuthService.getAuthToken();
                 if (token) {
                     apiScheduleService.setAuthToken(token);
@@ -135,23 +131,13 @@ const TeachingSchedulePage = ({ navigation }: NativeStackScreenProps<any>) => {
                     return;
                 }
 
-                const fetchedSchedules = await apiScheduleService.getSchedules();
-                const fetchedCourses = await apiScheduleService.getCourses();
-                const fetchedClasses = await apiScheduleService.getClasses();
-                const fetchedRooms = await apiScheduleService.getRooms();
-
-                const lecturerId = userInfo?.role === 'LECTURER' ? (userInfo as LecturerResponse).id : null;
-
-                if (lecturerId) {
-                    const filteredByLecturer = fetchedSchedules.filter(schedule => schedule.lecturerId === lecturerId);
-                    setSchedules(filteredByLecturer);
+                if (userInfo?.role === 'LECTURER') {
+                    const fetchedSchedules = await apiScheduleService.getSchedulesForLecturer();
+                    setSchedules(fetchedSchedules);
                 } else {
-                    setSchedules([]); // No lecturer ID, no schedules
+                    setSchedules([]);
                 }
 
-                setCourses(fetchedCourses);
-                setClasses(fetchedClasses);
-                setRooms(fetchedRooms);
             } catch (err) {
                 console.error('Failed to fetch schedule data:', err);
                 setError('Failed to load schedule data. Please try again.');
@@ -161,7 +147,7 @@ const TeachingSchedulePage = ({ navigation }: NativeStackScreenProps<any>) => {
         };
 
         fetchScheduleData();
-    }, []); // Empty dependency array means this runs once on mount
+    }, []);
 
     const handlePrevMonth = () => {
         setCalendarDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -196,7 +182,6 @@ const TeachingSchedulePage = ({ navigation }: NativeStackScreenProps<any>) => {
     };
 
     const filteredSchedules = schedules.filter(schedule => {
-        // Find the week that contains the selected date
         return schedule.weeks.some(week => {
             return week.studyDays.some(day => {
                 const studyDate = new Date(day.date);
@@ -211,20 +196,17 @@ const TeachingSchedulePage = ({ navigation }: NativeStackScreenProps<any>) => {
 
     const scheduleContent = filteredSchedules.length > 0 ? (
         filteredSchedules.map((schedule, index) => {
-            const course = courses.find(c => c.id === schedule.courseId);
-            const classObj = classes.find(cls => cls.id === schedule.classId);
-            const roomObj = rooms.find(r => r.id === schedule.roomId);
-            const subject = course ? course.courseName : 'Unknown Course';
-            const className = classObj ? classObj.className : `Lớp: ${schedule.classId}`;
+            const subject = schedule.courseName;
+            const className = `Lớp: ${schedule.className}`;
             const time = `${schedule.startTime.substring(0, 5)} - ${schedule.endTime.substring(0, 5)}`;
-            const room = roomObj ? `Phòng: ${roomObj.roomCode}` : `Phòng: ${schedule.roomId}`;
-            const color = index % 2 === 0 ? 'blue' : 'green'; // Alternating colors
+            const room = `Phòng: ${schedule.roomName}`;
+            const color = index % 2 === 0 ? 'blue' : 'green';
 
             return (
                 <ScheduleCard
                     key={schedule.id}
                     subject={subject}
-                    className={`Lớp: ${className}`}
+                    className={className}
                     time={time}
                     room={room}
                     color={color}

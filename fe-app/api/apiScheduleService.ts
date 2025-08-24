@@ -4,6 +4,17 @@ export interface Schedule {
   id: number;
   startTime: string;
   endTime: string;
+  courseName: string;
+  lecturerName: string;
+  className: string;
+  roomName: string;
+  weeks: Week[];
+}
+
+export interface ScheduleDetail {
+  id: number;
+  startTime: string;
+  endTime: string;
   courseId: number;
   lecturerId: number;
   classId: number;
@@ -94,7 +105,7 @@ class ApiScheduleService {
   async getSchedules(): Promise<Schedule[]> {
     try {
       const response = await fetch(`${this.baseURL}/api/v1/schedules`, {
-        method: 'GET',
+        method: 'POST',
         headers: this.getHeaders(),
       });
 
@@ -104,6 +115,37 @@ class ApiScheduleService {
       }
 
       const result: BackendApiResponse<Schedule[]> = await response.json();
+      return result.data;
+    } catch (error) {
+      console.error('Error fetching schedules:', error);
+      throw error;
+    }
+  }
+
+  async getSchedulesForLecturer(): Promise<Schedule[]> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/v1/schedules/me`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
+
+      const responseText = await response.text();
+      console.log('Raw response from /api/v1/schedules/me:', responseText);
+
+      if (!response.ok) {
+        try {
+          const error = JSON.parse(responseText);
+          throw new Error(error.message || 'Failed to fetch schedules');
+        } catch (e) {
+          throw new Error(`Failed to fetch schedules with status ${response.status}: ${responseText}`);
+        }
+      }
+
+      if (responseText === null || responseText === '') {
+        return [];
+      }
+
+      const result: BackendApiResponse<Schedule[]> = JSON.parse(responseText);
       return result.data;
     } catch (error) {
       console.error('Error fetching schedules:', error);
