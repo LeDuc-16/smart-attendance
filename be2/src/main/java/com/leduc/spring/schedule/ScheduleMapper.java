@@ -12,11 +12,12 @@ public class ScheduleMapper {
                 .id(schedule.getId())
                 .startTime(schedule.getStartTime())
                 .endTime(schedule.getEndTime())
-                .courseName(schedule.getCourse().getCourseName()) // Sửa thành getName() nếu Course có trường name
-                .lecturerName(schedule.getLecturer().getUser().getName()) // Đúng nếu Lecturer có User
+                .courseName(schedule.getCourse().getCourseName())  // Nếu Course có field khác thì đổi cho khớp
+                .lecturerName(schedule.getLecturer().getUser().getName())  // Giả sử Lecturer liên kết User
                 .className(schedule.getClassEntity().getClassName())
                 .roomName(schedule.getRoom().getRoomCode())
                 .weeks(weeks)
+                .isOpen(schedule.isOpen())   // <-- thêm mapping cho isOpen
                 .build();
     }
 }
