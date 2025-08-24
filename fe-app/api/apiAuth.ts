@@ -15,6 +15,7 @@ export interface StudentResponse {
   account: string;
   email: string;
   role: 'STUDENT';
+  isRegistered: boolean; // Required field, defaults to false in backend
 }
 
 export interface LecturerResponse {
@@ -27,6 +28,7 @@ export interface LecturerResponse {
   academicRank?: string;
   facultyId?: number;
   userId: number;
+  isRegistered: boolean; // Required field, defaults to false in backend
 }
 
 // Union type cho user info
@@ -86,10 +88,7 @@ class ApiAuthService {
       const LOCALHOST_BASE_URL = 'http://localhost:8080'; // Dùng cho emulator
       this.baseURL = baseURL || envBaseURL || LAN_BASE_URL || LOCALHOST_BASE_URL;
     }
-
-    console.log('ApiAuthService baseURL =', this.baseURL);
   }
-
 
   setAuthToken(token: string) {
     this.authToken = token;

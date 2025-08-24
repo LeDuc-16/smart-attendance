@@ -62,5 +62,6 @@ public class Schedule {
     private Room room;
 
     @Column(name = "is_open")
-    private boolean isOpen; // Thêm trường để đánh dấu lịch học có mở không
+    private boolean isOpen = false;
+
 }

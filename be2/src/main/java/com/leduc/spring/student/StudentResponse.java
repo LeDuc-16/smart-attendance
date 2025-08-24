@@ -15,5 +15,6 @@ public class StudentResponse {
     private String facultyName;
     private String account;
     private String email;
+    private boolean isRegistered;
     private Role role;
 }
