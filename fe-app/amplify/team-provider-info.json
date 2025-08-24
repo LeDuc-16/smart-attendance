@@ -1,0 +1,15 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-smartattendance-dev-b117c-authRole",
+      "UnauthRoleArn": "arn:aws:iam::016592541828:role/amplify-smartattendance-dev-b117c-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::016592541828:role/amplify-smartattendance-dev-b117c-authRole",
+      "Region": "ap-southeast-2",
+      "DeploymentBucketName": "amplify-smartattendance-dev-b117c-deployment",
+      "UnauthRoleName": "amplify-smartattendance-dev-b117c-unauthRole",
+      "StackName": "amplify-smartattendance-dev-b117c",
+      "StackId": "arn:aws:cloudformation:ap-southeast-2:016592541828:stack/amplify-smartattendance-dev-b117c/5ef422b0-8012-11f0-86b9-0ad979448f49",
+      "AmplifyAppId": "du0y2kwve9eod"
+    }
+  }
+}

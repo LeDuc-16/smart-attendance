@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, ActivityIndicator, StyleSheet } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiAuthService } from '../api/apiAuth';
 import LoginBackGround from './LoginBackGround';
 import { StatusBar } from 'expo-status-bar';
+import { apiFaceService } from '../api/apiFace';
 
-type Props = NativeStackScreenProps<any, 'AttendancePage'>;
-
-const AttendancePage = ({ navigation }: Props) => {
+const AttendancePage = () => {
+  const navigation = useNavigation<any>();
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [faceDetected, setFaceDetected] = useState(false);
   const [attendanceCompleted, setAttendanceCompleted] = useState(false);
@@ -18,116 +20,97 @@ const AttendancePage = ({ navigation }: Props) => {
   useEffect(() => {
     if (!permission?.granted) {
       requestPermission();
+    } else {
+      createLivenessSession();
     }
-  }, [permission, requestPermission]);
+  }, [permission]);
 
-  // Mock face detection cho attendance
-  const simulateFaceDetection = async () => {
-    console.log('Simulating face detection for attendance...');
+  const createLivenessSession = async () => {
+    try {
+      // Prefer in-memory token first to avoid AsyncStorage race
+      let token = apiAuthService.getAuthToken();
+      if (!token) {
+        token = await AsyncStorage.getItem('jwtToken');
+      }
+      if (!token) {
+        throw new Error('JWT token không tồn tại. Vui lòng đăng nhập lại.');
+      }
+      apiFaceService.setAuthToken(token);
 
-    // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // Mock success rate 90%
-    const isSuccess = Math.random() > 0.1;
-    return isSuccess;
+      const response = await apiFaceService.createLivenessSession();
+      setSessionId(response.sessionId);
+      Alert.alert(
+        'Thành công',
+        'Phiên liveness đã được tạo. Vui lòng thực hiện kiểm tra khuôn mặt.'
+      );
+    } catch (error) {
+      console.error('Liveness session error:', error);
+      Alert.alert('Lỗi', 'Không thể tạo phiên liveness. Vui lòng thử lại.');
+    }
   };
 
   const markAttendance = async () => {
-    if (!cameraRef.current) return;
+    if (!cameraRef.current || !sessionId) return;
 
     try {
       setIsProcessing(true);
       setFaceDetected(false);
 
-      // Chụp ảnh
+      // Chụp ảnh từ camera
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
         base64: true,
       });
 
       if (photo) {
-        // Simulate face detection
         setFaceDetected(true);
-        const detectionSuccess = await simulateFaceDetection();
 
-        if (detectionSuccess) {
-          try {
-            // Mock descriptor data
-            const mockDescriptor = Array.from({ length: 128 }, () => Math.random() * 2 - 1);
-
-            // Mock API điểm danh - thay thế cho apiFaceRegisterService.markAttendance
-            const attendanceResult = {
-              success: true,
-              message: 'Điểm danh thành công',
-              data: {
-                studentId: '20210001',
-                time: new Date().toISOString(),
-                location: 'Phòng học T6-01',
-              },
-            };
-
-            setAttendanceCompleted(true);
-
-            Alert.alert(
-              'Điểm danh thành công!',
-              `Xin chào! Điểm danh đã được ghi nhận vào ${new Date().toLocaleTimeString()}`,
-              [
-                {
-                  text: 'Xem chi tiết',
-                  onPress: () => {
-                    Alert.alert('Chi tiết điểm danh', JSON.stringify(attendanceResult, null, 2));
-                  },
-                },
-                {
-                  text: 'Đóng',
-                  onPress: () => navigation.goBack(),
-                },
-              ]
-            );
-          } catch (apiError: any) {
-            console.error('Attendance API error:', apiError);
-            Alert.alert(
-              'Nhận dạng thành công',
-              'Khuôn mặt được nhận dạng nhưng không thể ghi nhận điểm danh. Vui lòng thử lại.',
-              [
-                {
-                  text: 'Thử lại',
-                  onPress: () => setIsProcessing(false),
-                },
-                {
-                  text: 'Về trang chính',
-                  onPress: () => navigation.goBack(),
-                },
-              ]
-            );
-          }
-        } else {
-          Alert.alert(
-            'Không nhận dạng được',
-            'Không thể nhận dạng khuôn mặt hoặc khuôn mặt chưa được đăng ký trong hệ thống.',
-            [
-              {
-                text: 'Thử lại',
-                onPress: () => setIsProcessing(false),
-              },
-              {
-                text: 'Đăng ký khuôn mặt',
-                onPress: () => navigation.navigate('FaceRegisterPage'),
-              },
-            ]
-          );
+        // Giả sử liveness check thành công (nếu tích hợp AWS Amplify Face Liveness, thay bằng logic thực tế)
+        let token = apiAuthService.getAuthToken();
+        if (!token) {
+          token = await AsyncStorage.getItem('jwtToken');
         }
+        if (!token) throw new Error('JWT token không tồn tại. Vui lòng đăng nhập lại.');
+        apiFaceService.setAuthToken(token);
+
+        const imageFile = { uri: photo.uri, type: 'image/jpeg', name: 'face.jpg' };
+        const response = await apiFaceService.compareFace(imageFile as any);
+        setAttendanceCompleted(true);
+
+        Alert.alert(
+          'Điểm danh thành công!',
+          `Xin chào ${response.studentName}! Điểm danh đã được ghi nhận.`,
+          [
+            {
+              text: 'Xem chi tiết',
+              onPress: () => {
+                Alert.alert('Chi tiết điểm danh', JSON.stringify(response, null, 2));
+              },
+            },
+            {
+              text: 'Đóng',
+              onPress: () => navigation.goBack(),
+            },
+          ]
+        );
       }
     } catch (error) {
-      console.error('Camera error:', error);
-      Alert.alert('Lỗi', 'Không thể chụp ảnh. Vui lòng thử lại.');
+      console.error('Attendance error:', error);
+      Alert.alert('Lỗi', 'Không thể điểm danh. Vui lòng thử lại hoặc đăng ký khuôn mặt.', [
+        {
+          text: 'Thử lại',
+          onPress: () => setIsProcessing(false),
+        },
+        {
+          text: 'Đăng ký khuôn mặt',
+          onPress: () => navigation.navigate('FaceRegisterPage'),
+        },
+      ]);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Camera permission check
   if (!permission) {
     return (
       <View className="flex-1 items-center justify-center">
@@ -216,17 +199,18 @@ const AttendancePage = ({ navigation }: Props) => {
               <View className="flex-row items-center">
                 <View className="mr-2 h-2 w-2 rounded-full bg-green-500" />
                 <Text className="text-sm font-medium text-gray-800">
-                  Hệ thống sẵn sàng điểm danh
+                  {sessionId ? 'Hệ thống sẵn sàng điểm danh' : 'Đang tạo phiên liveness...'}
                 </Text>
               </View>
             </View>
 
             {/* Action Button */}
             <TouchableOpacity
-              className={`h-20 w-20 items-center justify-center rounded-full border-4 border-white ${isProcessing ? 'bg-gray-400' : 'bg-blue-600'
-                } shadow-lg`}
+              className={`h-20 w-20 items-center justify-center rounded-full border-4 border-white ${
+                isProcessing ? 'bg-gray-400' : 'bg-blue-600'
+              } shadow-lg`}
               onPress={markAttendance}
-              disabled={isProcessing}>
+              disabled={isProcessing || !sessionId}>
               <Text className="text-center text-sm font-bold text-white">
                 {isProcessing ? 'Đang xử lý' : 'Điểm danh'}
               </Text>
