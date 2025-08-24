@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, SafeAreaView } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { apiScheduleService, Student } from '../api/apiScheduleService';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import StudentDetailCard from '../components/StudentDetailCard';
 
 type StudentListRouteParams = {
   className: string;
@@ -11,8 +12,7 @@ type StudentListRouteParams = {
 type StudentListPageProps = NativeStackScreenProps<Record<string, StudentListRouteParams>, 'StudentListPage'>;
 
 const StudentListPage: React.FC<StudentListPageProps> = ({ navigation }) => {
-  const route = useRoute<RouteProp<Record<string, StudentListRouteParams>, 'StudentListPage'>
->();
+  const route = useRoute<RouteProp<Record<string, StudentListRouteParams>, 'StudentListPage'>>();
   const { className } = route.params;
 
   console.log('StudentListPage: Received className:', className);
@@ -20,6 +20,8 @@ const StudentListPage: React.FC<StudentListPageProps> = ({ navigation }) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showStudentDetailCard, setShowStudentDetailCard] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<{ name: string; id: string } | null>(null);
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -44,6 +46,11 @@ const StudentListPage: React.FC<StudentListPageProps> = ({ navigation }) => {
     fetchStudents();
   }, [className]);
 
+  const handleStudentCardPress = (student: Student) => {
+    setSelectedStudent({ name: student.studentName, id: student.studentCode });
+    setShowStudentDetailCard(true);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
@@ -56,16 +63,28 @@ const StudentListPage: React.FC<StudentListPageProps> = ({ navigation }) => {
           <Text style={styles.errorText}>{error}</Text>
         ) : students.length > 0 ? (
           students.map((student) => (
-            <View key={student.id} style={styles.studentCard}>
+            <TouchableOpacity key={student.id} style={styles.studentCard} onPress={() => handleStudentCardPress(student)}>
               <Text style={styles.studentName}>{student.studentName}</Text>
               <Text style={styles.studentCode}>Mã SV: {student.studentCode}</Text>
               <Text style={styles.studentEmail}>Email: {student.email}</Text>
-            </View>
+            </TouchableOpacity>
           ))
         ) : (
           <Text style={styles.noDataText}>Không có sinh viên nào trong lớp này.</Text>
         )}
       </ScrollView>
+      {showStudentDetailCard && selectedStudent && (
+        <View style={styles.overlay}>
+          <StudentDetailCard
+            studentName={selectedStudent.name}
+            studentId={selectedStudent.id}
+            isVisible={showStudentDetailCard}
+          />
+          <TouchableOpacity style={styles.closeButton} onPress={() => setShowStudentDetailCard(false)}>
+            <Text style={styles.closeButtonText}>Đóng</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -132,6 +151,22 @@ const styles = StyleSheet.create({
   studentEmail: {
     fontSize: 14,
     color: '#555',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    marginTop: 20,
+    backgroundColor: '#007BFF',
+    padding: 10,
+    borderRadius: 5,
+  },
+  closeButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 });
 
