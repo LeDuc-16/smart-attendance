@@ -30,4 +30,5 @@ public class CreateScheduleResponse {
     private String className;
     private String roomName;
     private List<WeekSchedule> weeks;
+    private boolean isOpen;
 }
