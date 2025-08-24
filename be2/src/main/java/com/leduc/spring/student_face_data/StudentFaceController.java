@@ -19,7 +19,15 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import com.amazonaws.services.rekognition.AmazonRekognition;
+import com.amazonaws.services.rekognition.model.CreateFaceLivenessSessionRequest;
+import com.amazonaws.services.rekognition.model.CreateFaceLivenessSessionResult;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Date;
 import java.util.Arrays;
 
 @RestController
@@ -34,6 +42,8 @@ public class StudentFaceController {
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
     private final JwtService jwtService;
+    @Autowired
+    private AmazonRekognition rekognitionClient;
 
     @PostMapping(
             value = "/face-registration",
@@ -126,4 +136,17 @@ public class StudentFaceController {
                 .orElseThrow(() -> new IllegalArgumentException("Student not found for user with account [%s]".formatted(account)));
         return student.getId();
     }
+
+    @GetMapping("/liveness-session")
+    public CreateFaceLivenessSessionResult createLivenessSession() {
+        String clientRequestToken = String.valueOf(new Date().getTime());
+        CreateFaceLivenessSessionRequest request = new CreateFaceLivenessSessionRequest()
+                .withClientRequestToken(clientRequestToken)
+                .withSettings(new com.amazonaws.services.rekognition.model.Settings()
+                        .withSessionId("session-" + clientRequestToken));
+
+        return rekognitionClient.createFaceLivenessSession(request);
+    }
+
+
 }
