@@ -28,7 +28,7 @@ public class Student {
     private String studentCode;
 
     @Column(name = "isRegisted")
-    private String isRegisted;
+    private boolean isRegisted;
 
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId

@@ -21,7 +21,6 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -154,6 +153,10 @@ public class StudentFaceDataService {
                 saveFaceData(student, faceId);
             }
 
+            // Set isRegistered = true for the student
+            student.setRegisted(true);
+            studentRepository.save(student); // Save the updated student entity
+
             FaceRegisterResponse response = mapper.toFaceRegisterResponse(student, faceIds, profileImageIds, LocalDateTime.now());
             return ApiResponse.success(response, "Student faces registered successfully", servletRequest.getRequestURI());
 
@@ -263,9 +266,6 @@ public class StudentFaceDataService {
         }
     }
 
-    /**
-     * Tạo một session mới cho Face Liveness kiểm tra trực tiếp với AWS API.
-     */
     @Transactional
     public ApiResponse<LivenessSessionResponse> createLivenessSession(HttpServletRequest servletRequest) {
         try {
@@ -286,7 +286,7 @@ public class StudentFaceDataService {
             logger.info("Created liveness session with sessionId: {} and clientRequestToken: {}",
                     awsResponse.sessionId(), clientRequestToken);
 
-            // Chuyển đổi sang DTO, sử dụng token bạn tự tạo
+            // Chuyển đổi sang DTO
             LivenessSessionResponse dto = new LivenessSessionResponse(
                     awsResponse.sessionId(),
                     clientRequestToken
@@ -302,6 +302,4 @@ public class StudentFaceDataService {
             throw new ResourceNotFoundException("Unexpected error: " + e.getMessage());
         }
     }
-
-
 }

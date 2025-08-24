@@ -16,4 +16,5 @@ public class FaceRegisterResponse {
     private List<String> faceIds; // Sửa thành List<String> để chứa 5 faceId
     private List<String> profileImageIds; // Sửa thành List<String> để chứa 5 profileImageId
     private LocalDateTime registeredAt;
+    private boolean isRegistered;
 }
