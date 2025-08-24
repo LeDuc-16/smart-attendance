@@ -3,6 +3,7 @@ package com.leduc.spring.attendance_log;
 import com.leduc.spring.classes.ClassEntity;
 import com.leduc.spring.course.Course;
 import com.leduc.spring.lecturer.Lecturer;
+import com.leduc.spring.schedule.Schedule;
 import com.leduc.spring.student.Student;
 import jakarta.persistence.*;
 import lombok.*;
@@ -43,14 +44,13 @@ public class AttendanceLog {
     @JoinColumn(name = "lecturer_id", nullable = false)
     private Lecturer lecturer;
 
-    // Ngày học
-    @Column(nullable = false)
-    private LocalDate sessionDate;
-
     // Trạng thái điểm danh (Đúng giờ, Muộn, Có phép, Vắng)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AttendanceStatus status;
+
+    // Thêm mối quan hệ
+    private Schedule schedule;
 
     // Ghi chú thêm
     @Column(length = 500)
