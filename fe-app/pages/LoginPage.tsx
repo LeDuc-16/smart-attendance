@@ -43,14 +43,20 @@ export default function LoginPage({ navigation }: Props) {
       console.log('User info:', userInfo);
       console.log('Registration status:', isRegistered);
 
-      if (isRegistered === true) {
-        console.log('User is registered, navigating to DashBoardPage');
-        // Navigate to DashBoardPage if user already registered their face
+      if (userInfo?.role === 'LECTURER') {
+        console.log('Lecturer logged in, navigating to DashBoardPage');
         navigation.navigate('DashBoardPage');
+      } else if (userInfo?.role === 'STUDENT') {
+        if (isRegistered === true) {
+          console.log('Student is registered, navigating to DashBoardPage');
+          navigation.navigate('DashBoardPage');
+        } else {
+          console.log('Student is not registered, navigating to FaceRegisterPage');
+          navigation.navigate('FaceRegisterPage');
+        }
       } else {
-        console.log('User is not registered, navigating to FaceRegisterPage');
-        // Navigate to FaceRegisterPage if not registered
-        navigation.navigate('FaceRegisterPage');
+        // Handle other roles or unexpected scenarios
+        setError('Vai trò người dùng không xác định.');
       }
     } catch (err: any) {
       // API service đã xử lý lỗi, chỉ cần lấy message

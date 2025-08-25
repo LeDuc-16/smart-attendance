@@ -3,17 +3,19 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
 import ErrorMessage from '../components/ErrorMessage';
-import DashBoardLayout from './DashBoarLayout';
-import { apiScheduleService, Schedule } from '../api/apiSchedule';
 import { apiAuthService } from '../api/apiAuth';
+import { apiScheduleService, Schedule } from '../api/apiSchedule';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = NativeStackScreenProps<any, 'SchedulePage'>;
 
 const SchedulePage = ({ navigation }: Props) => {
+  // State cho schedule
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const userInfo = apiAuthService.getUserInfo();
 
   useEffect(() => {
     loadAllSchedules();
@@ -42,10 +44,14 @@ const SchedulePage = ({ navigation }: Props) => {
         navigation.navigate('DashBoardPage');
         break;
       case 'schedule':
-        navigation.navigate('SchedulePage');
+        if (userInfo?.role === 'LECTURER') {
+          navigation.navigate('TeachingSchedulePage');
+        } else {
+          navigation.navigate('SchedulePage');
+        }
         break;
       case 'attendance':
-        // already here
+        // đã ở đây
         break;
       case 'stats':
         navigation.navigate('StatsPage');
@@ -61,7 +67,7 @@ const SchedulePage = ({ navigation }: Props) => {
     }
   };
 
-  const content = (
+  const renderScheduleContent = () => (
     <ScrollView className="flex-1 p-4">
       {error ? (
         <TouchableOpacity onPress={() => setError('')} className="mb-4">
@@ -102,15 +108,7 @@ const SchedulePage = ({ navigation }: Props) => {
     </ScrollView>
   );
 
-  return (
-    <DashBoardLayout
-      activeTab="attendance"
-      onTabPress={handleTabPress}
-      headerTitle="Điểm danh"
-      headerSubtitle="Danh sách lớp sắp tới">
-      {content}
-    </DashBoardLayout>
-  );
+  return renderScheduleContent();
 };
 
 export default SchedulePage;

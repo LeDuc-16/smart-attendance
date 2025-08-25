@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { apiAuthService } from '../api/apiAuth';
 import DashBoardLayout from './DashBoarLayout';
 import { RootStackParamList } from '../App';
 
@@ -40,12 +41,20 @@ const fakeAttendanceHistory = [
 
 const StatsPage = ({ navigation }: Props) => {
     const [activeTab, setActiveTab] = useState<'home' | 'schedule' | 'attendance' | 'stats' | 'notification' | 'profile'>('stats');
+    const userInfo = apiAuthService.getUserInfo();
 
     const handleTabPress = (tab: string) => {
         setActiveTab(tab as any);
         switch (tab) {
             case 'home':
                 navigation.navigate('DashBoardPage');
+                break;
+            case 'schedule':
+                if (userInfo?.role === 'LECTURER') {
+                    navigation.navigate('TeachingSchedulePage');
+                } else {
+                    navigation.navigate('SchedulePage');
+                }
                 break;
             case 'attendance':
                 navigation.navigate('AttendancePage');
@@ -69,6 +78,8 @@ const StatsPage = ({ navigation }: Props) => {
             onTabPress={handleTabPress}
             headerTitle="Smart Attendance"
             headerSubtitle="Lịch sử điểm danh"
+            userRole={userInfo?.role as any}
+            navigation={navigation as any}
         >
             <ScrollView className="flex-1 px-2 py-4">
                 {fakeAttendanceHistory.map(item => (

@@ -2,17 +2,17 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
+import { apiAuthService } from '../api/apiAuth';
 import DashBoardLayout from './DashBoarLayout';
 import { RootStackParamList } from '../App';
-import { apiAuthService } from '../api/apiAuth';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProfilePage'>;
 
 const ProfilePage = ({ navigation }: Props) => {
     const [activeTab, setActiveTab] = useState<'home' | 'schedule' | 'attendance' | 'stats' | 'notification' | 'profile'>('profile');
-
-    // Lấy thông tin user thực từ API
     const userInfo = apiAuthService.getUserInfo();
+
+    
 
     // Helper functions để lấy thông tin theo role
     const getUserName = () => {
@@ -76,24 +76,6 @@ const ProfilePage = ({ navigation }: Props) => {
 
     const handleTabPress = (tab: string) => {
         setActiveTab(tab as any);
-        switch (tab) {
-            case 'home':
-                navigation.navigate('DashBoardPage');
-                break;
-            case 'attendance':
-                navigation.navigate('AttendancePage');
-                break;
-            case 'stats':
-                navigation.navigate('StatsPage');
-                break;
-            case 'notification':
-                navigation.navigate('NotificationPage');
-                break;
-            case 'profile':
-                break;
-            default:
-                break;
-        }
     };
 
     const handleLogout = async () => {
@@ -145,6 +127,8 @@ const ProfilePage = ({ navigation }: Props) => {
             onTabPress={handleTabPress}
             headerTitle="Smart Attendance"
             headerSubtitle="Thông tin cá nhân"
+            userRole={userInfo?.role as any}
+            navigation={navigation as any}
         >
             <ScrollView className="flex-1 px-2 py-4">
                 <View className="rounded-xl border border-gray-200 bg-white p-4 mx-1">
@@ -165,24 +149,23 @@ const ProfilePage = ({ navigation }: Props) => {
                     <View className="mb-2">
                         <View className="flex-row items-center py-1">
                             <Text className="text-gray-600 w-32">Họ và tên:</Text>
-                            <Text className="text-gray-900 font-semibold">{getUserName()}</Text>
+                            <Text className="text-gray-900 font-semibold">{userInfo?.role === 'STUDENT' ? (userInfo as any)?.studentName : (userInfo as any)?.name}</Text>
+
                         </View>
 
                         <View className="flex-row items-center py-1">
-                            <Text className="text-gray-600 w-32">
-                                {userInfo.role === 'STUDENT' ? 'Mã sinh viên:' : 'Mã giảng viên:'}
-                            </Text>
-                            <Text className="text-gray-900">{getUserCode()}</Text>
+                            <Text className="text-gray-600 w-32">Mã:</Text>
+                            <Text className="text-gray-900">{userInfo?.role === 'STUDENT' ? (userInfo as any)?.studentCode : (userInfo as any)?.lecturerCode}</Text>
                         </View>
 
                         <View className="flex-row items-center py-1">
                             <Text className="text-gray-600 w-32">Email:</Text>
-                            <Text className="text-gray-900">{getUserEmail()}</Text>
+                            <Text className="text-gray-900">{userInfo?.email}</Text>
                         </View>
 
                         <View className="flex-row items-center py-1">
-                            <Text className="text-gray-600 w-32">Vai trò:</Text>
-                            <Text className="text-gray-900">{getUserRole()}</Text>
+                            <Text className="text-gray-600 w-32">Lớp:</Text>
+                            <Text className="text-gray-900">{userInfo?.role === 'STUDENT' ? (userInfo as any)?.className : ''}</Text>
                         </View>
 
                         {userInfo.role === 'STUDENT' && (
@@ -217,8 +200,8 @@ const ProfilePage = ({ navigation }: Props) => {
 
                         <View className="flex-row items-center py-1">
                             <Text className="text-gray-600 w-32">Trạng thái khuôn mặt:</Text>
-                            <View className={`ml-1 px-2 py-1 rounded-full ${getFaceStatus() === 'Đã đăng ký' ? 'bg-green-500' : 'bg-black'}`}>
-                                <Text className="text-xs text-white font-semibold">{getFaceStatus()}</Text>
+                            <View className="ml-1 bg-black px-2 py-1 rounded-full">
+                                <Text className="text-xs text-white font-semibold">{userInfo?.faceId ? 'Đã đăng ký' : 'Chưa đăng ký'}</Text>
                             </View>
                         </View>
                     </View>

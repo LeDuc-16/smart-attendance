@@ -224,7 +224,7 @@ public class ScheduleService {
     }
 
     public ApiResponse<Object> deleteSchedule(HttpServletRequest servletRequest, Long id) {
-        // Authenticate user
+// Authenticate user
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String username = userDetails.getUsername();
         logger.info("Authenticated user for deleteSchedule: {}", username);
@@ -248,6 +248,8 @@ public class ScheduleService {
         return ApiResponse.success(null, "Schedule deleted successfully", servletRequest.getRequestURI());
     }
 
+
+    
     @Transactional
     public ApiResponse<Boolean> openAttendance(Long scheduleId, HttpServletRequest servletRequest) {
         // Xác thực người dùng
@@ -288,6 +290,7 @@ public class ScheduleService {
         return ApiResponse.success(true, "Đã mở điểm danh thành công", servletRequest.getRequestURI());
     }
 
+  
     @Transactional
     public ApiResponse<LocalDateTime> closeAttendance(Long scheduleId, HttpServletRequest servletRequest) {
         // Xác thực người dùng

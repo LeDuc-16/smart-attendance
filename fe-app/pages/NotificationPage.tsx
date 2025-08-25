@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
+import { apiAuthService } from '../api/apiAuth';
 import DashBoardLayout from './DashBoarLayout';
 import { RootStackParamList } from '../App';
 
@@ -79,24 +80,10 @@ const NotificationPage = ({ navigation }: Props) => {
     const [activeTab, setActiveTab] = useState<'home' | 'schedule' | 'attendance' | 'stats' | 'notification' | 'profile'>('notification');
     const [selectedFilter, setSelectedFilter] = useState<NotificationType>('all');
     const [notifications, setNotifications] = useState<Notification[]>(fakeNotifications);
+    const userInfo = apiAuthService.getUserInfo();
 
     const handleTabPress = (tab: string) => {
         setActiveTab(tab as any);
-        switch (tab) {
-            case 'home':
-                navigation.navigate('DashBoardPage');
-                break;
-            case 'attendance':
-                navigation.navigate('AttendancePage');
-                break;
-            case 'notification':
-                break;
-            case 'profile':
-                navigation.navigate('ProfilePage');
-                break;
-            default:
-                break;
-        }
     };
 
     const handleMarkAsRead = (id: string) => {
@@ -117,6 +104,8 @@ const NotificationPage = ({ navigation }: Props) => {
             onTabPress={handleTabPress}
             headerTitle="Smart Attendance"
             headerSubtitle="Thông báo"
+            userRole={userInfo?.role as any}
+            navigation={navigation as any}
         >
             {/* Filter tabs */}
             <View className="flex-row mb-4 px-2 pt-4">

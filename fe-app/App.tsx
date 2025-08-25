@@ -9,9 +9,16 @@ import NewPassWordPage from './pages/NewPassWordPage';
 import DashBoardPage from './pages/DashBoardPage';
 import AttendancePage from './pages/AttendancePage';
 import NotificationPage from './pages/NotificationPage';
-import ProfilePage from 'pages/ProfilePage';
-import StatsPage from 'pages/StatsPage';
+import ProfilePage from './pages/ProfilePage';
+import StatsPage from './pages/StatsPage';
+import TeachingSchedulePage from './pages/TeachingSchedulePage';
+import DashBoarLayout from './pages/DashBoarLayout';
+import StudentAttendanceViewPage from './pages/StudentAttendanceViewPage';
+import StudentListPage from './pages/StudentListPage';
 import FaceRegisterPage from './pages/FaceRegisterPage';
+import AttendanceReportScreen from './pages/AttendanceReportScreen';
+import SchedulePage from './pages/SchedulePage';
+
 // Define the type for your stack navigator routes
 export type RootStackParamList = {
   Login: undefined;
@@ -25,6 +32,11 @@ export type RootStackParamList = {
   NotificationPage: undefined;
   ProfilePage: undefined;
   StatsPage: undefined;
+  TeachingSchedulePage: undefined;
+  StudentAttendanceViewPage: undefined;
+  SchedulePage: undefined;
+  StudentListPage: { className: string, scheduleId: number, date: string };
+  AttendanceReport: undefined;
 };
 
 // const Stack = createNativeStackNavigator();
@@ -44,11 +56,40 @@ export default function App() {
         <Stack.Screen name="ChangePassPage" component={ChangePassPage} />
         <Stack.Screen name="NewPassWordPage" component={NewPassWordPage} />
         <Stack.Screen name="DashBoardPage" component={DashBoardPage} />
-        <Stack.Screen name="FaceRegisterPage" component={FaceRegisterPage} />
-        <Stack.Screen name="AttendancePage" component={AttendancePage} />
+        <Stack.Screen name="AttendancePage">
+          {(props) => (
+            <DashBoarLayout activeTab="attendance" userRole="LECTURER" navigation={props.navigation as any}>
+              <AttendancePage />
+            </DashBoarLayout>
+          )}
+        </Stack.Screen>
         <Stack.Screen name="NotificationPage" component={NotificationPage} />
         <Stack.Screen name="ProfilePage" component={ProfilePage} />
         <Stack.Screen name="StatsPage" component={StatsPage} />
+        <Stack.Screen name="TeachingSchedulePage" component={TeachingSchedulePage} />
+        <Stack.Screen name="StudentAttendanceViewPage">
+          {(props) => (
+            <DashBoarLayout activeTab="attendance" userRole="STUDENT" navigation={props.navigation as any}>
+              <StudentAttendanceViewPage />
+            </DashBoarLayout>
+          )}
+        </Stack.Screen>
+        <Stack.Screen name="StudentListPage" component={StudentListPage} />
+        <Stack.Screen name="FaceRegisterPage" component={FaceRegisterPage} />
+        <Stack.Screen name="SchedulePage">
+          {(props) => (
+            <DashBoarLayout activeTab="schedule" userRole="STUDENT" navigation={props.navigation as any}>
+              <SchedulePage />
+            </DashBoarLayout>
+          )}
+        </Stack.Screen>
+        <Stack.Screen name="AttendanceReport">
+          {(props) => (
+            <DashBoarLayout activeTab="report" userRole="LECTURER" navigation={props.navigation as any}>
+              <AttendanceReportScreen />
+            </DashBoarLayout>
+          )}
+        </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
   );

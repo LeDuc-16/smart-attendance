@@ -1,10 +1,9 @@
-// import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
 import DashBoardLayout from './DashBoarLayout';
 import { apiAuthService } from '../api/apiAuth';
-import { apiScheduleService, Schedule } from '../api/apiSchedule';
+import { apiScheduleService, Schedule } from '../api/apiScheduleService';
 import ErrorMessage from '../components/ErrorMessage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useEffect } from 'react';
@@ -39,15 +38,13 @@ const DashBoardPage = ({ navigation }: Props) => {
   const loadSchedules = async () => {
     try {
       setLoadingSchedules(true);
-      setError(''); // Clear previous global errors
-      setScheduleError(''); // Clear previous schedule errors
+      setError('');
+      setScheduleError('');
 
-      // Set auth token for schedule service
       const token = apiAuthService.getAuthToken() || (await AsyncStorage.getItem('jwtToken'));
       if (token) {
         apiScheduleService.setAuthToken(token);
 
-        // Load today's schedules and upcoming schedules
         const [todayData, upcomingData] = await Promise.all([
           apiScheduleService.getTodaySchedules(),
           apiScheduleService.getUpcomingSchedules(),
@@ -99,28 +96,6 @@ const DashBoardPage = ({ navigation }: Props) => {
 
   const handleTabPress = (tab: string) => {
     setActiveTab(tab as any);
-
-    switch (tab) {
-      case 'home':
-        break;
-      case 'schedule':
-        navigation.navigate('SchedulePage');
-        break;
-      case 'attendance':
-        navigation.navigate('AttendancePage');
-        break;
-      case 'stats':
-        navigation.navigate('StatsPage');
-        break;
-      case 'profile':
-        navigation.navigate('ProfilePage');
-        break;
-      case 'notification':
-        navigation.navigate('NotificationPage');
-        break;
-      default:
-        Alert.alert('Thông báo', `Tính năng ${tab} đang phát triển`);
-    }
   };
 
   const handleLogout = async () => {
@@ -134,11 +109,8 @@ const DashBoardPage = ({ navigation }: Props) => {
         style: 'destructive',
         onPress: async () => {
           try {
-            setError(''); // Clear any errors
-            // Gọi API logout
+            setError('');
             await apiAuthService.logout();
-
-            // Reset navigation stack và về trang Login
             navigation.reset({
               index: 0,
               routes: [{ name: 'Login' }],
@@ -146,7 +118,6 @@ const DashBoardPage = ({ navigation }: Props) => {
           } catch (error: any) {
             console.error('Logout error:', error);
             setError(error?.message || 'Đăng xuất thất bại. Vui lòng thử lại.');
-            // Still navigate to login even if logout API fails
             navigation.reset({
               index: 0,
               routes: [{ name: 'Login' }],
@@ -195,7 +166,7 @@ const DashBoardPage = ({ navigation }: Props) => {
         <View className="mb-3 flex-row items-center justify-between">
           <View className="flex-row items-center">
             <MaterialIcons name="schedule" size={20} color="#374151" />
-            <Text className="ml-2 text-lg font-semibold text-gray-800">Lịch học tuần này</Text>
+            <Text className="ml-2 text-lg font-semibold text-gray-800">Lịch học</Text>
           </View>
           <View className="flex-row items-center gap-2">
             <TouchableOpacity
@@ -210,95 +181,108 @@ const DashBoardPage = ({ navigation }: Props) => {
                 color={loadingSchedules ? '#9ca3af' : '#2563eb'}
               />
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {
-                try {
-                  setScheduleError('');
-                  navigation.navigate('SchedulePage');
-                } catch (error: any) {
-                  setScheduleError('Không thể mở trang lịch học. Vui lòng thử lại.');
-                }
-              }}>
+            <TouchableOpacity onPress={() => navigation.navigate('SchedulePage')}>
               <Text className="text-sm text-blue-600">Xem tất cả</Text>
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* Error */}
         {scheduleError ? (
-          <TouchableOpacity
-            className="mb-3"
-            onPress={() => setScheduleError('')}
-            activeOpacity={0.7}>
+          <TouchableOpacity className="mb-3" onPress={() => setScheduleError('')} activeOpacity={0.7}>
             <ErrorMessage text={scheduleError} />
           </TouchableOpacity>
         ) : null}
 
+        {/* Loading */}
         {loadingSchedules ? (
           <View className="rounded-lg bg-gray-50 p-4">
             <Text className="text-center text-gray-500">Đang tải lịch học...</Text>
           </View>
-        ) : upcomingSchedules.length > 0 || todaySchedules.length > 0 ? (
+        ) : (
           <>
-            {(upcomingSchedules.length > 0 ? upcomingSchedules : todaySchedules)
-              .slice(0, 2)
-              .map((schedule, index) => (
-                <View key={schedule.id} className="mb-3 rounded-lg bg-gray-50 p-3">
-                  <View className="mb-2 flex-row items-center">
-                    <MaterialIcons name="book" size={16} color="#6b7280" />
-                    <Text className="ml-2 font-medium text-gray-800">{schedule.subjectName}</Text>
-                  </View>
-                  <Text className="mb-1 text-sm text-gray-600">
-                    {schedule.startTime} - {schedule.endTime} | {schedule.classroomName} |{' '}
-                    {new Date(schedule.date).toLocaleDateString('vi-VN', { weekday: 'long' })}
-                  </Text>
-                  {schedule.lecturerName && (
-                    <Text className="mb-1 text-sm text-gray-600">
-                      Giảng viên: {schedule.lecturerName}
-                    </Text>
-                  )}
-                  {schedule.topic && (
-                    <Text className="mb-3 text-sm text-gray-600">Chủ đề: {schedule.topic}</Text>
-                  )}
-
-                  <TouchableOpacity
-                    className="rounded-lg bg-black py-3"
-                    onPress={() => {
-                      try {
-                        setError('');
-                        navigation.navigate('SchedulePage');
-                      } catch (error: any) {
-                        setError('Không thể mở trang điểm danh. Vui lòng thử lại.');
-                      }
-                    }}>
-                    <View className="flex-row items-center justify-center">
-                      <MaterialIcons name="camera" size={18} color="white" />
-                      <Text className="ml-2 font-medium text-white">Điểm danh</Text>
+            {/* Today schedules */}
+            {todaySchedules.length > 0 ? (
+              <>
+                <Text className="mb-2 font-semibold text-gray-700">Lịch học hôm nay</Text>
+                {todaySchedules.map(item => (
+                  <View key={item.id} className="mb-3 rounded-lg bg-gray-50 p-3">
+                    <View className="mb-2 flex-row items-center">
+                      <MaterialIcons name="book" size={16} color="#6b7280" />
+                      <Text className="ml-2 font-medium text-gray-800">{item.subject}</Text>
                     </View>
-                  </TouchableOpacity>
-                </View>
-              ))}
+                    <Text className="mb-1 text-sm text-gray-600">
+                      {item.time} | {item.location}
+                    </Text>
+                    <Text className="mb-1 text-sm text-gray-600">Giảng viên: {item.lecturer}</Text>
+                    <Text className="mb-3 text-sm text-gray-600">Chủ đề: {item.topic}</Text>
 
-            {(upcomingSchedules.length > 2 || todaySchedules.length > 2) && (
-              <TouchableOpacity
-                className="items-center rounded-lg bg-gray-100 py-3"
-                onPress={() => {
-                  try {
-                    setError('');
-                    navigation.navigate('SchedulePage');
-                  } catch (error: any) {
-                    setError('Không thể mở trang lịch học. Vui lòng thử lại.');
-                  }
-                }}>
-                <Text className="text-sm text-gray-600">
-                  Còn {(upcomingSchedules.length || todaySchedules.length) - 2} lớp học nữa {'>'}
-                </Text>
-              </TouchableOpacity>
+                    <TouchableOpacity
+                      className="rounded-lg bg-black py-3"
+                      onPress={() =>
+                        navigation.navigate('StudentListPage', {
+                          className: item.className,
+                          scheduleId: item.scheduleId,
+                          date: item.date,
+                        })
+                      }>
+                      <View className="flex-row items-center justify-center">
+                        <MaterialIcons name="camera" size={18} color="white" />
+                        <Text className="ml-2 font-medium text-white">Điểm danh</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </>
+            ) : (
+              <Text className="text-center text-gray-500 text-base">Không có lịch học hôm nay.</Text>
+            )}
+
+            {/* Upcoming schedules */}
+            {upcomingSchedules.length > 0 && (
+              <>
+                <Text className="mb-2 font-semibold text-gray-700">Lịch học sắp tới</Text>
+                {upcomingSchedules.slice(0, 2).map(schedule => (
+                  <View key={schedule.id} className="mb-3 rounded-lg bg-gray-50 p-3">
+                    <View className="mb-2 flex-row items-center">
+                      <MaterialIcons name="book" size={16} color="#6b7280" />
+                      <Text className="ml-2 font-medium text-gray-800">{schedule.subjectName}</Text>
+                    </View>
+                    <Text className="mb-1 text-sm text-gray-600">
+                      {schedule.startTime} - {schedule.endTime} | {schedule.classroomName} |{' '}
+                      {new Date(schedule.date).toLocaleDateString('vi-VN', { weekday: 'long' })}
+                    </Text>
+                    {schedule.lecturerName && (
+                      <Text className="mb-1 text-sm text-gray-600">
+                        Giảng viên: {schedule.lecturerName}
+                      </Text>
+                    )}
+                    {schedule.topic && (
+                      <Text className="mb-3 text-sm text-gray-600">Chủ đề: {schedule.topic}</Text>
+                    )}
+                    <TouchableOpacity
+                      className="rounded-lg bg-black py-3"
+                      onPress={() => navigation.navigate('SchedulePage')}>
+                      <View className="flex-row items-center justify-center">
+                        <MaterialIcons name="camera" size={18} color="white" />
+                        <Text className="ml-2 font-medium text-white">Điểm danh</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+
+                {upcomingSchedules.length > 2 && (
+                  <TouchableOpacity
+                    className="items-center rounded-lg bg-gray-100 py-3"
+                    onPress={() => navigation.navigate('SchedulePage')}>
+                    <Text className="text-sm text-gray-600">
+                      Còn {upcomingSchedules.length - 2} lớp học nữa {'>'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </>
-        ) : (
-          <View className="rounded-lg bg-gray-50 p-4">
-            <Text className="text-center text-gray-500">Không có lịch học tuần này</Text>
-          </View>
         )}
       </View>
 
@@ -328,7 +312,10 @@ const DashBoardPage = ({ navigation }: Props) => {
       activeTab={activeTab}
       onTabPress={handleTabPress}
       headerTitle="Smart Attendance"
-      headerSubtitle="Giao diện chính">
+      headerSubtitle="Giao diện chính"
+      userRole={userInfo?.role as any}
+      navigation={navigation as any}
+    >
       {renderHomeContent()}
     </DashBoardLayout>
   );
