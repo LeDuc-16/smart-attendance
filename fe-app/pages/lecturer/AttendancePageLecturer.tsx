@@ -11,12 +11,18 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { apiScheduleService, Schedule } from '../../api/apiSchedule';
 import { apiAuthService } from '../../api/apiAuth';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
 import DashBoardLayoutLecturer from './DashBoardLayoutLecturer';
 
 // --- Các thành phần giao diện ---
 
-const DateNavigator = ({ calendarDate, selectedDate, onPrevMonth, onNextMonth, onPress }) => {
+const DateNavigator: React.FC<{
+    calendarDate: Date;
+    selectedDate: Date;
+    onPrevMonth: () => void;
+    onNextMonth: () => void;
+    onPress: () => void;
+}> = ({ calendarDate, selectedDate, onPrevMonth, onNextMonth, onPress }) => {
     const monthNames = ["Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"];
     const year = calendarDate.getFullYear();
     const month = calendarDate.getMonth();
@@ -39,7 +45,24 @@ const DateNavigator = ({ calendarDate, selectedDate, onPrevMonth, onNextMonth, o
     );
 };
 
-const ClassCard = ({ item, navigation }) => {
+type ClassItem = {
+  id: string;
+  subject: string;
+  className: string;
+  location: string;
+  time: string;
+  status: 'present' | 'past' | 'future';
+  attendanceStatusText: string;
+  attendance: string;
+  date: string;
+};
+
+interface ClassCardProps {
+  item: ClassItem;
+  navigation: NavigationProp<ParamListBase>;
+}
+
+const ClassCard: React.FC<ClassCardProps> = ({ item, navigation }) => {
   const handleOpenAttendance = () => {
     if (navigation) {
       navigation.navigate('StudentListPage', {
@@ -125,7 +148,7 @@ const AttendancePageLecturer = () => {
     fetchSchedules();
   }, []);
 
-  const handleDateChange = (event, date) => {
+  const handleDateChange = (_event: any, date?: Date | undefined) => {
     setShowDatePicker(false);
     if (date) {
       setSelectedDate(date);

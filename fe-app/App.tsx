@@ -39,6 +39,7 @@ export type RootStackParamList = {
   DashBoardPageLecturer: undefined;
   SchedulePageLecturer: undefined;
   AttendancePageLecturer: undefined;
+  ReportPageLecturer: undefined;
   StudentListPage: { className: string; scheduleId: string; date: string };
 };
 
