@@ -2,7 +2,6 @@ package com.leduc.spring.schedule;
 
 import com.leduc.spring.classes.ClassEntity;
 import com.leduc.spring.classes.ClassRepository;
-import com.leduc.spring.config.JwtService;
 import com.leduc.spring.course.Course;
 import com.leduc.spring.course.CourseRepository;
 import com.leduc.spring.exception.ApiResponse;
@@ -15,9 +14,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,37 +26,23 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class ScheduleService {
 
     private static final Logger logger = LoggerFactory.getLogger(ScheduleService.class);
 
-    @Autowired
-    private ScheduleRepository scheduleRepository;
+    private final ScheduleRepository scheduleRepository;
+    private final CourseRepository courseRepository;
+    private final LecturerRepository lecturerRepository;
+    private final ClassRepository classRepository;
+    private final RoomRepository roomRepository;
+    private final ScheduleMapper scheduleMapper;
 
-    @Autowired
-    private CourseRepository courseRepository;
-
-    @Autowired
-    private LecturerRepository lecturerRepository;
-
-    @Autowired
-    private ClassRepository classRepository;
-
-    @Autowired
-    private RoomRepository roomRepository;
-
-    @Autowired
-    private JwtService jwtService;
-
-    @Autowired
-    private ScheduleMapper scheduleMapper;
-
+    /**
+     * Tạo lịch học mới
+     */
+    @Transactional
     public ApiResponse<CreateScheduleResponse> createSchedule(CreateScheduleRequest request, HttpServletRequest servletRequest) {
-        // Authenticate user
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String username = userDetails.getUsername();
-        logger.info("Authenticated user for createSchedule: {}", username);
-
         // Validate and fetch entities
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Course ID không tồn tại: " + request.getCourseId()));
@@ -92,195 +74,111 @@ public class ScheduleService {
 
         // Build response
         CreateScheduleResponse response = scheduleMapper.mapToCreateScheduleResponse(savedSchedule, weeks);
-        return ApiResponse.success(response, "Schedule created successfully", servletRequest.getRequestURI());
+        return ApiResponse.success(response, "Lịch học được tạo thành công", servletRequest.getRequestURI());
     }
 
-    public ApiResponse<Object> getMySchedule(HttpServletRequest servletRequest) {
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String username = userDetails.getUsername();
-        logger.info("Authenticated user for getMySchedule: {}", username);
-
-        String authHeader = servletRequest.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.error("Invalid or missing Authorization header");
-            throw new IllegalArgumentException("Invalid or missing Authorization header");
-        }
-        String jwt = authHeader.substring(7);
-        String extractedUsername = jwtService.extractUsername(jwt);
-        if (!extractedUsername.equals(username)) {
-            logger.error("JWT token username does not match authenticated user: {} vs {}", extractedUsername, username);
-            throw new IllegalArgumentException("JWT token username does not match authenticated user");
-        }
-
-        Long userId = jwtService.extractUserId(jwt);
+    /**
+     * Lấy lịch học của người dùng hiện tại
+     */
+    @Transactional(readOnly = true)
+    public ApiResponse<Object> getMySchedule(Long userId, String role, HttpServletRequest servletRequest) {
         List<CreateScheduleResponse> schedules;
 
-        boolean isAdmin = userDetails.getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
-        boolean isLecturer = userDetails.getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ROLE_LECTURER"));
-        boolean isStudent = userDetails.getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ROLE_STUDENT"));
-
-        if (isAdmin) {
+        // Lấy lịch học dựa trên vai trò
+        if ("ROLE_ADMIN".equals(role)) {
             schedules = scheduleRepository.findAll().stream()
                     .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule, calculateWeeklySchedule(schedule)))
                     .collect(Collectors.toList());
-        } else if (isLecturer) {
+        } else if ("ROLE_LECTURER".equals(role)) {
             Lecturer lecturer = lecturerRepository.findByUserId(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên cho userId: " + userId));
-            logger.info("Lecturer ID for userId {}: {}", userId, lecturer.getId());
             schedules = scheduleRepository.findByLecturerId(lecturer.getId()).stream()
                     .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule, calculateWeeklySchedule(schedule)))
                     .collect(Collectors.toList());
             logger.info("Found {} schedules for lecturerId: {}", schedules.size(), lecturer.getId());
-        } else if (isStudent) {
+        } else if ("ROLE_STUDENT".equals(role)) {
             ClassEntity studentClass = classRepository.findByStudentId(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp cho sinh viên: " + userId));
             schedules = scheduleRepository.findByClassEntityId(studentClass.getId()).stream()
                     .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule, calculateWeeklySchedule(schedule)))
                     .collect(Collectors.toList());
         } else {
-            throw new ResourceNotFoundException("Vai trò không được hỗ trợ: " + userDetails.getAuthorities());
+            throw new IllegalArgumentException("Vai trò không hợp lệ: " + role);
         }
 
-        return ApiResponse.success(schedules, "Schedules retrieved successfully", servletRequest.getRequestURI());
+        return ApiResponse.success(schedules, "Lấy lịch học thành công", servletRequest.getRequestURI());
     }
 
+    /**
+     * Lấy lịch học theo ID giảng viên
+     */
+    @Transactional(readOnly = true)
     public ApiResponse<Object> getScheduleByLecturerId(Long lecturerId, HttpServletRequest servletRequest) {
-        // Authenticate user
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String username = userDetails.getUsername();
-        logger.info("Authenticated user for getScheduleByLecturerId: {}", username);
-
-        // Validate JWT token
-        String authHeader = servletRequest.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.error("Invalid or missing Authorization header");
-            throw new IllegalArgumentException("Invalid or missing Authorization header");
-        }
-        String jwt = authHeader.substring(7);
-        String extractedUsername = jwtService.extractUsername(jwt);
-        if (!extractedUsername.equals(username)) {
-            logger.error("JWT token username does not match authenticated user: {} vs {}", extractedUsername, username);
-            throw new IllegalArgumentException("JWT token username does not match authenticated user");
-        }
-
-        // Validate lecturer existence
         Lecturer lecturer = lecturerRepository.findById(lecturerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Lecturer ID không tồn tại: " + lecturerId));
 
-        // Lấy tất cả lịch học của giảng viên
-        List<Schedule> schedules = scheduleRepository.findByLecturerId(lecturerId).stream()
-                .collect(Collectors.toList());
-
-        // Chuyển đổi sang danh sách CreateScheduleResponse
+        List<Schedule> schedules = scheduleRepository.findByLecturerId(lecturerId);
         List<CreateScheduleResponse> scheduleResponses = schedules.stream()
                 .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule, calculateWeeklySchedule(schedule)))
                 .collect(Collectors.toList());
 
-        return ApiResponse.success(scheduleResponses, "Schedules retrieved for lecturer successfully", servletRequest.getRequestURI());
+        return ApiResponse.success(scheduleResponses, "Lấy lịch học của giảng viên thành công", servletRequest.getRequestURI());
     }
 
-    public ApiResponse<Object> updateSchedule(HttpServletRequest servletRequest, Long id, UpdateScheduleRequest request) {
-        // Authenticate user
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String username = userDetails.getUsername();
-        logger.info("Authenticated user for updateSchedule: {}", username);
-
-        // Validate JWT token
-        String authHeader = servletRequest.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.error("Invalid or missing Authorization header");
-            throw new IllegalArgumentException("Invalid or missing Authorization header");
-        }
-        String jwt = authHeader.substring(7);
-        String extractedUsername = jwtService.extractUsername(jwt);
-        if (!extractedUsername.equals(username)) {
-            logger.error("JWT token username does not match authenticated user: {} vs {}", extractedUsername, username);
-            throw new IllegalArgumentException("JWT token username does not match authenticated user");
-        }
-
+    /**
+     * Cập nhật lịch học
+     */
+    @Transactional
+    public ApiResponse<Object> updateSchedule(Long id, UpdateScheduleRequest request, HttpServletRequest servletRequest) {
         Schedule schedule = scheduleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Schedule not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + id));
+
+        // Validate and fetch entities
+        Course course = courseRepository.findById(request.getCourseId())
+                .orElseThrow(() -> new ResourceNotFoundException("Course ID không tồn tại: " + request.getCourseId()));
+        Lecturer lecturer = lecturerRepository.findById(request.getLecturerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Lecturer ID không tồn tại: " + request.getLecturerId()));
+        ClassEntity classEntity = classRepository.findById(request.getClassId())
+                .orElseThrow(() -> new ResourceNotFoundException("Class ID không tồn tại: " + request.getClassId()));
+        Room room = roomRepository.findById(request.getRoomId())
+                .orElseThrow(() -> new ResourceNotFoundException("Room ID không tồn tại: " + request.getRoomId()));
 
         schedule.setStartDate(request.getStartDate());
         schedule.setEndDate(request.getEndDate());
         schedule.setDayOfWeek(request.getDayOfWeek());
         schedule.setStartTime(request.getStartTime());
         schedule.setEndTime(request.getEndTime());
-        schedule.setCourse(Course.builder().id(request.getCourseId()).build());
-        schedule.setLecturer(Lecturer.builder().id(request.getLecturerId()).build());
-        schedule.setClassEntity(ClassEntity.builder().id(request.getClassId()).build());
-        schedule.setRoom(Room.builder().id(request.getRoomId()).build());
+        schedule.setCourse(course);
+        schedule.setLecturer(lecturer);
+        schedule.setClassEntity(classEntity);
+        schedule.setRoom(room);
 
         Schedule updatedSchedule = scheduleRepository.save(schedule);
-
-        // Calculate weekly schedule for updated schedule
         List<WeekSchedule> weeks = calculateWeeklySchedule(updatedSchedule);
 
         CreateScheduleResponse response = scheduleMapper.mapToCreateScheduleResponse(updatedSchedule, weeks);
-        return ApiResponse.success(response, "Schedule updated successfully", servletRequest.getRequestURI());
+        return ApiResponse.success(response, "Cập nhật lịch học thành công", servletRequest.getRequestURI());
     }
 
-    public ApiResponse<Object> deleteSchedule(HttpServletRequest servletRequest, Long id) {
-        // Authenticate user
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String username = userDetails.getUsername();
-        logger.info("Authenticated user for deleteSchedule: {}", username);
-
-        // Validate JWT token
-        String authHeader = servletRequest.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.error("Invalid or missing Authorization header");
-            throw new IllegalArgumentException("Invalid or missing Authorization header");
-        }
-        String jwt = authHeader.substring(7);
-        String extractedUsername = jwtService.extractUsername(jwt);
-        if (!extractedUsername.equals(username)) {
-            logger.error("JWT token username does not match authenticated user: {} vs {}", extractedUsername, username);
-            throw new IllegalArgumentException("JWT token username does not match authenticated user");
-        }
-
+    /**
+     * Xóa lịch học
+     */
+    @Transactional
+    public ApiResponse<Object> deleteSchedule(Long id, HttpServletRequest servletRequest) {
         Schedule schedule = scheduleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Schedule not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + id));
         scheduleRepository.delete(schedule);
-        return ApiResponse.success(null, "Schedule deleted successfully", servletRequest.getRequestURI());
+        return ApiResponse.success(null, "Xóa lịch học thành công", servletRequest.getRequestURI());
     }
 
+    /**
+     * Mở điểm danh cho lịch học
+     */
     @Transactional
     public ApiResponse<Boolean> openAttendance(Long scheduleId, HttpServletRequest servletRequest) {
-        // Xác thực người dùng
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String username = userDetails.getUsername();
-        logger.info("Authenticated user for openAttendance: {}", username);
-
-        // Kiểm tra JWT token
-        String authHeader = servletRequest.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.error("Invalid or missing Authorization header");
-            throw new IllegalArgumentException("Invalid or missing Authorization header");
-        }
-        String jwt = authHeader.substring(7);
-        String extractedUsername = jwtService.extractUsername(jwt);
-        if (!extractedUsername.equals(username)) {
-            logger.error("JWT token username does not match authenticated user: {} vs {}", extractedUsername, username);
-            throw new IllegalArgumentException("JWT token username does not match authenticated user");
-        }
-
-        // Tìm lịch học
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
 
-        // Nếu là giảng viên, kiểm tra xem lịch học thuộc về giảng viên này
-            Long userId = jwtService.extractUserId(jwt);
-            Lecturer lecturer = lecturerRepository.findByUserId(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên cho userId: " + userId));
-            if (!schedule.getLecturer().getId().equals(lecturer.getId())) {
-                throw new IllegalArgumentException("Giảng viên không có quyền mở lịch học này");
-            }
-
-        // Đặt isOpen = true
         schedule.setOpen(true);
         scheduleRepository.save(schedule);
         logger.info("Đã mở điểm danh cho lịch học ID: {}", scheduleId);
@@ -288,46 +186,59 @@ public class ScheduleService {
         return ApiResponse.success(true, "Đã mở điểm danh thành công", servletRequest.getRequestURI());
     }
 
+    /**
+     * Đóng điểm danh cho lịch học
+     */
     @Transactional
     public ApiResponse<LocalDateTime> closeAttendance(Long scheduleId, HttpServletRequest servletRequest) {
-        // Xác thực người dùng
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String username = userDetails.getUsername();
-        logger.info("Authenticated user for closeAttendance: {}", username);
-
-        // Kiểm tra JWT token
-        String authHeader = servletRequest.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.error("Invalid or missing Authorization header");
-            throw new IllegalArgumentException("Invalid or missing Authorization header");
-        }
-        String jwt = authHeader.substring(7);
-        String extractedUsername = jwtService.extractUsername(jwt);
-        if (!extractedUsername.equals(username)) {
-            logger.error("JWT token username does not match authenticated user: {} vs {}", extractedUsername, username);
-            throw new IllegalArgumentException("JWT token username does not match authenticated user");
-        }
-
-        // Tìm lịch học
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
 
-        //  kiểm tra xem lịch học thuộc về giảng viên này
-            Long userId = jwtService.extractUserId(jwt);
-            Lecturer lecturer = lecturerRepository.findByUserId(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên cho userId: " + userId));
-            if (!schedule.getLecturer().getId().equals(lecturer.getId())) {
-                throw new IllegalArgumentException("Giảng viên không có quyền đóng lịch học này");
-            }
-
-        // Đặt isOpen = false và ghi lại thời gian đóng
         schedule.setOpen(false);
         LocalDateTime closeTime = LocalDateTime.now();
-        schedule.setCloseTime(closeTime); // Giả định Schedule có trường closeTime
+        schedule.setCloseTime(closeTime);
         scheduleRepository.save(schedule);
         logger.info("Đã đóng điểm danh cho lịch học ID: {} tại thời điểm: {}", scheduleId, closeTime);
 
         return ApiResponse.success(closeTime, "Đã đóng điểm danh thành công", servletRequest.getRequestURI());
+    }
+
+    /**
+     * Kiểm tra xem userId có phải là giảng viên với lecturerId
+     */
+    public boolean isLecturer(Long lecturerId, Long userId) {
+        Lecturer lecturer = lecturerRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên cho userId: " + userId));
+        return lecturer.getId().equals(lecturerId);
+    }
+
+    /**
+     * Kiểm tra xem userId có phải là chủ sở hữu lịch học
+     */
+    public boolean isScheduleOwner(Long scheduleId, Long userId) {
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
+        Lecturer lecturer = lecturerRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên cho userId: " + userId));
+        return schedule.getLecturer().getId().equals(lecturer.getId());
+    }
+
+    /**
+     * Lấy danh sách lớp có lịch học đang mở điểm danh
+     */
+    @Transactional(readOnly = true)
+    public ApiResponse<List<ClassEntity>> getClassesWithOpenAttendance(HttpServletRequest servletRequest) {
+        List<ClassEntity> classes = scheduleRepository.findClassesWithOpenAttendance();
+        return ApiResponse.success(classes, "Lấy danh sách lớp đang mở điểm danh thành công", servletRequest.getRequestURI());
+    }
+
+    /**
+     * Lấy danh sách lớp có lịch học đang đóng điểm danh
+     */
+    @Transactional(readOnly = true)
+    public ApiResponse<List<ClassEntity>> getClassesWithClosedAttendance(HttpServletRequest servletRequest) {
+        List<ClassEntity> classes = scheduleRepository.findClassesWithClosedAttendance();
+        return ApiResponse.success(classes, "Lấy danh sách lớp đang đóng điểm danh thành công", servletRequest.getRequestURI());
     }
 
     private List<WeekSchedule> calculateWeeklySchedule(Schedule schedule) {
