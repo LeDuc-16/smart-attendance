@@ -96,8 +96,21 @@ const StudentPage = ({ navigation }: Props) => {
       if (!userInfo || !userInfo.id) throw new Error('Không lấy được thông tin sinh viên');
       const studentId = userInfo.id;
 
+      // Some schedules are synthesized client-side (id = originalId*1000 + counter).
+      // Resolve the original backend schedule id (sourceId) when present so server receives the expected id.
+      const resolvedSchedule = schedules.find((x) => x.id === scheduleId);
+      const realScheduleId = (resolvedSchedule as any)?.sourceId ?? scheduleId;
+      console.log(
+        'StudentPage attendance: scheduleId =',
+        scheduleId,
+        'resolvedSchedule.sourceId =',
+        (resolvedSchedule as any)?.sourceId,
+        'using realScheduleId =',
+        realScheduleId
+      );
+
       const baseURL = resolveBaseURL();
-      const url = `${baseURL}/api/v1/student-faces/${studentId}/attendance?scheduleId=${scheduleId}`;
+      const url = `${baseURL}/api/v1/student-faces/${studentId}/attendance?scheduleId=${realScheduleId}`;
 
       const formData = new FormData();
       formData.append('file', {

@@ -143,9 +143,9 @@ public class StudentFaceDataService {
                 );
                 logger.info("Uploaded image {} to S3 with key: {}", i + 1, s3Key);
 
-                // Verify S3 object
-                s3Service.headObject(s3Buckets.getStudent(), s3Key);
-                logger.info("Verified S3 object exists for image {}: {}", i + 1, s3Key);
+                // Bỏ bước verify
+                // s3Service.headObject(s3Buckets.getStudent(), s3Key);
+                // logger.info("Verified S3 object exists for image {}: {}", i + 1, s3Key);
 
                 // Detect face
                 if (!detectFace(file)) {
@@ -171,21 +171,19 @@ public class StudentFaceDataService {
 
             // Set isRegistered = true for the student
             student.setRegistered(true);
-            studentRepository.save(student); // Save the updated student entity
+            studentRepository.save(student);
 
             FaceRegisterResponse response = mapper.toFaceRegisterResponse(student, faceIds, profileImageIds, LocalDateTime.now());
             return ApiResponse.success(response, "Student faces registered successfully", servletRequest.getRequestURI());
 
         } catch (ResourceNotFoundException e) {
-            // Clean up S3 objects on face detection or indexing failure
             for (String s3Key : s3Keys) {
                 s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
                 logger.info("Cleaned up S3 object: {}", s3Key);
             }
             logger.error("Face processing failed for studentId {}: {}", studentId, e.getMessage(), e);
-            throw e; // Re-throw to trigger transaction rollback
+            throw e;
         } catch (IOException e) {
-            // Clean up S3 objects on IO failure
             for (String s3Key : s3Keys) {
                 s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
                 logger.info("Cleaned up S3 object: {}", s3Key);
@@ -193,7 +191,6 @@ public class StudentFaceDataService {
             logger.error("Failed to process images for studentId {}: {}", studentId, e.getMessage(), e);
             throw new RuntimeException("Failed to process images", e);
         } catch (S3Exception e) {
-            // Clean up S3 objects on S3 failure
             for (String s3Key : s3Keys) {
                 s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
                 logger.info("Cleaned up S3 object: {}", s3Key);
@@ -282,42 +279,6 @@ public class StudentFaceDataService {
         }
     }
 
-    @Transactional
-    public ApiResponse<LivenessSessionResponse> createLivenessSession(HttpServletRequest servletRequest) {
-        try {
-            // Tạo clientRequestToken duy nhất
-            String clientRequestToken = String.valueOf(System.currentTimeMillis());
-
-            // Tạo request với AWS
-            CreateFaceLivenessSessionRequest awsRequest = CreateFaceLivenessSessionRequest.builder()
-                    .clientRequestToken(clientRequestToken)
-                    .settings(CreateFaceLivenessSessionRequestSettings.builder()
-                            .auditImagesLimit(0) // Disable audit images
-                            .build())
-                    .build();
-
-            // Gọi API AWS để tạo session
-            CreateFaceLivenessSessionResponse awsResponse = rekognitionClient.createFaceLivenessSession(awsRequest);
-
-            logger.info("Created liveness session with sessionId: {} and clientRequestToken: {}",
-                    awsResponse.sessionId(), clientRequestToken);
-
-            // Chuyển đổi sang DTO
-            LivenessSessionResponse dto = new LivenessSessionResponse(
-                    awsResponse.sessionId(),
-                    clientRequestToken
-            );
-
-            return ApiResponse.success(dto, "Liveness session created successfully", servletRequest.getRequestURI());
-
-        } catch (RekognitionException e) {
-            logger.error("Failed to create liveness session: {}", e.getMessage(), e);
-            throw new ResourceNotFoundException("Failed to create liveness session: " + e.getMessage());
-        } catch (Exception e) {
-            logger.error("Unexpected error during liveness session creation: {}", e.getMessage(), e);
-            throw new ResourceNotFoundException("Unexpected error: " + e.getMessage());
-        }
-    }
 
     @Transactional
     public ApiResponse<FaceCompareResponse> attendance(Long studentId, Long scheduleId, MultipartFile file, HttpServletRequest servletRequest) {

@@ -90,7 +90,7 @@ const DashBoardPageLecturer = ({ navigation }: Props) => {
 
   const today = new Date();
   const todaySchedules = schedules
-    .filter(schedule => {
+    .filter((schedule) => {
       const studyDate = new Date(schedule.date);
       return (
         studyDate.getFullYear() === today.getFullYear() &&
@@ -98,17 +98,29 @@ const DashBoardPageLecturer = ({ navigation }: Props) => {
         studyDate.getDate() === today.getDate()
       );
     })
-    .map(schedule => ({
-      id: schedule.id.toString(),
-      subject: schedule.subjectName,
-      className: (schedule as any).className || '',
-      location: schedule.classroomName,
-      time: `${schedule.startTime} - ${schedule.endTime}`,
-      lecturer: schedule.lecturerName || '',
-      topic: schedule.topic || 'Chưa có thông tin chủ đề',
-      scheduleId: schedule.id,
-      date: schedule.date,
-    }))
+    .map((schedule) => {
+      console.log(
+        'DashBoard mapping schedule:',
+        schedule.id,
+        'isOpen:',
+        schedule.isOpen,
+        'sourceId:',
+        schedule.sourceId
+      );
+      return {
+        id: schedule.id.toString(),
+        subject: schedule.subjectName,
+        className: schedule.classroomName || '',
+        location: schedule.classroomName,
+        time: `${schedule.startTime} - ${schedule.endTime}`,
+        lecturer: schedule.lecturerName || '',
+        topic: schedule.topic || 'Chưa có thông tin chủ đề',
+        scheduleId: schedule.id,
+        sourceId: schedule.sourceId, // Include sourceId in mapped data
+        date: schedule.date,
+        isOpen: schedule.isOpen || false, // Include isOpen status
+      };
+    })
     .sort((a, b) => {
       const timeA = a.time.split(' - ')[0];
       const timeB = b.time.split(' - ')[0];
@@ -147,44 +159,94 @@ const DashBoardPageLecturer = ({ navigation }: Props) => {
             <MaterialIcons name="schedule" size={20} color="#374151" />
             <Text className="ml-2 text-lg font-semibold text-gray-800">Lịch dạy hôm nay</Text>
           </View>
-          <TouchableOpacity onPress={() => navigation.navigate('SchedulePageLecturer')}> 
+          <TouchableOpacity onPress={() => navigation.navigate('SchedulePageLecturer')}>
             <Text className="text-sm text-blue-600">Xem tất cả</Text>
           </TouchableOpacity>
         </View>
 
         {loadingSchedules ? (
-          <Text className="text-center text-gray-500 text-base">Đang tải lịch dạy...</Text>
+          <Text className="text-center text-base text-gray-500">Đang tải lịch dạy...</Text>
         ) : scheduleError ? (
-          <Text className="text-center text-red-500 text-base">Lỗi: {scheduleError}</Text>
+          <Text className="text-center text-base text-red-500">Lỗi: {scheduleError}</Text>
         ) : todaySchedules.length > 0 ? (
-          todaySchedules.map(item => (
+          todaySchedules.map((item) => (
             <View key={item.id} className="mb-3 rounded-lg bg-gray-50 p-3">
               <View className="mb-2 flex-row items-center">
                 <MaterialIcons name="book" size={16} color="#6b7280" />
                 <Text className="ml-2 font-medium text-gray-800">{item.subject}</Text>
               </View>
-              <Text className="mb-1 text-sm text-gray-600">{item.time} | {item.location}</Text>
-              <Text className="mb-1 text-sm text-gray-600">Lớp: {item.className}</Text>
-              <Text className="mb-3 text-sm text-gray-600">
-                Chủ đề: {item.topic}
+              <Text className="mb-1 text-sm text-gray-600">
+                {item.time} | {item.location}
               </Text>
+              <Text className="mb-1 text-sm text-gray-600">Lớp: {item.className}</Text>
+              <Text className="mb-3 text-sm text-gray-600">Chủ đề: {item.topic}</Text>
 
               <TouchableOpacity
-                className="rounded-lg bg-black py-3"
-                onPress={() => navigation.navigate('AttendancePageLecturer', {
-                  className: item.className,
-                  scheduleId: item.scheduleId,
-                  date: item.date,
-                })}>
+                className={`rounded-lg py-3 ${item.isOpen ? 'bg-red-600' : 'bg-black'}`}
+                onPress={() => {
+                  const actionText = item.isOpen ? 'Đóng điểm danh' : 'Mở điểm danh';
+                  const confirmText = item.isOpen ? 'đóng điểm danh' : 'mở điểm danh';
+
+                  Alert.alert(actionText, `Bạn có chắc chắn muốn ${confirmText} cho lớp này?`, [
+                    { text: 'Hủy', style: 'cancel' },
+                    {
+                      text: actionText,
+                      onPress: async () => {
+                        try {
+                          const token = apiAuthService.getAuthToken();
+                          if (!token) throw new Error('Token không tồn tại');
+                          apiScheduleService.setAuthToken(token);
+                          // prefer sourceId when available (preserved original backend id), fallback to scheduleId
+                          const scheduleIdToUse = (item as any).sourceId ?? item.scheduleId;
+                          console.log(
+                            `DashBoard ${item.isOpen ? 'close' : 'open'}Attendance: item.sourceId =`,
+                            (item as any).sourceId,
+                            'item.scheduleId =',
+                            item.scheduleId,
+                            'using =',
+                            scheduleIdToUse
+                          );
+
+                          const result = item.isOpen
+                            ? await apiScheduleService.closeAttendance(scheduleIdToUse)
+                            : await apiScheduleService.openAttendance(scheduleIdToUse);
+
+                          Alert.alert('Thành công', result?.message || `Đã ${confirmText}`);
+
+                          // Update local state immediately before refresh
+                          setSchedules((prev) =>
+                            prev.map((s) =>
+                              (s.sourceId || s.id) === scheduleIdToUse
+                                ? { ...s, isOpen: !item.isOpen }
+                                : s
+                            )
+                          );
+
+                          // Then refresh from server to get authoritative state
+                          setLoadingSchedules(true);
+                          const response = await apiScheduleService.getMySchedule();
+                          setSchedules(response.schedules);
+                        } catch (err: any) {
+                          console.error(`${item.isOpen ? 'Close' : 'Open'} attendance error:`, err);
+                          Alert.alert('Lỗi', err?.message || `${actionText} thất bại`);
+                        } finally {
+                          setLoadingSchedules(false);
+                        }
+                      },
+                    },
+                  ]);
+                }}>
                 <View className="flex-row items-center justify-center">
-                  <MaterialIcons name="camera" size={18} color="white" />
-                  <Text className="ml-2 font-medium text-white">Điểm danh</Text>
+                  <MaterialIcons name={item.isOpen ? 'close' : 'camera'} size={18} color="white" />
+                  <Text className="ml-2 font-medium text-white">
+                    {item.isOpen ? 'Đóng điểm danh' : 'Mở điểm danh'}
+                  </Text>
                 </View>
               </TouchableOpacity>
             </View>
           ))
         ) : (
-          <Text className="text-center text-gray-500 text-base">Không có lịch dạy hôm nay.</Text>
+          <Text className="text-center text-base text-gray-500">Không có lịch dạy hôm nay.</Text>
         )}
       </View>
 
@@ -194,7 +256,7 @@ const DashBoardPageLecturer = ({ navigation }: Props) => {
             <MaterialIcons name="notifications" size={20} color="#374151" />
             <Text className="ml-2 text-lg font-semibold text-gray-800">Thông báo mới</Text>
           </View>
-          <TouchableOpacity onPress={() => navigation.navigate('NotificationPageLecturer')}> 
+          <TouchableOpacity onPress={() => navigation.navigate('NotificationPageLecturer')}>
             <Text className="text-sm text-blue-600">Xem tất cả</Text>
           </TouchableOpacity>
         </View>
@@ -209,11 +271,7 @@ const DashBoardPageLecturer = ({ navigation }: Props) => {
     </ScrollView>
   );
 
-  return (
-    <DashBoardLayoutLecturer>
-      {renderHomeContent()}
-    </DashBoardLayoutLecturer>
-  );
+  return <DashBoardLayoutLecturer>{renderHomeContent()}</DashBoardLayoutLecturer>;
 };
 
 export default DashBoardPageLecturer;

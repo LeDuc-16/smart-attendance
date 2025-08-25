@@ -67,8 +67,7 @@ public class ScheduleController {
      * Lấy lịch học theo ID giảng viên
      */
     @GetMapping("/lecturer/{lecturerId}")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('LECTURER') and @scheduleService.isLecturer(#lecturerId, authentication.principal.userId))")
-    @Operation(summary = "Lấy lịch học theo giảng viên", description = "Lấy danh sách lịch học của một giảng viên theo ID")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
     public ResponseEntity<ApiResponse<Object>> getScheduleByLecturerId(
             @PathVariable Long lecturerId,
             HttpServletRequest servletRequest) {
@@ -110,13 +109,13 @@ public class ScheduleController {
      * Mở điểm danh cho lịch học
      */
     @PostMapping("/{scheduleId}/open")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('LECTURER') and @scheduleService.isScheduleOwner(#scheduleId, authentication.principal.userId))")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
     @Operation(summary = "Mở điểm danh", description = "Mở điểm danh cho lịch học, chỉ admin hoặc giảng viên được phép")
-    public ResponseEntity<ApiResponse<List<WeekSchedule>>> openAttendance(
+    public ResponseEntity<ApiResponse<StudyDay>> openAttendance(
             @PathVariable Long scheduleId,
             HttpServletRequest servletRequest) {
 
-        ApiResponse<List<WeekSchedule>> response = scheduleService.openAttendance(scheduleId, servletRequest);
+        ApiResponse<StudyDay> response = scheduleService.openAttendance(scheduleId, servletRequest);
         return ResponseEntity.ok(response);
     }
 
@@ -124,14 +123,17 @@ public class ScheduleController {
     /**
      * Đóng điểm danh cho lịch học
      */
+    /**
+     * Đóng điểm danh cho lịch học
+     */
     @PostMapping("/{scheduleId}/close")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('LECTURER') and @scheduleService.isScheduleOwner(#scheduleId, authentication.principal.userId))")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
     @Operation(summary = "Đóng điểm danh", description = "Đóng điểm danh cho lịch học, chỉ admin hoặc giảng viên được phép")
-    public ResponseEntity<ApiResponse<List<WeekSchedule>>> closeAttendance(
+    public ResponseEntity<ApiResponse<StudyDay>> closeAttendance(
             @PathVariable Long scheduleId,
             HttpServletRequest servletRequest) {
 
-        ApiResponse<List<WeekSchedule>> response = scheduleService.closeAttendance(scheduleId, servletRequest);
+        ApiResponse<StudyDay> response = scheduleService.closeAttendance(scheduleId, servletRequest);
         return ResponseEntity.ok(response);
     }
 
