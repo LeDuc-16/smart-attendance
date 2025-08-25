@@ -1,9 +1,8 @@
 import React from "react";
-import type { TeachingSchedule } from "../api/apiTeaching";
 
 interface EditScheduleModalProps {
   show: boolean;
-  data: TeachingSchedule | null;
+  data: any | null;
   onClose: () => void;
   onCancel: () => void;
   formatTime: (str: string) => string;
@@ -41,7 +40,7 @@ const EditScheduleModal: React.FC<EditScheduleModalProps> = ({ show, data, onClo
             </div>
             <div>
               <label className="block text-xs text-gray-600 mb-1">Ngày</label>
-              <input className="w-full border rounded px-2 py-1" value={data?.weeks?.[0]?.studyDays?.[0]?.date || ""} disabled />
+              <input className="w-full border rounded px-2 py-1" value={data?.date || ""} disabled />
             </div>
             <div>
               <label className="block text-xs text-gray-600 mb-1">Thời gian bắt đầu</label>
