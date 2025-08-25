@@ -42,4 +42,3 @@ const GeneralPage = () => {
 };
 
 export default GeneralPage;
-

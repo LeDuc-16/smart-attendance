@@ -599,4 +599,3 @@ const MajorPage = () => {
 };
 
 export default MajorPage;
-
