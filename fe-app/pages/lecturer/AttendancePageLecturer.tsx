@@ -155,7 +155,7 @@ const AttendancePageLecturer = () => {
     }
   };
 
-  const showMode = (currentMode) => {
+  const showMode = (currentMode: 'date' | 'time' | 'datetime') => {
     setShowDatePicker(true);
   };
 
