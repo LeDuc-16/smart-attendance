@@ -51,6 +51,8 @@ const App = () => {
         <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
         <Route path="/teaching-schedule" element={<TeachingSchedulePage />} />
         <Route path="/change-password" element={<ChangePasswordPage />} />
+        <Route path="/lecturer-reports" element={<LecturerReports />} />
+        <Route path="/lecturer-takes-attendance" element={<LecturerTakesAttendance />} />
       </Routes >
 
     </BrowserRouter >

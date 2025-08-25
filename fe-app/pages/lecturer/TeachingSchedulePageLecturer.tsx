@@ -6,8 +6,16 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { apiAuthService } from '../../api/apiAuth';
 import { apiScheduleService, Schedule } from '../../api/apiSchedule';
 
+interface CalendarProps {
+    calendarDate: Date;
+    selectedDate: Date;
+    setSelectedDate: (date: Date) => void;
+    onPrevMonth: () => void;
+    onNextMonth: () => void;
+}
+
 // --- Calendar Component (Dynamic) ---
-const Calendar = ({ calendarDate, selectedDate, setSelectedDate, onPrevMonth, onNextMonth }) => {
+const Calendar: React.FC<CalendarProps> = ({ calendarDate, selectedDate, setSelectedDate, onPrevMonth, onNextMonth }) => {
     const weekDays = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
     const year = calendarDate.getFullYear();
@@ -84,7 +92,16 @@ const Calendar = ({ calendarDate, selectedDate, setSelectedDate, onPrevMonth, on
 };
 
 
-const ScheduleCard = ({ subject, className, time, room, color }) => {
+interface ScheduleCardProps {
+    subject: string;
+    className: string;
+    time: string;
+    room: string;
+    color: string;
+}
+
+
+const ScheduleCard: React.FC<ScheduleCardProps> = ({ subject, className, time, room, color }) => {
     const borderColor = color === 'blue' ? 'border-blue-500' : 'border-green-500';
     const locationColor = color === 'blue' ? 'text-blue-500' : 'text-green-500';
 
