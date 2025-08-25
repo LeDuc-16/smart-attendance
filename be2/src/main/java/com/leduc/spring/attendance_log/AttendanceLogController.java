@@ -1,6 +1,5 @@
 package com.leduc.spring.attendance_log;
 
-import com.leduc.spring.config.JwtService;
 import com.leduc.spring.exception.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -27,77 +26,63 @@ public class AttendanceLogController {
 
     private final AttendanceLogService attendanceLogService;
 
-    /**
-     * Lấy lịch sử điểm danh của sinh viên theo lớp
-     */
+    // Sinh viên chỉ được xem lịch sử của chính mình, admin thì xem tất cả
     @GetMapping("/student/{studentId}/class/{classId}")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('STUDENT') and #studentId == authentication.principal.studentId)")
-    @Operation(summary = "Lấy lịch sử điểm danh theo lớp", description = "Lấy danh sách lịch sử điểm danh của một sinh viên trong một lớp cụ thể")
+    @PreAuthorize("hasAnyRole('ADMIN','STUDENT')")
     public ResponseEntity<ApiResponse<List<AttendanceLog>>> getAttendanceHistoryByStudentAndClass(
             @PathVariable Long studentId,
             @PathVariable Long classId,
             HttpServletRequest servletRequest) {
-        logger.info("Received request to get attendance history for student ID: {} and class ID: {}", studentId, classId);
-        ApiResponse<List<AttendanceLog>> response = attendanceLogService.getAttendanceHistoryByStudentAndClass(studentId, classId, servletRequest);
-        return ResponseEntity.ok(response);
+        logger.info("Get attendance history: student={}, class={}", studentId, classId);
+        return ResponseEntity.ok(
+                attendanceLogService.getAttendanceHistoryByStudentAndClass(studentId, classId, servletRequest)
+        );
     }
 
-    /**
-     * Lấy lịch sử điểm danh của sinh viên theo khóa học
-     */
     @GetMapping("/student/{studentId}/course/{courseId}")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('STUDENT') and #studentId == authentication.principal.studentId)")
-    @Operation(summary = "Lấy lịch sử điểm danh theo khóa học", description = "Lấy danh sách lịch sử điểm danh của một sinh viên trong một khóa học cụ thể")
+    @PreAuthorize("hasAnyRole('ADMIN','STUDENT')")
     public ResponseEntity<ApiResponse<List<AttendanceLog>>> getAttendanceHistoryByStudentAndCourse(
             @PathVariable Long studentId,
             @PathVariable Long courseId,
             HttpServletRequest servletRequest) {
-        logger.info("Received request to get attendance history for student ID: {} and course ID: {}", studentId, courseId);
-        ApiResponse<List<AttendanceLog>> response = attendanceLogService.getAttendanceHistoryByStudentAndCourse(studentId, courseId, servletRequest);
-        return ResponseEntity.ok(response);
+        logger.info("Get attendance history: student={}, course={}", studentId, courseId);
+        return ResponseEntity.ok(
+                attendanceLogService.getAttendanceHistoryByStudentAndCourse(studentId, courseId, servletRequest)
+        );
     }
 
-    /**
-     * Lấy thống kê điểm danh của sinh viên theo lớp
-     */
     @GetMapping("/student/{studentId}/class/{classId}/stats")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('STUDENT') and #studentId == authentication.principal.studentId)")
-    @Operation(summary = "Lấy thống kê điểm danh", description = "Lấy thống kê số lần có mặt, muộn, vắng của một sinh viên trong một lớp")
+    @PreAuthorize("hasAnyRole('ADMIN','STUDENT')")
     public ResponseEntity<ApiResponse<Map<String, Long>>> getAttendanceStatsByStudentAndClass(
             @PathVariable Long studentId,
             @PathVariable Long classId,
             HttpServletRequest servletRequest) {
-        logger.info("Received request to get attendance stats for student ID: {} and class ID: {}", studentId, classId);
-        ApiResponse<Map<String, Long>> response = attendanceLogService.getAttendanceStatsByStudentAndClass(studentId, classId, servletRequest);
-        return ResponseEntity.ok(response);
+        logger.info("Get attendance stats: student={}, class={}", studentId, classId);
+        return ResponseEntity.ok(
+                attendanceLogService.getAttendanceStatsByStudentAndClass(studentId, classId, servletRequest)
+        );
     }
 
-    /**
-     * Lấy danh sách điểm danh của một buổi học
-     */
+    // Giảng viên hoặc admin mới được xem danh sách toàn lớp
     @GetMapping("/schedule/{scheduleId}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('LECTURER')")
-    @Operation(summary = "Lấy danh sách điểm danh theo lịch học", description = "Lấy danh sách điểm danh của tất cả sinh viên trong một lịch học cụ thể")
+    @PreAuthorize("hasAnyRole('ADMIN','LECTURER')")
     public ResponseEntity<ApiResponse<List<AttendanceLog>>> getAttendanceBySchedule(
             @PathVariable Long scheduleId,
             HttpServletRequest servletRequest) {
-        logger.info("Received request to get attendance for schedule ID: {}", scheduleId);
-        ApiResponse<List<AttendanceLog>> response = attendanceLogService.getAttendanceBySchedule(scheduleId, servletRequest);
-        return ResponseEntity.ok(response);
+        logger.info("Get attendance for schedule={}", scheduleId);
+        return ResponseEntity.ok(
+                attendanceLogService.getAttendanceBySchedule(scheduleId, servletRequest)
+        );
     }
 
-    /**
-     * Lấy lịch sử điểm danh của toàn bộ lớp
-     */
     @GetMapping("/class/{classId}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('LECTURER')")
-    @Operation(summary = "Lấy lịch sử điểm danh của lớp", description = "Lấy toàn bộ lịch sử điểm danh của một lớp")
+    @PreAuthorize("hasAnyRole('ADMIN','LECTURER')")
     public ResponseEntity<ApiResponse<List<AttendanceLog>>> getAttendanceHistoryByClass(
             @PathVariable Long classId,
             HttpServletRequest servletRequest) {
-        logger.info("Received request to get attendance history for class ID: {}", classId);
-        ApiResponse<List<AttendanceLog>> response = attendanceLogService.getAttendanceHistoryByClass(classId, servletRequest);
-        return ResponseEntity.ok(response);
+        logger.info("Get attendance history for class={}", classId);
+        return ResponseEntity.ok(
+                attendanceLogService.getAttendanceHistoryByClass(classId, servletRequest)
+        );
     }
-
 }
