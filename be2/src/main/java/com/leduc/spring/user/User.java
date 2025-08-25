@@ -24,15 +24,8 @@ import java.util.List;
 public class User implements UserDetails {
 
   @Id
-  @SequenceGenerator(
-          name = "user_seq",
-          sequenceName = "user_sequence",
-          allocationSize = 1
-  )
-  @GeneratedValue(
-          strategy = GenerationType.SEQUENCE,
-          generator = "user_seq"
-  )
+  @SequenceGenerator(name = "user_seq", sequenceName = "user_sequence", allocationSize = 1)
+  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq")
   private Long id;
 
   private String name;
@@ -40,6 +33,7 @@ public class User implements UserDetails {
   private String account;
   private String phoneNumber;
   private String address;
+  @com.fasterxml.jackson.annotation.JsonIgnore
   private String password;
   private LocalDate dateOfBirth;
 
@@ -47,17 +41,15 @@ public class User implements UserDetails {
   private Role role;
 
   @OneToMany(mappedBy = "user")
+  @com.fasterxml.jackson.annotation.JsonIgnore
   private List<Token> tokens;
 
   @OneToOne(mappedBy = "user")
   private Faculty faculty;
 
   @ManyToMany
-  @JoinTable(
-          name = "user_notification", // Tên bảng liên kết
-          joinColumns = @JoinColumn(name = "user_id"),
-          inverseJoinColumns = @JoinColumn(name = "notification_id")
-  )
+  @JoinTable(name = "user_notification", // Tên bảng liên kết
+      joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "notification_id"))
   private List<Notification> notifications; // Thêm danh sách notifications
 
   @Override
