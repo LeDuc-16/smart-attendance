@@ -1,6 +1,5 @@
 package com.leduc.spring.lecturer;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.leduc.spring.classes.ClassEntity;
 import com.leduc.spring.course.Course;
 import com.leduc.spring.faculty.Faculty;
@@ -38,14 +37,12 @@ public class Lecturer {
     private Faculty faculty;
 
     @OneToMany(mappedBy = "lecturer")
-    @JsonIgnore
     private List<ClassEntity> classes;
 
     @ManyToMany
     @JoinTable(name = "lecturer_course",
             joinColumns = @JoinColumn(name = "lecturer_id"),
             inverseJoinColumns = @JoinColumn(name = "course_id"))
-    @JsonIgnore
     private List<Course> courses;
 
     public Lecturer(Long id) {

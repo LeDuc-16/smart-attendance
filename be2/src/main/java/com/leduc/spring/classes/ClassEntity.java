@@ -1,6 +1,5 @@
 package com.leduc.spring.classes;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.leduc.spring.lecturer.Lecturer;
 import com.leduc.spring.student.Student;
 import jakarta.persistence.*;
@@ -31,7 +30,6 @@ public class ClassEntity {
     private Lecturer lecturer;
 
     @OneToMany(mappedBy = "classes")
-    @JsonIgnore
     private List<Student> students;
 
     public ClassEntity(Long id) {

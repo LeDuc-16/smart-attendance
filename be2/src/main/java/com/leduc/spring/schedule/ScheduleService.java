@@ -2,6 +2,7 @@ package com.leduc.spring.schedule;
 
 import com.leduc.spring.classes.ClassEntity;
 import com.leduc.spring.classes.ClassRepository;
+import com.leduc.spring.classes.ClassResponse;
 import com.leduc.spring.course.Course;
 import com.leduc.spring.course.CourseRepository;
 import com.leduc.spring.exception.ApiResponse;
@@ -227,18 +228,32 @@ public class ScheduleService {
      * Lấy danh sách lớp có lịch học đang mở điểm danh
      */
     @Transactional(readOnly = true)
-    public ApiResponse<List<ClassEntity>> getClassesWithOpenAttendance(HttpServletRequest servletRequest) {
+    public ApiResponse<List<ClassResponse>> getClassesWithOpenAttendance(HttpServletRequest servletRequest) {
         List<ClassEntity> classes = scheduleRepository.findClassesWithOpenAttendance();
-        return ApiResponse.success(classes, "Lấy danh sách lớp đang mở điểm danh thành công", servletRequest.getRequestURI());
+        List<ClassResponse> classResponses = classes.stream()
+                .map(cls -> new ClassResponse(
+                        cls.getId(),
+                        cls.getClassName(),
+                        cls.getCapacityStudent(),
+                        cls.getLecturer() != null ? cls.getLecturer().getUser().getName() : null))
+                .collect(Collectors.toList());
+        return ApiResponse.success(classResponses, "Lấy danh sách lớp đang mở điểm danh thành công", servletRequest.getRequestURI());
     }
 
     /**
      * Lấy danh sách lớp có lịch học đang đóng điểm danh
      */
     @Transactional(readOnly = true)
-    public ApiResponse<List<ClassEntity>> getClassesWithClosedAttendance(HttpServletRequest servletRequest) {
+    public ApiResponse<List<ClassResponse>> getClassesWithClosedAttendance(HttpServletRequest servletRequest) {
         List<ClassEntity> classes = scheduleRepository.findClassesWithClosedAttendance();
-        return ApiResponse.success(classes, "Lấy danh sách lớp đang đóng điểm danh thành công", servletRequest.getRequestURI());
+        List<ClassResponse> classResponses = classes.stream()
+                .map(cls -> new ClassResponse(
+                        cls.getId(),
+                        cls.getClassName(),
+                        cls.getCapacityStudent(),
+                        cls.getLecturer() != null ? cls.getLecturer().getUser().getName() : null))
+                .collect(Collectors.toList());
+        return ApiResponse.success(classResponses, "Lấy danh sách lớp đang đóng điểm danh thành công", servletRequest.getRequestURI());
     }
 
     private List<WeekSchedule> calculateWeeklySchedule(Schedule schedule) {

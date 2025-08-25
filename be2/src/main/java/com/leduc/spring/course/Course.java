@@ -1,6 +1,5 @@
 package com.leduc.spring.course;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.leduc.spring.lecturer.Lecturer;
 import com.leduc.spring.student.Student;
 import jakarta.persistence.*;
@@ -36,11 +35,9 @@ public class Course {
     private int credits; // Thêm trường số tín chỉ
 
     @ManyToMany(mappedBy = "courses")
-    @JsonIgnore
     private List<Lecturer> lecturers;
 
     @ManyToMany(mappedBy = "courses")
-    @JsonIgnore
     private List<Student> students;
 
     @CreatedBy

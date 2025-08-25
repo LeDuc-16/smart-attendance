@@ -1,6 +1,6 @@
 package com.leduc.spring.schedule;
 
-import com.leduc.spring.classes.ClassEntity;
+import com.leduc.spring.classes.ClassResponse;
 import com.leduc.spring.config.JwtService;
 import com.leduc.spring.exception.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -80,7 +80,7 @@ public class ScheduleController {
     /**
      * Cập nhật lịch học
      */
-    @DeleteMapping("/{id}")
+    @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Cập nhật lịch học", description = "Cập nhật thông tin lịch học theo ID")
     public ResponseEntity<ApiResponse<Object>> updateSchedule(
@@ -95,7 +95,7 @@ public class ScheduleController {
     /**
      * Xóa lịch học
      */
-    @PutMapping("/{id}")
+    @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Xóa lịch học", description = "Xóa một lịch học theo ID")
     public ResponseEntity<ApiResponse<Object>> deleteSchedule(
@@ -110,7 +110,7 @@ public class ScheduleController {
      * Mở điểm danh cho lịch học
      */
     @PostMapping("/{scheduleId}/open")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('LECTURER') and @scheduleService.isScheduleOwner(#scheduleId, authentication.principal.id))")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('LECTURER') and @scheduleService.isScheduleOwner(#scheduleId, authentication.principal.userId))")
     @Operation(summary = "Mở điểm danh", description = "Mở điểm danh cho lịch học, chỉ admin hoặc giảng viên được phép")
     public ResponseEntity<ApiResponse<Boolean>> openAttendance(
             @PathVariable Long scheduleId,
@@ -124,7 +124,7 @@ public class ScheduleController {
      * Đóng điểm danh cho lịch học
      */
     @PostMapping("/{scheduleId}/close")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('LECTURER') and @scheduleService.isScheduleOwner(#scheduleId, authentication.principal.id))")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('LECTURER') and @scheduleService.isScheduleOwner(#scheduleId, authentication.principal.userId))")
     @Operation(summary = "Đóng điểm danh", description = "Đóng điểm danh cho lịch học và trả về thời gian đóng")
     public ResponseEntity<ApiResponse<LocalDateTime>> closeAttendance(
             @PathVariable Long scheduleId,
@@ -140,10 +140,9 @@ public class ScheduleController {
     @GetMapping("/classes/open")
     @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
     @Operation(summary = "Lấy danh sách lớp đang mở điểm danh", description = "Lấy danh sách các lớp có lịch học đang mở điểm danh")
-    public ResponseEntity<ApiResponse<List<ClassEntity>>> getClassesWithOpenAttendance(
-            HttpServletRequest servletRequest) {
+    public ResponseEntity<ApiResponse<List<ClassResponse>>> getClassesWithOpenAttendance(HttpServletRequest servletRequest) {
         logger.info("Received request to get classes with open attendance");
-        ApiResponse<List<ClassEntity>> response = scheduleService.getClassesWithOpenAttendance(servletRequest);
+        ApiResponse<List<ClassResponse>> response = scheduleService.getClassesWithOpenAttendance(servletRequest);
         return ResponseEntity.ok(response);
     }
 
@@ -153,10 +152,9 @@ public class ScheduleController {
     @GetMapping("/classes/closed")
     @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
     @Operation(summary = "Lấy danh sách lớp đang đóng điểm danh", description = "Lấy danh sách các lớp có lịch học đang đóng điểm danh")
-    public ResponseEntity<ApiResponse<List<ClassEntity>>> getClassesWithClosedAttendance(
-            HttpServletRequest servletRequest) {
+    public ResponseEntity<ApiResponse<List<ClassResponse>>> getClassesWithClosedAttendance(HttpServletRequest servletRequest) {
         logger.info("Received request to get classes with closed attendance");
-        ApiResponse<List<ClassEntity>> response = scheduleService.getClassesWithClosedAttendance(servletRequest);
+        ApiResponse<List<ClassResponse>> response = scheduleService.getClassesWithClosedAttendance(servletRequest);
         return ResponseEntity.ok(response);
     }
 }
