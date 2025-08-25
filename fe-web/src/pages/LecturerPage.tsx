@@ -87,20 +87,15 @@ const LecturerFormModal = ({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
-
         if (!formData.lecturerCode || !formData.name || !formData.facultyId) {
             setInputError("Vui lòng điền đầy đủ thông tin bắt buộc.");
             return;
         }
-
         if (!initialData && (!formData.account || !formData.email || !formData.password)) {
             setInputError("Vui lòng điền đầy đủ thông tin tài khoản.");
             return;
         }
-
         if (!initialData) {
-            // Kiểm tra trùng mã giảng viên khi thêm mới
             const duplicateCode = lecturers.some(l =>
                 l.lecturerCode === formData.lecturerCode
             );
@@ -117,7 +112,6 @@ const LecturerFormModal = ({
                 return;
             }
         }
-
         onSubmit(formData);
     };
 
