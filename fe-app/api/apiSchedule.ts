@@ -107,6 +107,7 @@ class ApiScheduleService {
 
     // Read raw text first to avoid JSON parse errors on empty responses
     const raw = await response.text();
+    // console.log('Raw response from server:', raw); // Log the raw response
     if (!raw || raw.trim().length === 0) {
       // No body returned
       const msg = `Lấy lịch học thất bại: server trả về dữ liệu rỗng (${response.status})`;
@@ -242,7 +243,8 @@ class ApiScheduleService {
                   id: (Number(item.id) || 0) * 1000 + globalCounter++,
                   subjectName: item.courseName || item.subjectName || '',
                   subjectCode: item.subjectCode || '',
-                  classroomName: item.roomName || item.classroomName || item.className || '',
+                  className: item.className || '',
+                  roomName: item.roomName || '',
                   startTime: normalizeTime(item.startTime),
                   endTime: normalizeTime(item.endTime),
                   dayOfWeek: dow,
