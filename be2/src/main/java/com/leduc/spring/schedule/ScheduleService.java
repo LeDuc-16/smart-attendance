@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -65,7 +66,6 @@ public class ScheduleService {
                 .lecturer(lecturer)
                 .classEntity(classEntity)
                 .room(room)
-                .isOpen(true)
                 .build();
 
         Schedule savedSchedule = scheduleRepository.save(schedule);
@@ -173,38 +173,6 @@ public class ScheduleService {
     }
 
     /**
-     * Mở điểm danh cho lịch học
-     */
-    @Transactional
-    public ApiResponse<Boolean> openAttendance(Long scheduleId, HttpServletRequest servletRequest) {
-        Schedule schedule = scheduleRepository.findById(scheduleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
-
-        schedule.setOpen(true);
-        scheduleRepository.save(schedule);
-        logger.info("Đã mở điểm danh cho lịch học ID: {}", scheduleId);
-
-        return ApiResponse.success(true, "Đã mở điểm danh thành công", servletRequest.getRequestURI());
-    }
-
-    /**
-     * Đóng điểm danh cho lịch học
-     */
-    @Transactional
-    public ApiResponse<LocalDateTime> closeAttendance(Long scheduleId, HttpServletRequest servletRequest) {
-        Schedule schedule = scheduleRepository.findById(scheduleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
-
-        schedule.setOpen(false);
-        LocalDateTime closeTime = LocalDateTime.now();
-        schedule.setCloseTime(closeTime);
-        scheduleRepository.save(schedule);
-        logger.info("Đã đóng điểm danh cho lịch học ID: {} tại thời điểm: {}", scheduleId, closeTime);
-
-        return ApiResponse.success(closeTime, "Đã đóng điểm danh thành công", servletRequest.getRequestURI());
-    }
-
-    /**
      * Kiểm tra xem userId có phải là giảng viên với lecturerId
      */
     public boolean isLecturer(Long lecturerId, Long userId) {
@@ -213,50 +181,70 @@ public class ScheduleService {
         return lecturer.getId().equals(lecturerId);
     }
 
-    /**
-     * Kiểm tra xem userId có phải là chủ sở hữu lịch học
-     */
-    public boolean isScheduleOwner(Long scheduleId, Long userId) {
+
+    @Transactional
+    public ApiResponse<List<WeekSchedule>> openAttendance(Long scheduleId ,HttpServletRequest servletRequest) {
+        // Lấy schedule từ DB
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
-        Lecturer lecturer = lecturerRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên cho userId: " + userId));
-        return schedule.getLecturer().getId().equals(lecturer.getId());
+
+        LocalDate today = LocalDate.now(); // <-- đây là current day
+
+        // Kiểm tra hôm nay có trong lịch học không
+        if (schedule.getDayOfWeek().contains(today.getDayOfWeek())) {
+            // Tạo StudyDay cho hôm nay hoặc cập nhật trạng thái mở
+            StudyDay studyDay = new StudyDay(today.getDayOfWeek(), today, true, null);
+
+            // Nếu bạn lưu StudyDay vào DB hoặc liên kết với Schedule, xử lý ở đây
+            // Hiện tại bạn chỉ muốn trả tuần học, nên set isOpen trong tuần hiện tại
+        }
+
+        // Tính toán tuần học dựa trên schedule
+        List<WeekSchedule> weeks = calculateWeeklySchedule(schedule);
+
+        // Đánh dấu ngày hiện tại là mở
+        weeks.forEach(week -> week.getStudyDays().forEach(sd -> {
+            if (sd.getDate().isEqual(today)) {
+                sd.setOpen(true);
+            }
+        }));
+
+        return ApiResponse.success(weeks, "Mở lớp điểm danh thành công", servletRequest.getRequestURI());
     }
 
-    /**
-     * Lấy danh sách lớp có lịch học đang mở điểm danh
-     */
-    @Transactional(readOnly = true)
-    public ApiResponse<List<ClassResponse>> getClassesWithOpenAttendance(HttpServletRequest servletRequest) {
-        List<ClassEntity> classes = scheduleRepository.findClassesWithOpenAttendance();
-        List<ClassResponse> classResponses = classes.stream()
-                .map(cls -> new ClassResponse(
-                        cls.getId(),
-                        cls.getClassName(),
-                        cls.getCapacityStudent(),
-                        cls.getLecturer() != null ? cls.getLecturer().getUser().getName() : null))
-                .collect(Collectors.toList());
-        return ApiResponse.success(classResponses, "Lấy danh sách lớp đang mở điểm danh thành công", servletRequest.getRequestURI());
+
+    @Transactional
+    public ApiResponse<List<WeekSchedule>> closeAttendance(Long scheduleId, HttpServletRequest servletRequest) {
+        // Lấy schedule từ DB
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
+
+        LocalDate today = LocalDate.now(); // Current day
+        LocalDateTime now = LocalDateTime.now(); // Thời gian hiện tại
+
+        // Kiểm tra hôm nay có trong lịch học không
+        if (schedule.getDayOfWeek().contains(today.getDayOfWeek())) {
+            // Tạo hoặc cập nhật StudyDay cho hôm nay với trạng thái đóng
+            StudyDay studyDay = new StudyDay(today.getDayOfWeek(), today, false, now);
+            // Nếu cần lưu vào DB hoặc liên kết với Schedule thì xử lý ở đây
+        }
+
+        // Tính toán tuần học dựa trên schedule
+        List<WeekSchedule> weeks = calculateWeeklySchedule(schedule);
+
+        // Đánh dấu ngày hiện tại là đóng và lưu thời gian đóng
+        weeks.forEach(week -> week.getStudyDays().forEach(sd -> {
+            if (sd.getDate().isEqual(today)) {
+                sd.setOpen(false);
+                sd.setCloseTime(now); // lưu thời điểm đóng
+            }
+        }));
+
+        return ApiResponse.success(weeks, "Đóng lớp điểm danh thành công", servletRequest.getRequestURI());
     }
 
-    /**
-     * Lấy danh sách lớp có lịch học đang đóng điểm danh
-     */
-    @Transactional(readOnly = true)
-    public ApiResponse<List<ClassResponse>> getClassesWithClosedAttendance(HttpServletRequest servletRequest) {
-        List<ClassEntity> classes = scheduleRepository.findClassesWithClosedAttendance();
-        List<ClassResponse> classResponses = classes.stream()
-                .map(cls -> new ClassResponse(
-                        cls.getId(),
-                        cls.getClassName(),
-                        cls.getCapacityStudent(),
-                        cls.getLecturer() != null ? cls.getLecturer().getUser().getName() : null))
-                .collect(Collectors.toList());
-        return ApiResponse.success(classResponses, "Lấy danh sách lớp đang đóng điểm danh thành công", servletRequest.getRequestURI());
-    }
 
-    private List<WeekSchedule> calculateWeeklySchedule(Schedule schedule) {
+    public List<WeekSchedule> calculateWeeklySchedule(Schedule schedule) {
         List<WeekSchedule> weeks = new ArrayList<>();
         LocalDate startDate = schedule.getStartDate();
         LocalDate endDate = schedule.getEndDate();
@@ -276,7 +264,7 @@ public class ScheduleService {
             LocalDate currentDay = weekStart;
             while (!currentDay.isAfter(weekEnd) && !currentDay.isAfter(endDate)) {
                 if (daysOfWeek.contains(currentDay.getDayOfWeek()) && !currentDay.isBefore(startDate)) {
-                    studyDays.add(new StudyDay(currentDay.getDayOfWeek(), currentDay));
+                    studyDays.add(new StudyDay(currentDay.getDayOfWeek(), currentDay, false, null));
                 }
                 currentDay = currentDay.plusDays(1);
             }
@@ -290,4 +278,6 @@ public class ScheduleService {
 
         return weeks;
     }
+
+
 }

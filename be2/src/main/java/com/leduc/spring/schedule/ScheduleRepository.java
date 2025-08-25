@@ -12,18 +12,12 @@ import java.util.List;
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     // Tìm tất cả lịch học theo lecturerId
-    @Query("SELECT s FROM Schedule s WHERE s.lecturer.id = :lecturerId AND s.isOpen = true")
+    @Query("SELECT s FROM Schedule s WHERE s.lecturer.id = :lecturerId")
     List<Schedule> findByLecturerId(@Param("lecturerId") Long lecturerId);
 
     // Tìm tất cả lịch học theo classEntityId
-    @Query("SELECT s FROM Schedule s WHERE s.classEntity.id = :classId AND s.isOpen = true")
+    @Query("SELECT s FROM Schedule s WHERE s.classEntity.id = :classId ")
     List<Schedule> findByClassEntityId(@Param("classId") Long classId);
 
-    // Tìm tất cả lớp có lịch học đang mở điểm danh
-    @Query("SELECT DISTINCT s.classEntity FROM Schedule s WHERE s.isOpen = true")
-    List<ClassEntity> findClassesWithOpenAttendance();
 
-    // Tìm tất cả lớp có lịch học đang đóng điểm danh
-    @Query("SELECT DISTINCT s.classEntity FROM Schedule s WHERE s.isOpen = false")
-    List<ClassEntity> findClassesWithClosedAttendance();
 }

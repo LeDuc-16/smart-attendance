@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -13,4 +14,6 @@ import java.time.LocalDate;
 public class StudyDay {
     private DayOfWeek dayOfWeek;
     private LocalDate date;
+    private boolean isOpen;
+    private LocalDateTime closeTime = null;
 }

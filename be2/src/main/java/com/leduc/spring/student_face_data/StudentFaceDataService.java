@@ -11,6 +11,8 @@ import com.leduc.spring.exception.ApiResponse;
 import com.leduc.spring.exception.ResourceNotFoundException;
 import com.leduc.spring.schedule.Schedule;
 import com.leduc.spring.schedule.ScheduleRepository;
+import com.leduc.spring.schedule.ScheduleService;
+import com.leduc.spring.schedule.StudyDay;
 import com.leduc.spring.student.Student;
 import com.leduc.spring.student.StudentRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,6 +28,7 @@ import software.amazon.awssdk.services.rekognition.model.*;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -48,6 +51,8 @@ public class StudentFaceDataService {
     private static final String FACE_COLLECTION_ID = "student_faces";
     private static final float SIMILARITY_THRESHOLD = 90.0f;
     private static final long LATE_THRESHOLD_MINUTES = 5; // 5 phút sau khi đóng vẫn cho phép điểm danh (LATE)
+    private final ScheduleService scheduleService;
+
     private boolean detectFace(MultipartFile file) throws IOException {
         try {
             Image awsImage = Image.builder()
@@ -329,30 +334,35 @@ public class StudentFaceDataService {
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
 
-        // Kiểm tra xem lịch học có thuộc về lớp của sinh viên
+        // Kiểm tra lịch học có thuộc lớp sinh viên không
         ClassEntity studentClass = classRepository.findByStudentId(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp cho sinh viên: " + studentId));
         if (!schedule.getClassEntity().getId().equals(studentClass.getId())) {
             throw new IllegalArgumentException("Lịch học không thuộc lớp của sinh viên");
         }
 
-        // Kiểm tra trạng thái isOpen và thời gian đóng
-        AttendanceStatus status;
+        // Lấy StudyDay của hôm nay
+        LocalDate today = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
-        if (schedule.isOpen()) {
-            // Lịch đang mở: Điểm danh bình thường
-            status = AttendanceStatus.PRESENT;
+        StudyDay studyDay = scheduleService.calculateWeeklySchedule(schedule).stream()
+                .flatMap(week -> week.getStudyDays().stream())
+                .filter(sd -> sd.getDate().isEqual(today))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Hôm nay không có lịch học"));
+
+        // Xác định trạng thái điểm danh
+        AttendanceStatus status;
+        if (studyDay.isOpen()) {
+            status = AttendanceStatus.PRESENT; // Lịch đang mở
         } else {
-            // Lịch đã đóng: Kiểm tra thời gian đóng
-            LocalDateTime closeTime = schedule.getCloseTime();
+            LocalDateTime closeTime = studyDay.getCloseTime();
             if (closeTime == null) {
                 throw new IllegalStateException("Lịch học đã đóng nhưng không có thời gian đóng");
             }
 
             long minutesSinceClose = ChronoUnit.MINUTES.between(closeTime, now);
             if (minutesSinceClose <= LATE_THRESHOLD_MINUTES) {
-                // Trong vòng 5 phút sau khi đóng: Điểm danh muộn
-                status = AttendanceStatus.LATE;
+                status = AttendanceStatus.LATE; // Điểm danh muộn
             } else {
                 throw new IllegalStateException("Không thể điểm danh: Đã quá 5 phút sau khi lịch đóng");
             }
@@ -364,9 +374,10 @@ public class StudentFaceDataService {
 
         // Ghi log điểm danh
         String note = "Điểm danh bằng nhận diện khuôn mặt, độ tương đồng: " + faceCompareResponse.getSimilarity();
-        ApiResponse<AttendanceLog> logResponse = attendanceLogService.recordHistory(studentId, scheduleId, status, note, servletRequest);
+        attendanceLogService.recordHistory(studentId, scheduleId, status, note, servletRequest);
 
         logger.info("Sinh viên ID: {} đã điểm danh cho lịch ID: {} với trạng thái: {}", studentId, scheduleId, status);
         return ApiResponse.success(faceCompareResponse, "Điểm danh thành công với trạng thái: " + status, servletRequest.getRequestURI());
     }
+
 }

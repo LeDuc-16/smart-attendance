@@ -62,9 +62,5 @@ public class Schedule {
     @JoinColumn(name = "room_id")
     private Room room;
 
-    @Column(name = "is_open")
-    private boolean isOpen = false;
 
-    @Column(name="close_time")
-    private LocalDateTime closeTime;
 }
