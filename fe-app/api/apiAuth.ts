@@ -77,7 +77,6 @@ class ApiAuthService {
   private authToken: string | null = null;
   private userInfo: UserInfo | null = null;
 
-<<<<<<< HEAD
   constructor(baseURL?: string) {
     const envBaseURL =
       process.env.REACT_NATIVE_APP_API_BASE_URL ||
@@ -87,47 +86,13 @@ class ApiAuthService {
       this.baseURL = baseURL || envBaseURL || 'http://14.225.210.41:8080';
     } else {
       // Development
-      const LAN_BASE_URL = 'http://192.168.1.3:8080';   // IP LAN của máy Vinh
+      const LAN_BASE_URL = 'http://192.168.1.3:8080'; // IP LAN của máy Vinh
       const LOCALHOST_BASE_URL = 'http://localhost:8080'; // Dùng cho emulator
       this.baseURL = baseURL || envBaseURL || LAN_BASE_URL || LOCALHOST_BASE_URL;
-=======
-   constructor(baseURL?: string) {
-  const envBaseURL =
-    process.env.REACT_NATIVE_APP_API_BASE_URL ||
-    process.env.REACT_APP_API_BASE_URL;
-
-  if (process.env.NODE_ENV === 'production') {
-    this.baseURL =
-      baseURL || envBaseURL || 'http://14.225.210.41:8080';
-  } else {
-    const Constants = require('expo-constants').default;
-    const hostUri =
-      Constants.expoConfig?.hostUri ||
-      Constants.manifest?.hostUri ||
-      '';
-    const lanHost = hostUri ? hostUri.split(':')[0] : '192.168.11.105';
-
-    const LAN_BASE_URL = `http://${lanHost}:8080`;
-    const ANDROID_LOCALHOST = 'http://10.0.2.2:8080';
-    const IOS_LOCALHOST = 'http://localhost:8080';
-
-    // Dùng Platform để phân biệt emulator vs device thật
-    const Platform = require('react-native').Platform;
-
-    if (Platform.OS === 'android' && !hostUri) {
-      this.baseURL = ANDROID_LOCALHOST; // Android emulator
-    } else if (Platform.OS === 'ios' && !hostUri) {
-      this.baseURL = IOS_LOCALHOST; // iOS simulator
-    } else {
-      this.baseURL = baseURL || envBaseURL || LAN_BASE_URL;
->>>>>>> f82db7366760b358df0511bd61daa959bae64cf1
     }
   }
-}
 
-
-
-
+  // ================== Token & User Info ==================
   setAuthToken(token: string) {
     this.authToken = token;
   }
@@ -156,14 +121,13 @@ class ApiAuthService {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
-
     if (includeAuth && this.authToken) {
       headers['Authorization'] = `Bearer ${this.authToken}`;
     }
-
     return headers;
   }
 
+  // ================== API Methods ==================
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     const response = await fetch(`${this.baseURL}/api/v1/auth/login`, {
       method: 'POST',
@@ -193,7 +157,9 @@ class ApiAuthService {
     throw new Error('Invalid response format');
   }
 
-  async forgotPassword(request: ForgotPasswordRequest): Promise<ForgotPasswordResponse> {
+  async forgotPassword(
+    request: ForgotPasswordRequest
+  ): Promise<ForgotPasswordResponse> {
     console.log(
       'Calling forgotPassword with email:',
       request.email,
@@ -229,12 +195,7 @@ class ApiAuthService {
   async verifyOtp(request: VerifyOtpRequest): Promise<VerifyOtpResponse> {
     console.log('VerifyOtp request:', request);
 
-    // Backend chỉ cần { "otpCode": "438602" }
-    const requestBody = {
-      otpCode: request.otpCode,
-    };
-
-    console.log('Sending to backend:', requestBody);
+    const requestBody = { otpCode: request.otpCode };
 
     const response = await fetch(`${this.baseURL}/api/v1/otp/verify`, {
       method: 'POST',
@@ -253,8 +214,7 @@ class ApiAuthService {
     const result = await response.json();
     console.log('VerifyOtp API response:', result);
 
-    // API có thể trả về {"otpCode": "778599"} tương tự forgotPassword
-    let responseOtp = null;
+    let responseOtp: string | null = null;
     if (result.otpCode) {
       responseOtp = result.otpCode;
     } else if (result.otp) {
@@ -288,7 +248,6 @@ class ApiAuthService {
     const result = await response.json();
     console.log('ResetPassword API response:', result);
 
-    // Backend trả về: { "access_token": "...", "refresh_token": "..." }
     if (result.access_token) {
       this.setAuthToken(result.access_token);
       return {
@@ -297,7 +256,6 @@ class ApiAuthService {
       };
     }
 
-    // Fallback cho camelCase format
     if (result.accessToken) {
       this.setAuthToken(result.accessToken);
       return {
