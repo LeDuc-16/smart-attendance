@@ -3,19 +3,15 @@ import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
 import DashBoardLayout from './DashBoarLayout';
-import { apiAuthService } from '../api/apiAuth';
-import { apiScheduleService, Schedule } from '../api/apiSchedule';
-import ErrorMessage from '../components/ErrorMessage';
+import { apiAuthService } from '../../api/apiAuth';
+import { apiScheduleService, Schedule } from '../../api/apiSchedule';
+import ErrorMessage from '../../components/ErrorMessage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useEffect } from 'react';
 
 type Props = NativeStackScreenProps<any, 'DashBoardPage'>;
 
 const DashBoardPage = ({ navigation }: Props) => {
-  const [activeTab, setActiveTab] = useState<
-    'home' | 'schedule' | 'attendance' | 'stats' | 'notification' | 'profile'
-  >('home');
-
   const [todaySchedules, setTodaySchedules] = useState<Schedule[]>([]);
   const [upcomingSchedules, setUpcomingSchedules] = useState<Schedule[]>([]);
   const [loadingSchedules, setLoadingSchedules] = useState(true);
@@ -33,7 +29,53 @@ const DashBoardPage = ({ navigation }: Props) => {
 
   // Load schedules when component mounts
   useEffect(() => {
-    loadSchedules();
+    const checkRole = async () => {
+      try {
+        const user = apiAuthService.getUserInfo();
+        let role;
+
+        if (!user) {
+          const token = apiAuthService.getAuthToken() || (await AsyncStorage.getItem('jwtToken'));
+          if (!token) return; // chưa login
+          const me = await apiAuthService.getCurrentUser();
+          role = (me as any)?.role;
+        } else {
+          role = (user as any)?.role;
+        }
+
+        if (!role) return;
+
+        if (role === 'STUDENT') {
+          // ở lại trang DashBoardPage (giao diện student)
+          return;
+        } else if (role === 'LECTURER') {
+          // Giảng viên chuyển sang trang riêng
+          // avoid resetting if already on the lecturer dashboard
+          const state = (navigation as any).getState?.();
+          const current = state?.routes?.[state.index]?.name;
+          if (current !== 'DashBoardPageLecturer') {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'DashBoardPageLecturer' }],
+            });
+          }
+        } else {
+          // ADMIN hoặc role khác
+          const state = (navigation as any).getState?.();
+          const current = state?.routes?.[state.index]?.name;
+          if (current !== 'AdminDashboard') {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'AdminDashboard' }], // nếu có trang admin
+            });
+          }
+        }
+      } catch (e) {
+        console.error('Role guard error:', e);
+      }
+    };
+
+    checkRole();
   }, []);
 
   const loadSchedules = async () => {
@@ -95,32 +137,6 @@ const DashBoardPage = ({ navigation }: Props) => {
       return (userInfo as any).academicRank || 'Giảng viên';
     }
     return 'N/A';
-  };
-
-  const handleTabPress = (tab: string) => {
-    setActiveTab(tab as any);
-
-    switch (tab) {
-      case 'home':
-        break;
-      case 'schedule':
-        navigation.navigate('SchedulePage');
-        break;
-      case 'attendance':
-        navigation.navigate('AttendancePage');
-        break;
-      case 'stats':
-        navigation.navigate('StatsPage');
-        break;
-      case 'profile':
-        navigation.navigate('ProfilePage');
-        break;
-      case 'notification':
-        navigation.navigate('NotificationPage');
-        break;
-      default:
-        Alert.alert('Thông báo', `Tính năng ${tab} đang phát triển`);
-    }
   };
 
   const handleLogout = async () => {
@@ -333,8 +349,7 @@ const DashBoardPage = ({ navigation }: Props) => {
 
   return (
     <DashBoardLayout
-      activeTab={activeTab}
-      onTabPress={handleTabPress}
+      defaultActiveTab="home"
       headerTitle="Smart Attendance"
       headerSubtitle="Giao diện chính">
       {renderHomeContent()}

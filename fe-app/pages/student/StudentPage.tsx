@@ -4,9 +4,9 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DashBoardLayout from './DashBoarLayout';
-import { apiScheduleService, Schedule } from '../api/apiSchedule';
-import { apiAuthService } from '../api/apiAuth';
-import { apiFaceService } from '../api/apiFace';
+import { apiScheduleService, Schedule } from '../../api/apiSchedule';
+import { apiAuthService } from '../../api/apiAuth';
+import { apiFaceService } from '../../api/apiFace';
 
 type Props = NativeStackScreenProps<any, 'StudentPage'>;
 
@@ -224,7 +224,10 @@ const StudentPage = ({ navigation }: Props) => {
   );
 
   return (
-    <DashBoardLayout activeTab="attendance" headerTitle="Điểm danh" headerSubtitle="Sinh viên">
+    <DashBoardLayout
+      defaultActiveTab="attendance"
+      headerTitle="Điểm danh"
+      headerSubtitle="Sinh viên">
       {content}
     </DashBoardLayout>
   );

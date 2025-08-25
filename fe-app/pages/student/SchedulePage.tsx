@@ -2,15 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
-import ErrorMessage from '../components/ErrorMessage';
+import ErrorMessage from '../../components/ErrorMessage';
 import DashBoardLayout from './DashBoarLayout';
-import { apiScheduleService, Schedule } from '../api/apiSchedule';
-import { apiAuthService } from '../api/apiAuth';
+import { apiScheduleService, Schedule } from '../../api/apiSchedule';
+import { apiAuthService } from '../../api/apiAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type Props = NativeStackScreenProps<any, 'AttendancePage'>;
+type Props = NativeStackScreenProps<any, 'SchedulePage'>;
 
-const AttendancePage = ({ navigation }: Props) => {
+const SchedulePage = ({ navigation }: Props) => {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -29,35 +29,10 @@ const AttendancePage = ({ navigation }: Props) => {
       const res = await apiScheduleService.getMySchedule();
       setSchedules(res.schedules || []);
     } catch (err: any) {
-      console.error('Error loading schedules in AttendancePage:', err);
+      console.error('Error loading schedules in SchedulePage:', err);
       setError(err?.message || 'Không thể tải lịch học. Vui lòng thử lại.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleTabPress = (tab: string) => {
-    switch (tab) {
-      case 'home':
-        navigation.navigate('DashBoardPage');
-        break;
-      case 'schedule':
-        navigation.navigate('SchedulePage');
-        break;
-      case 'attendance':
-        // already here
-        break;
-      case 'stats':
-        navigation.navigate('StatsPage');
-        break;
-      case 'notification':
-        navigation.navigate('NotificationPage');
-        break;
-      case 'profile':
-        navigation.navigate('ProfilePage');
-        break;
-      default:
-        break;
     }
   };
 
@@ -96,21 +71,33 @@ const AttendancePage = ({ navigation }: Props) => {
             {s.lecturerName && (
               <Text className="mb-1 text-sm text-gray-600">Giảng viên: {s.lecturerName}</Text>
             )}
+
+            <View className="mt-2">
+              {s.isOpen ? (
+                <Text className="text-sm text-green-600">Đang mở điểm danh</Text>
+              ) : (
+                <Text className="text-sm text-red-600">Hiện tại giảng viên chưa mở điểm danh</Text>
+              )}
+            </View>
           </View>
         ))
       )}
     </ScrollView>
   );
 
+  const anyOpen = schedules.some((s) => s.isOpen === true);
+  const headerSubtitle = anyOpen
+    ? 'Có lịch đang mở điểm danh'
+    : 'Hiện tại giảng viên chưa mở điểm danh';
+
   return (
     <DashBoardLayout
-      activeTab="attendance"
-      onTabPress={handleTabPress}
-      headerTitle="Điểm danh"
-      headerSubtitle="Danh sách lớp sắp tới">
+      defaultActiveTab="schedule"
+      headerTitle="Lịch học"
+      headerSubtitle={headerSubtitle}>
       {content}
     </DashBoardLayout>
   );
 };
 
-export default AttendancePage;
+export default SchedulePage;

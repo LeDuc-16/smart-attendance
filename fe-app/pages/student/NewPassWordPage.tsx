@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import MyInput from '../components/MyInput';
-import MyButton from '../components/MyButton';
-import ErrorMessage from '../components/ErrorMessage';
-import SuccessMessage from '../components/SuccessMessage';
+import MyInput from '../../components/MyInput';
+import { apiAuthService } from 'api/apiAuth';
 import LoginBackGround from './LoginBackGround';
-import { apiAuthService } from '../api/apiAuth';
+import ErrorMessage from 'components/ErrorMessage';
+import SuccessMessage from 'components/SuccessMessage';
+import MyButton from 'components/MyButton';
+
 
 type Props = NativeStackScreenProps<any, 'NewPassWordPage'>;
 
