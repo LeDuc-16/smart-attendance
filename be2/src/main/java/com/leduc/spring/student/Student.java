@@ -50,10 +50,12 @@ public class Student {
 
         @ManyToMany
         @JoinTable(name = "student_course", joinColumns = @JoinColumn(name = "student_id"), inverseJoinColumns = @JoinColumn(name = "course_id"))
+        @com.fasterxml.jackson.annotation.JsonIgnore
         private List<Course> courses;
 
         @ManyToMany
         @JoinTable(name = "student_schedule", joinColumns = @JoinColumn(name = "student_id"), inverseJoinColumns = @JoinColumn(name = "schedule_id"))
+        @com.fasterxml.jackson.annotation.JsonIgnore
         private List<Schedule> schedules;
 
         @ManyToOne(fetch = FetchType.LAZY)
@@ -62,5 +64,6 @@ public class Student {
 
         // Một sinh viên có thể có nhiều bản dữ liệu khuôn mặt
         @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
+        @com.fasterxml.jackson.annotation.JsonIgnore
         private List<StudentFaceData> faceDataList;
 }

@@ -45,7 +45,7 @@ const SchedulePage = ({ navigation }: Props) => {
         navigation.navigate('SchedulePage');
         break;
       case 'attendance':
-        // already here
+        navigation.navigate('AttendancePage');
         break;
       case 'stats':
         navigation.navigate('StatsPage');
@@ -96,18 +96,31 @@ const SchedulePage = ({ navigation }: Props) => {
             {s.lecturerName && (
               <Text className="mb-1 text-sm text-gray-600">Giảng viên: {s.lecturerName}</Text>
             )}
+
+            <View className="mt-2">
+              {s.isOpen ? (
+                <Text className="text-sm text-green-600">Đang mở điểm danh</Text>
+              ) : (
+                <Text className="text-sm text-red-600">Hiện tại giảng viên chưa mở điểm danh</Text>
+              )}
+            </View>
           </View>
         ))
       )}
     </ScrollView>
   );
 
+  const anyOpen = schedules.some((s) => s.isOpen === true);
+  const headerSubtitle = anyOpen
+    ? 'Có lịch đang mở điểm danh'
+    : 'Hiện tại giảng viên chưa mở điểm danh';
+
   return (
     <DashBoardLayout
-      activeTab="attendance"
+      activeTab="schedule"
       onTabPress={handleTabPress}
-      headerTitle="Điểm danh"
-      headerSubtitle="Danh sách lớp sắp tới">
+      headerTitle="Lịch học"
+      headerSubtitle={headerSubtitle}>
       {content}
     </DashBoardLayout>
   );

@@ -1,5 +1,6 @@
 package com.leduc.spring.faculty;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.leduc.spring.lecturer.Lecturer;
 import com.leduc.spring.major.Major;
 import com.leduc.spring.student.Student;
@@ -34,11 +35,15 @@ public class Faculty {
     private User user;
 
     @OneToMany(mappedBy = "faculty", fetch = FetchType.LAZY)
+    @JsonIgnore
+    @Builder.Default
     private List<Student> students = new ArrayList<>(); // Một khoa có nhiều sinh viên
 
     @OneToMany(mappedBy = "faculty", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<Major> majors;
 
     @OneToMany(mappedBy = "faculty", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<Lecturer> lecturers;
 }

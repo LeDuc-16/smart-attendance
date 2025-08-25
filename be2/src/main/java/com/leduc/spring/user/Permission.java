@@ -1,9 +1,7 @@
 package com.leduc.spring.user;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
-@RequiredArgsConstructor
 public enum Permission {
 
     ADMIN_READ("admin:read"),
@@ -23,4 +21,8 @@ public enum Permission {
 
     @Getter
     private final String permission;
+
+    Permission(String permission) {
+        this.permission = permission;
+    }
 }

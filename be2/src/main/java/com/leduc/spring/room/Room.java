@@ -1,5 +1,6 @@
 package com.leduc.spring.room;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.leduc.spring.schedule.Schedule;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -26,6 +27,7 @@ public class Room {
     private String locations;
 
     @OneToMany(mappedBy = "room")
+    @JsonIgnore
     private List<Schedule> schedules;
 
     public Room(Long id) {

@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 
 import static com.leduc.spring.user.Permission.*;
 
-@RequiredArgsConstructor
 public enum Role {
 
         USER(Collections.emptySet()),
@@ -50,6 +49,10 @@ public enum Role {
 
         @Getter
         private final Set<Permission> permissions;
+
+        Role(Set<Permission> permissions) {
+            this.permissions = permissions;
+        }
 
         public List<SimpleGrantedAuthority> getAuthorities() {
                 var authorities = getPermissions()

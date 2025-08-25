@@ -265,6 +265,14 @@ const DashBoardPage = ({ navigation }: Props) => {
                     onPress={() => {
                       try {
                         setError('');
+                        // If instructor hasn't opened attendance, prevent navigation
+                        if (schedule.isOpen === false) {
+                          Alert.alert(
+                            'Chưa mở điểm danh',
+                            'Giảng viên chưa mở điểm danh cho lớp này.'
+                          );
+                          return;
+                        }
                         navigation.navigate('SchedulePage');
                       } catch (error: any) {
                         setError('Không thể mở trang điểm danh. Vui lòng thử lại.');

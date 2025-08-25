@@ -223,12 +223,11 @@ const FaceRegisterPage = () => {
           </View>
 
           <TouchableOpacity
-            className="mb-3 rounded-2xl bg-gray-700 p-4 mt-4"
+            className="mb-3 mt-4 rounded-2xl bg-gray-700 p-4"
             onPress={navigation.goBack}
             disabled={loading}>
             <Text className="text-center font-bold text-white">Quay lại đăng nhập</Text>
           </TouchableOpacity>
-
         </View>
       </View>
     </LoginBackGround>

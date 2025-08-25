@@ -77,20 +77,7 @@ class ApiAuthService {
   private authToken: string | null = null;
   private userInfo: UserInfo | null = null;
 
-<<<<<<< HEAD
-  constructor(baseURL?: string) {
-    const envBaseURL =
-      process.env.REACT_NATIVE_APP_API_BASE_URL ||
-      process.env.REACT_APP_API_BASE_URL;
 
-    if (process.env.NODE_ENV === 'production') {
-      this.baseURL = baseURL || envBaseURL || 'http://14.225.210.41:8080';
-    } else {
-      // Development
-      const LAN_BASE_URL = 'http://192.168.1.3:8080';   // IP LAN của máy Vinh
-      const LOCALHOST_BASE_URL = 'http://localhost:8080'; // Dùng cho emulator
-      this.baseURL = baseURL || envBaseURL || LAN_BASE_URL || LOCALHOST_BASE_URL;
-=======
    constructor(baseURL?: string) {
   const envBaseURL =
     process.env.REACT_NATIVE_APP_API_BASE_URL ||
@@ -120,7 +107,6 @@ class ApiAuthService {
       this.baseURL = IOS_LOCALHOST; // iOS simulator
     } else {
       this.baseURL = baseURL || envBaseURL || LAN_BASE_URL;
->>>>>>> f82db7366760b358df0511bd61daa959bae64cf1
     }
   }
 }
