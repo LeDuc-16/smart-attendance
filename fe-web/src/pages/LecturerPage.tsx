@@ -721,4 +721,3 @@ const LecturerPage = () => {
 };
 
 export default LecturerPage;
-

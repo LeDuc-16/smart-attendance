@@ -98,9 +98,7 @@ const HeaderDashboard = () => {
         }, 100);
     };
 
-    const handleProfile = () => {
-        console.log('Mở hồ sơ cá nhân');
-    };
+    
 
     const handleChangePassword = () => {
         console.log('Chuyển đến trang đổi mật khẩu');

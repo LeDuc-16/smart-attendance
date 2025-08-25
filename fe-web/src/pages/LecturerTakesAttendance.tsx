@@ -1,8 +1,11 @@
-  // ...existing code...
 import SidebarLecturer from "../components/SidebarLecturer";
 import HeaderLecturer from "../components/HeaderLecturer";
 import { useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { getSchedulesByLecturer } from "../api/apiTeaching";
+
+
+import { getClasses } from "../api/apiClass";
 
 const LecturerTakesAttendance = () => {
   const location = useLocation();
@@ -19,7 +22,8 @@ const LecturerTakesAttendance = () => {
   const [date, setDate] = useState(`${yyyy}-${mm}-${dd}`);
   // Lấy dữ liệu từ API giống như trang lịch giảng dạy
   const [attendanceList, setAttendanceList] = useState<any[]>([]);
-  // ...existing code...
+  
+
   // Hàm cập nhật trạng thái điểm danh khi có kết quả từ API xác thực khuôn mặt
   // Gọi hàm này khi nhận được response từ /api/v1/student-faces/compare
   const markStudentPresent = (studentId: number) => {
@@ -34,36 +38,38 @@ const LecturerTakesAttendance = () => {
   useEffect(() => {
     (async () => {
       try {
-        const schedules = await import('../api/apiTeaching').then(m => m.getSchedulesByDate(date));
-        const coursesRes = await import('../api/apiCourse').then(m => m.getCourses());
-        const rooms = await import('../api/apiClassRoom').then(m => m.getClassRooms());
-        const classesRes = await import('../api/apiClass').then(m => m.getClasses());
+        const schedules = await getSchedulesByLecturer();
+        
+        const classesRes = await getClasses();
 
-        const courses: any[] = (coursesRes as any).data;
-        const classes: any[] = (classesRes as any).data;
+        let classes: any[] = [];
+        if (classesRes && classesRes.data) {
+            if (Array.isArray(classesRes.data)) {
+                classes = classesRes.data;
+            } else if (Array.isArray(classesRes.data.content)) {
+                classes = classesRes.data.content;
+            }
+        }
 
-        const filteredSchedules = schedules.filter((item: any) =>
-          item.weeks.some((week: any) =>
-            week.studyDays.some((day: any) => day.date === date)
-          )
-        );
+        const filteredSchedules = schedules.flatMap((item: any) => {
+          const classInfo = classes ? classes.find((cl: any) => cl.className === item.className) : undefined;
 
-        const enriched = filteredSchedules.map((item: any) => {
-          const course = courses.find((c: any) => c.id === item.courseId);
-          const room = rooms.find((r: any) => r.id === item.roomId);
-          const classInfo = classes.find((cl: any) => cl.id === item.classId);
-          return {
-            subject: course?.courseName || "",
-            className: classInfo?.className || "",
-            time: `${formatTime(item.startTime)} - ${formatTime(item.endTime)}`,
-            room: room?.roomCode || "",
-            students: classInfo?.capacityStudent ?? "-",
-            status: "Sắp tới", // Có thể cập nhật trạng thái thực tế nếu có
-            statusType: "upcoming", // Có thể cập nhật trạng thái thực tế nếu có
-          };
+          return item.weeks.flatMap((week: any) => {
+            return week.studyDays.filter((day: any) => day.date === date).map((day: any) => {
+              return {
+                subject: item.courseName || "",
+                className: item.className || "",
+                time: `${formatTime(item.startTime)} - ${formatTime(item.endTime)}`,
+                room: item.roomName || "",
+                students: classInfo?.capacityStudent ?? "-",
+                status: "Sắp tới",
+                statusType: "upcoming",
+              };
+            });
+          });
         });
 
-        setAttendanceList(enriched);
+        setAttendanceList(filteredSchedules);
       } catch (err) {
         setAttendanceList([]);
       }

@@ -43,7 +43,7 @@ public class JwtService {
       // Nếu userId không có trong token, lấy từ UserRepository dựa trên username
       String username = extractUsername(token);
       User user = userRepository.findByAccount(username)
-              .orElseThrow(() -> new ResourceNotFoundException("User not found with account: " + username));
+          .orElseThrow(() -> new ResourceNotFoundException("User not found with account: " + username));
       return user.getId();
     }
     try {
@@ -51,6 +51,23 @@ public class JwtService {
     } catch (NumberFormatException e) {
       throw new ResourceNotFoundException("Invalid userId format in JWT token: " + userId);
     }
+  }
+
+  /**
+   * Extract role from JWT claims. If not present in token, fallback to lookup
+   * from UserRepository.
+   * Returns role in format expected by the codebase, e.g. "ROLE_ADMIN".
+   */
+  public String extractRole(String token) {
+    String role = extractClaim(token, claims -> claims.get("role", String.class));
+    if (role != null) {
+      return role;
+    }
+    // Fallback: find user by username and return role
+    String username = extractUsername(token);
+    User user = userRepository.findByAccount(username)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found with account: " + username));
+    return "ROLE_" + (user.getRole() != null ? user.getRole().name() : "USER");
   }
 
   public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
@@ -62,42 +79,39 @@ public class JwtService {
     Map<String, Object> extraClaims = new HashMap<>();
     // Thêm userId vào claims nếu cần
     User user = userRepository.findByAccount(userDetails.getUsername())
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with account: " + userDetails.getUsername()));
+        .orElseThrow(() -> new ResourceNotFoundException("User not found with account: " + userDetails.getUsername()));
     extraClaims.put("userId", user.getId().toString());
     return generateToken(extraClaims, userDetails);
   }
 
   public String generateToken(
-          Map<String, Object> extraClaims,
-          UserDetails userDetails
-  ) {
+      Map<String, Object> extraClaims,
+      UserDetails userDetails) {
     return buildToken(extraClaims, userDetails, jwtExpiration);
   }
 
   public String generateRefreshToken(
-          UserDetails userDetails
-  ) {
+      UserDetails userDetails) {
     Map<String, Object> extraClaims = new HashMap<>();
     // Thêm userId vào refresh token nếu cần
     User user = userRepository.findByAccount(userDetails.getUsername())
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with account: " + userDetails.getUsername()));
+        .orElseThrow(() -> new ResourceNotFoundException("User not found with account: " + userDetails.getUsername()));
     extraClaims.put("userId", user.getId().toString());
     return buildToken(extraClaims, userDetails, refreshExpiration);
   }
 
   private String buildToken(
-          Map<String, Object> extraClaims,
-          UserDetails userDetails,
-          long expiration
-  ) {
+      Map<String, Object> extraClaims,
+      UserDetails userDetails,
+      long expiration) {
     return Jwts
-            .builder()
-            .setClaims(extraClaims)
-            .setSubject(userDetails.getUsername())
-            .setIssuedAt(new Date(System.currentTimeMillis()))
-            .setExpiration(new Date(System.currentTimeMillis() + expiration))
-            .signWith(getSignInKey(), SignatureAlgorithm.HS256)
-            .compact();
+        .builder()
+        .setClaims(extraClaims)
+        .setSubject(userDetails.getUsername())
+        .setIssuedAt(new Date(System.currentTimeMillis()))
+        .setExpiration(new Date(System.currentTimeMillis() + expiration))
+        .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+        .compact();
   }
 
   public boolean isTokenValid(String token, UserDetails userDetails) {
@@ -115,11 +129,11 @@ public class JwtService {
 
   private Claims extractAllClaims(String token) {
     return Jwts
-            .parser()
-            .verifyWith(getSignInKey())
-            .build()
-            .parseSignedClaims(token)
-            .getPayload();
+        .parser()
+        .verifyWith(getSignInKey())
+        .build()
+        .parseSignedClaims(token)
+        .getPayload();
   }
 
   private SecretKey getSignInKey() {
@@ -129,6 +143,6 @@ public class JwtService {
 
   public User getUserFromToken(String account) {
     return userRepository.findByAccount(account)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with account: " + account));
+        .orElseThrow(() -> new ResourceNotFoundException("User not found with account: " + account));
   }
 }

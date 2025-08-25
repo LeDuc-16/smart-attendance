@@ -603,4 +603,3 @@ const ClassRoomPage = () => {
 };
 
 export default ClassRoomPage;
-

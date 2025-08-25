@@ -87,9 +87,12 @@ class ApiAuthService {
     } else {
       // Development
       const LAN_BASE_URL = 'http://192.168.1.3:8080'; // IP LAN của máy Vinh
+
       const LOCALHOST_BASE_URL = 'http://localhost:8080'; // Dùng cho emulator
       this.baseURL = baseURL || envBaseURL || LAN_BASE_URL || LOCALHOST_BASE_URL;
     }
+
+    console.log('ApiAuthService baseURL =', this.baseURL);
   }
 
   // ================== Token & User Info ==================

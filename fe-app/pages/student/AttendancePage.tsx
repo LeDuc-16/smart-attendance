@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
-import ErrorMessage from '../components/ErrorMessage';
+import ErrorMessage from '../../components/ErrorMessage';
 import DashBoardLayout from './DashBoarLayout';
-import { apiScheduleService, Schedule } from '../api/apiSchedule';
-import { apiAuthService } from '../api/apiAuth';
+import { apiScheduleService, Schedule } from '../../api/apiSchedule';
+import { apiAuthService } from '../../api/apiAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = NativeStackScreenProps<any, 'AttendancePage'>;
@@ -14,6 +14,36 @@ const AttendancePage = ({ navigation }: Props) => {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const checkRole = async () => {
+      try {
+        const user = apiAuthService.getUserInfo();
+        let role;
+
+        if (!user) {
+          const token = apiAuthService.getAuthToken() || (await AsyncStorage.getItem('jwtToken'));
+          if (!token) return;
+          const me = await apiAuthService.getCurrentUser();
+          role = (me as any)?.role;
+        } else {
+          role = (user as any)?.role;
+        }
+
+        if (!role) return;
+
+        if (role === 'STUDENT') {
+          return;
+        } else if (role === 'LECTURER') {
+          navigation.navigate('DashBoardPageLecturer');
+        }
+      } catch (error) {
+        console.error('Error checking role:', error);
+      }
+    };
+
+    checkRole();
+  }, []);
 
   useEffect(() => {
     loadAllSchedules();
@@ -33,31 +63,6 @@ const AttendancePage = ({ navigation }: Props) => {
       setError(err?.message || 'Không thể tải lịch học. Vui lòng thử lại.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleTabPress = (tab: string) => {
-    switch (tab) {
-      case 'home':
-        navigation.navigate('DashBoardPage');
-        break;
-      case 'schedule':
-        navigation.navigate('SchedulePage');
-        break;
-      case 'attendance':
-        // already here
-        break;
-      case 'stats':
-        navigation.navigate('StatsPage');
-        break;
-      case 'notification':
-        navigation.navigate('NotificationPage');
-        break;
-      case 'profile':
-        navigation.navigate('ProfilePage');
-        break;
-      default:
-        break;
     }
   };
 
@@ -104,8 +109,7 @@ const AttendancePage = ({ navigation }: Props) => {
 
   return (
     <DashBoardLayout
-      activeTab="attendance"
-      onTabPress={handleTabPress}
+      defaultActiveTab="attendance"
       headerTitle="Điểm danh"
       headerSubtitle="Danh sách lớp sắp tới">
       {content}

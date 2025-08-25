@@ -21,52 +21,46 @@ import java.util.List;
 @Builder
 public class Student {
 
-    @Id
-    private Long id;
+        @Id
+        private Long id;
 
-    @Column(name = "student_code", unique = true, nullable = false)
-    private String studentCode;
+        @Column(name = "student_code", unique = true, nullable = false)
+        private String studentCode;
 
-    @Column(name = "is_registered", nullable = false)
-    private boolean isRegistered = false;
+        @Column(name = "is_registered", nullable = false)
+        @Builder.Default
+        private boolean isRegistered = false;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
-    @JoinColumn(name = "id")
-    private User user;
+        @OneToOne(fetch = FetchType.LAZY)
+        @MapsId
+        @JoinColumn(name = "id")
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "major_id")
-    private Major major;
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "major_id")
+        private Major major;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "class_id")
-    private ClassEntity classes;
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "class_id")
+        private ClassEntity classes;
 
-    @Column(name = "profile_image_id")
-    private String profileImageId;
+        @Column(name = "profile_image_id")
+        private String profileImageId;
 
-    @ManyToMany
-    @JoinTable(
-            name = "student_course",
-            joinColumns = @JoinColumn(name = "student_id"),
-            inverseJoinColumns = @JoinColumn(name = "course_id")
-    )
-    private List<Course> courses;
+        @ManyToMany
+        @JoinTable(name = "student_course", joinColumns = @JoinColumn(name = "student_id"), inverseJoinColumns = @JoinColumn(name = "course_id"))
+        private List<Course> courses;
 
-    @ManyToMany
-    @JoinTable(
-            name = "student_schedule",
-            joinColumns = @JoinColumn(name = "student_id"),
-            inverseJoinColumns = @JoinColumn(name = "schedule_id")
-    )
-    private List<Schedule> schedules;
+        @ManyToMany
+        @JoinTable(name = "student_schedule", joinColumns = @JoinColumn(name = "student_id"), inverseJoinColumns = @JoinColumn(name = "schedule_id"))
+        private List<Schedule> schedules;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "faculty_id")
-    private Faculty faculty;
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "faculty_id")
+        private Faculty faculty;
 
-    // Một sinh viên có thể có nhiều bản dữ liệu khuôn mặt
-    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<StudentFaceData> faceDataList;
+        // Một sinh viên có thể có nhiều bản dữ liệu khuôn mặt
+        @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
+        private List<StudentFaceData> faceDataList;
 }

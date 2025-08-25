@@ -11,11 +11,13 @@ export interface Schedule {
   lecturerName?: string;
   topic?: string;
   date: string;
+  isOpen?: boolean;
 }
 
 export interface ScheduleResponse {
   schedules: Schedule[];
   totalSchedules: number;
+  isOpen: boolean;
 }
 
 export interface BackendApiResponse<T> {
@@ -29,40 +31,33 @@ class ApiScheduleService {
   private baseURL: string;
   private authToken: string | null = null;
 
-constructor(baseURL?: string) {
-  const envBaseURL =
-    process.env.REACT_NATIVE_APP_API_BASE_URL ||
-    process.env.REACT_APP_API_BASE_URL;
+  constructor(baseURL?: string) {
+    const envBaseURL =
+      process.env.REACT_NATIVE_APP_API_BASE_URL || process.env.REACT_APP_API_BASE_URL;
 
-  if (process.env.NODE_ENV === 'production') {
-    this.baseURL =
-      baseURL || envBaseURL || 'http://14.225.210.41:8080';
-  } else {
-    const Constants = require('expo-constants').default;
-    const hostUri =
-      Constants.expoConfig?.hostUri ||
-      Constants.manifest?.hostUri ||
-      '';
-    const lanHost = hostUri ? hostUri.split(':')[0] : '192.168.11.105';
-
-    const LAN_BASE_URL = `http://${lanHost}:8080`;
-    const ANDROID_LOCALHOST = 'http://10.0.2.2:8080';
-    const IOS_LOCALHOST = 'http://localhost:8080';
-
-    // Dùng Platform để phân biệt emulator vs device thật
-    const Platform = require('react-native').Platform;
-
-    if (Platform.OS === 'android' && !hostUri) {
-      this.baseURL = ANDROID_LOCALHOST; // Android emulator
-    } else if (Platform.OS === 'ios' && !hostUri) {
-      this.baseURL = IOS_LOCALHOST; // iOS simulator
+    if (process.env.NODE_ENV === 'production') {
+      this.baseURL = baseURL || envBaseURL || 'http://14.225.210.41:8080';
     } else {
-      this.baseURL = baseURL || envBaseURL || LAN_BASE_URL;
+      const Constants = require('expo-constants').default;
+      const hostUri = Constants.expoConfig?.hostUri || Constants.manifest?.hostUri || '';
+      const lanHost = hostUri ? hostUri.split(':')[0] : '192.168.11.105';
+
+      const LAN_BASE_URL = `http://${lanHost}:8080`;
+      const ANDROID_LOCALHOST = 'http://10.0.2.2:8080';
+      const IOS_LOCALHOST = 'http://localhost:8080';
+
+      // Dùng Platform để phân biệt emulator vs device thật
+      const Platform = require('react-native').Platform;
+
+      if (Platform.OS === 'android' && !hostUri) {
+        this.baseURL = ANDROID_LOCALHOST; // Android emulator
+      } else if (Platform.OS === 'ios' && !hostUri) {
+        this.baseURL = IOS_LOCALHOST; // iOS simulator
+      } else {
+        this.baseURL = baseURL || envBaseURL || LAN_BASE_URL;
+      }
     }
   }
-}
-
-
 
   setAuthToken(token: string) {
     this.authToken = token;
@@ -112,6 +107,7 @@ constructor(baseURL?: string) {
 
     // Read raw text first to avoid JSON parse errors on empty responses
     const raw = await response.text();
+    // console.log('Raw response from server:', raw); // Log the raw response
     if (!raw || raw.trim().length === 0) {
       // No body returned
       const msg = `Lấy lịch học thất bại: server trả về dữ liệu rỗng (${response.status})`;
@@ -193,6 +189,11 @@ constructor(baseURL?: string) {
         lecturerName: item.lecturerName || item.lecturer || '',
         topic: item.topic || '',
         date: date,
+        isOpen:
+          item.open === true ||
+          item.isOpen === true ||
+          item.opened === true ||
+          item.is_open === true,
       } as Schedule;
     };
 
@@ -202,7 +203,28 @@ constructor(baseURL?: string) {
       typeof result.data === 'object' &&
       Array.isArray((result.data as any).schedules)
     ) {
-      return result.data as ScheduleResponse;
+      // Normalize schedules returned from backend so each item always contains an `isOpen` boolean
+      const rawSchedules = (result.data as any).schedules as any[];
+      const normalized = rawSchedules.map(
+        (it) =>
+          ({
+            id: it.id,
+            subjectName: it.subjectName || it.courseName || '',
+            subjectCode: it.subjectCode || '',
+            classroomName: it.classroomName || it.roomName || it.className || '',
+            startTime: typeof it.startTime === 'string' ? normalizeTime(it.startTime) : '',
+            endTime: typeof it.endTime === 'string' ? normalizeTime(it.endTime) : '',
+            dayOfWeek: typeof it.dayOfWeek === 'number' ? it.dayOfWeek : 0,
+            lecturerName: it.lecturerName || it.lecturer || '',
+            topic: it.topic || '',
+            date: it.date || '',
+            // unify possible flags
+            isOpen:
+              it.open === true || it.isOpen === true || it.opened === true || it.is_open === true,
+          }) as Schedule
+      );
+
+      return { schedules: normalized, totalSchedules: normalized.length } as ScheduleResponse;
     }
 
     // If data is an array of schedules (CreateScheduleResponse[]), expand weeks.studyDays into individual Schedule entries
@@ -221,13 +243,19 @@ constructor(baseURL?: string) {
                   id: (Number(item.id) || 0) * 1000 + globalCounter++,
                   subjectName: item.courseName || item.subjectName || '',
                   subjectCode: item.subjectCode || '',
-                  classroomName: item.roomName || item.classroomName || item.className || '',
+                  className: item.className || '',
+                  roomName: item.roomName || '',
                   startTime: normalizeTime(item.startTime),
                   endTime: normalizeTime(item.endTime),
                   dayOfWeek: dow,
                   lecturerName: item.lecturerName || item.lecturer || '',
                   topic: item.topic || '',
                   date: date,
+                  isOpen:
+                    item.open === true ||
+                    item.isOpen === true ||
+                    item.opened === true ||
+                    item.is_open === true,
                 };
                 out.push(scheduleEntry);
               }

@@ -4,9 +4,9 @@ import { useNavigation } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoginBackGround from './LoginBackGround';
-import ErrorMessage from '../components/ErrorMessage';
-import SuccessMessage from '../components/SuccessMessage';
-import { apiFaceService } from '../api/apiFace';
+import ErrorMessage from '../../components/ErrorMessage';
+import SuccessMessage from '../../components/SuccessMessage';
+import { apiFaceService } from '../../api/apiFace';
 
 const instructions = [
   'Ngẩng nhẹ, trán rõ',
@@ -32,7 +32,33 @@ const FaceRegisterPage = () => {
   const [permission, requestPermission] = useCameraPermissions();
 
   useEffect(() => {
-    if (!permission) requestPermission();
+    const checkRole = async () => {
+      try {
+        const { apiAuthService } = await import('../../api/apiAuth');
+        const user = apiAuthService.getUserInfo();
+        let role = user?.role;
+
+        if (!role) {
+          const token = apiAuthService.getAuthToken() || (await AsyncStorage.getItem('jwtToken'));
+          if (!token) return;
+          const me = await apiAuthService.getCurrentUser();
+          role = (me as any)?.role;
+        }
+
+        // Chỉ STUDENT mới được đăng ký khuôn mặt
+        if (role === 'LECTURER') {
+          navigation.navigate('DashBoardPageLecturer');
+        } else if (role && role !== 'STUDENT') {
+          navigation.navigate('Login');
+        }
+      } catch (err) {
+        console.error('Role check error:', err);
+        // Nếu có lỗi thì cũng đưa về login để đảm bảo an toàn
+        navigation.navigate('Login');
+      }
+    };
+
+    checkRole();
   }, []);
 
   const ensurePermission = async () => {
@@ -82,7 +108,7 @@ const FaceRegisterPage = () => {
     setSuccess(''); // Clear any previous success messages
     setLoading(true);
     try {
-      const { apiAuthService } = await import('../api/apiAuth');
+      const { apiAuthService } = await import('../../api/apiAuth');
       let token = apiAuthService.getAuthToken() || (await AsyncStorage.getItem('jwtToken'));
       if (!token) throw new Error('JWT token không tồn tại');
 
@@ -223,12 +249,11 @@ const FaceRegisterPage = () => {
           </View>
 
           <TouchableOpacity
-            className="mb-3 rounded-2xl bg-gray-700 p-4 mt-4"
+            className="mb-3 mt-4 rounded-2xl bg-gray-700 p-4"
             onPress={navigation.goBack}
             disabled={loading}>
             <Text className="text-center font-bold text-white">Quay lại đăng nhập</Text>
           </TouchableOpacity>
-
         </View>
       </View>
     </LoginBackGround>

@@ -1,17 +1,26 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import './global.css';
-import LoginPage from './pages/LoginPage';
-import ForgetPassPage from './pages/ForgetPassPage';
-import OtpPage from './pages/OtpPage';
-import { ChangePassPage } from './pages/ChangePassPage';
-import NewPassWordPage from './pages/NewPassWordPage';
-import DashBoardPage from './pages/DashBoardPage';
-import AttendancePage from './pages/AttendancePage';
-import NotificationPage from './pages/NotificationPage';
-import ProfilePage from 'pages/ProfilePage';
-import StatsPage from 'pages/StatsPage';
-import FaceRegisterPage from './pages/FaceRegisterPage';
+import LoginPage from './pages/student/LoginPage';
+import ForgetPassPage from './pages/student/ForgetPassPage';
+import { ChangePassPage } from './pages/student/ChangePassPage';
+import DashBoardPage from './pages/student/DashBoardPage';
+import AttendancePage from './pages/student/AttendancePage';
+import StatsPage from 'pages/student/HistoryPage';
+import FaceRegisterPage from './pages/student/FaceRegisterPage';
+import StudentPage from './pages/student/StudentPage';
+import SchedulePage from './pages/student/SchedulePage';
+import OtpPage from 'pages/student/OtpPage';
+import NewPassWordPage from 'pages/student/NewPassWordPage';
+import NotificationPage from 'pages/student/NotificationPage';
+import ProfilePage from 'pages/student/ProfilePage';
+import HistoryPage from 'pages/student/HistoryPage';
+import DashBoardPageLecturer from 'pages/lecturer/DashBoardPageLecturer';
+import TeachingSchedulePageLecturer from './pages/lecturer/TeachingSchedulePageLecturer';
+import AttendancePageLecturer from './pages/lecturer/AttendancePageLecturer';
+import ReportPageLecturer from './pages/lecturer/ReportPageLecturer';
+import StudentListPage from './pages/lecturer/StudentListPage';
+
 // Define the type for your stack navigator routes
 export type RootStackParamList = {
   Login: undefined;
@@ -22,9 +31,15 @@ export type RootStackParamList = {
   FaceRegisterPage: undefined;
   DashBoardPage: undefined;
   AttendancePage: undefined;
+  SchedulePage: undefined;
+  StudentPage: undefined;
   NotificationPage: undefined;
   ProfilePage: undefined;
-  StatsPage: undefined;
+  HistoryPage: undefined;
+  DashBoardPageLecturer: undefined;
+  SchedulePageLecturer: undefined;
+  AttendancePageLecturer: undefined;
+  StudentListPage: { className: string; scheduleId: string; date: string };
 };
 
 // const Stack = createNativeStackNavigator();
@@ -45,10 +60,17 @@ export default function App() {
         <Stack.Screen name="NewPassWordPage" component={NewPassWordPage} />
         <Stack.Screen name="DashBoardPage" component={DashBoardPage} />
         <Stack.Screen name="FaceRegisterPage" component={FaceRegisterPage} />
+        <Stack.Screen name="SchedulePage" component={SchedulePage} />
+        <Stack.Screen name="StudentPage" component={StudentPage} />
         <Stack.Screen name="AttendancePage" component={AttendancePage} />
         <Stack.Screen name="NotificationPage" component={NotificationPage} />
         <Stack.Screen name="ProfilePage" component={ProfilePage} />
-        <Stack.Screen name="StatsPage" component={StatsPage} />
+        <Stack.Screen name="HistoryPage" component={HistoryPage} />
+        <Stack.Screen name="DashBoardPageLecturer" component={DashBoardPageLecturer} />
+        <Stack.Screen name="SchedulePageLecturer" component={TeachingSchedulePageLecturer} />
+        <Stack.Screen name="AttendancePageLecturer" component={AttendancePageLecturer} />
+        <Stack.Screen name="ReportPageLecturer" component={ReportPageLecturer} />
+        <Stack.Screen name="StudentListPage" component={StudentListPage} />
       </Stack.Navigator>
     </NavigationContainer>
   );
