@@ -373,6 +373,14 @@ class ApiScheduleService {
       });
     } catch (error: any) {
       console.error('Error getting today schedules:', error);
+      // Return empty array for database-related errors to prevent app crash
+      if (
+        error.message?.includes('isAttendance') ||
+        error.message?.includes('Null value was assigned')
+      ) {
+        console.warn('Backend database issue detected, returning empty schedule for today');
+        return [];
+      }
       throw error instanceof Error ? error : new Error(String(error));
     }
   }
@@ -405,6 +413,14 @@ class ApiScheduleService {
         });
     } catch (error: any) {
       console.error('Error getting upcoming schedules:', error);
+      // Return empty array for database-related errors to prevent app crash
+      if (
+        error.message?.includes('isAttendance') ||
+        error.message?.includes('Null value was assigned')
+      ) {
+        console.warn('Backend database issue detected, returning empty schedule for upcoming');
+        return [];
+      }
       throw error instanceof Error ? error : new Error(String(error));
     }
   }

@@ -211,7 +211,7 @@ const StudentPage = ({ navigation }: Props) => {
                 )}
               </View>
             ) : (
-              <View className="mt-3 flex-row items-center justify-between">
+              <View className="mt-3 flex-row items-center justify-between space-x-3">
                 {s.isOpen === false ? (
                   <View className="flex-1">
                     <TouchableOpacity className="rounded-2xl bg-gray-300 p-3" disabled={true}>
@@ -222,11 +222,24 @@ const StudentPage = ({ navigation }: Props) => {
                     </Text>
                   </View>
                 ) : (
-                  <TouchableOpacity
-                    className="flex-1 rounded-2xl bg-green-600 p-3"
-                    onPress={() => startCapture(s.id)}>
-                    <Text className="text-center text-white">Điểm danh</Text>
-                  </TouchableOpacity>
+                  <>
+                    <TouchableOpacity
+                      className="flex-1 rounded-2xl bg-green-600 p-3"
+                      onPress={() => startCapture(s.id)}>
+                      <Text className="text-center text-white">Điểm danh</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="rounded-2xl bg-blue-600 p-3 px-4"
+                      onPress={() =>
+                        navigation.navigate('QuickAttendancePage', {
+                          scheduleId: s.id,
+                          className: s.classroomName,
+                          subjectName: s.subjectName,
+                        })
+                      }>
+                      <Text className="text-center text-white">Nhanh</Text>
+                    </TouchableOpacity>
+                  </>
                 )}
               </View>
             )}

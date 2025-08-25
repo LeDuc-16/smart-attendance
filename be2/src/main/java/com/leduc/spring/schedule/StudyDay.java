@@ -43,6 +43,7 @@ public class StudyDay {
     @JsonIgnore
     private Schedule schedule;
 
+
     // Constructor for backward compatibility with existing code
     public StudyDay(DayOfWeek dayOfWeek, LocalDate date) {
         this.dayOfWeek = dayOfWeek;

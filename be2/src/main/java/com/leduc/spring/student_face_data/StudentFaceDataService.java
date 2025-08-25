@@ -1,12 +1,12 @@
 package com.leduc.spring.student_face_data;
 
-import com.leduc.spring.attendance_log.AttendanceLog;
 import com.leduc.spring.attendance_log.AttendanceLogService;
 import com.leduc.spring.attendance_log.AttendanceStatus;
 import com.leduc.spring.aws.S3Buckets;
 import com.leduc.spring.aws.S3Service;
 import com.leduc.spring.classes.ClassEntity;
 import com.leduc.spring.classes.ClassRepository;
+import com.leduc.spring.email.EmailService;
 import com.leduc.spring.exception.ApiResponse;
 import com.leduc.spring.exception.ResourceNotFoundException;
 import com.leduc.spring.schedule.Schedule;
@@ -19,6 +19,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.mail.MailException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,6 +44,7 @@ public class StudentFaceDataService {
     private final StudentRepository studentRepository;
     private final S3Service s3Service;
     private final S3Buckets s3Buckets;
+    private final EmailService emailService;
     private final ScheduleRepository scheduleRepository;
     private final ClassRepository classRepository;
     private final RekognitionClient rekognitionClient;
@@ -89,7 +91,8 @@ public class StudentFaceDataService {
         try {
             IndexFacesResponse response = rekognitionClient.indexFaces(indexFacesRequest);
             if (response.faceRecords().isEmpty() || response.faceRecords().size() > 1) {
-                logger.warn("Invalid face detection: {} faces found for studentId {}", response.faceRecords().size(), studentId);
+                logger.warn("Invalid face detection: {} faces found for studentId {}", response.faceRecords().size(),
+                        studentId);
                 return null;
             }
             String faceId = response.faceRecords().get(0).face().faceId();
@@ -114,7 +117,8 @@ public class StudentFaceDataService {
     }
 
     @Transactional
-    public ApiResponse<FaceRegisterResponse> registerStudentFace(FaceRegisterRequest request, Long studentId, HttpServletRequest servletRequest) {
+    public ApiResponse<FaceRegisterResponse> registerStudentFace(FaceRegisterRequest request, Long studentId,
+            HttpServletRequest servletRequest) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Student with id [%s] not found".formatted(studentId)));
@@ -139,23 +143,20 @@ public class StudentFaceDataService {
                         s3Buckets.getStudent(),
                         s3Key,
                         file.getBytes(),
-                        file.getContentType()
-                );
+                        file.getContentType());
                 logger.info("Uploaded image {} to S3 with key: {}", i + 1, s3Key);
-
-                // Bỏ bước verify
-                // s3Service.headObject(s3Buckets.getStudent(), s3Key);
-                // logger.info("Verified S3 object exists for image {}: {}", i + 1, s3Key);
 
                 // Detect face
                 if (!detectFace(file)) {
-                    throw new ResourceNotFoundException("Face detection failed for image %d: must have exactly 1 face".formatted(i + 1));
+                    throw new ResourceNotFoundException(
+                            "Face detection failed for image %d: must have exactly 1 face".formatted(i + 1));
                 }
 
                 // Index face
                 String faceId = indexFace(file, studentId);
                 if (faceId == null) {
-                    throw new ResourceNotFoundException("Failed to extract face features for image %d".formatted(i + 1));
+                    throw new ResourceNotFoundException(
+                            "Failed to extract face features for image %d".formatted(i + 1));
                 }
 
                 profileImageIds.add(profileImageId);
@@ -173,8 +174,16 @@ public class StudentFaceDataService {
             student.setRegistered(true);
             studentRepository.save(student);
 
-            FaceRegisterResponse response = mapper.toFaceRegisterResponse(student, faceIds, profileImageIds, LocalDateTime.now());
-            return ApiResponse.success(response, "Student faces registered successfully", servletRequest.getRequestURI());
+            // Send email notification
+            String subject = "Successful Face Registration Confirmation";
+            String htmlContent = emailService.buildProfessionalEmailContent(student.getUser().getName());
+            emailService.sendComplexNotificationEmail(student.getUser(), subject, htmlContent);
+            logger.info("Sent face registration confirmation email to student: {}", student.getUser().getEmail());
+
+            FaceRegisterResponse response = mapper.toFaceRegisterResponse(student, faceIds, profileImageIds,
+                    LocalDateTime.now());
+            return ApiResponse.success(response, "Student faces registered successfully",
+                    servletRequest.getRequestURI());
 
         } catch (ResourceNotFoundException e) {
             for (String s3Key : s3Keys) {
@@ -197,6 +206,14 @@ public class StudentFaceDataService {
             }
             logger.error("Failed to verify S3 object for studentId {}: {}", studentId, e.getMessage(), e);
             throw new RuntimeException("Failed to verify S3 object: " + e.getMessage(), e);
+        } catch (MailException e) {
+            // Log email failure but don't rollback transaction
+            logger.error("Failed to send email to studentId {}: {}", studentId, e.getMessage(), e);
+            // Continue with success response since face registration was successful
+            FaceRegisterResponse response = mapper.toFaceRegisterResponse(student, faceIds, profileImageIds,
+                    LocalDateTime.now());
+            return ApiResponse.success(response, "Student faces registered successfully, but email notification failed",
+                    servletRequest.getRequestURI());
         }
     }
 
@@ -217,8 +234,7 @@ public class StudentFaceDataService {
             return ApiResponse.success(
                     "FaceId deleted: " + response.deletedFaces(),
                     "Deleted successfully",
-                    servletRequest.getRequestURI()
-            );
+                    servletRequest.getRequestURI());
         } catch (RekognitionException e) {
             logger.error("Failed to delete faceId {}: {}", faceId, e.getMessage(), e);
             throw new RuntimeException("Failed to delete faceId: " + e.getMessage(), e);
@@ -226,7 +242,8 @@ public class StudentFaceDataService {
     }
 
     @Transactional(readOnly = true)
-    public ApiResponse<FaceCompareResponse> compareFace(Long studentId, MultipartFile file, HttpServletRequest servletRequest) {
+    public ApiResponse<FaceCompareResponse> compareFace(Long studentId, MultipartFile file,
+            HttpServletRequest servletRequest) {
         try {
             if (!detectFace(file)) {
                 throw new ResourceNotFoundException("Face detection failed: must have exactly 1 face");
@@ -250,7 +267,8 @@ public class StudentFaceDataService {
             SearchFacesByImageResponse response = rekognitionClient.searchFacesByImage(request);
 
             if (response.faceMatches().isEmpty()) {
-                throw new ResourceNotFoundException("No matching faces found in collection for studentId [%s]".formatted(studentId));
+                throw new ResourceNotFoundException(
+                        "No matching faces found in collection for studentId [%s]".formatted(studentId));
             }
 
             for (FaceMatch faceMatch : response.faceMatches()) {
@@ -261,8 +279,10 @@ public class StudentFaceDataService {
                 try {
                     Long matchedStudentId = Long.parseLong(externalImageId);
                     if (matchedStudentId.equals(studentId)) {
-                        FaceCompareResponse compareResponse = mapper.toFaceCompareResponse(student, faceId, similarity);
-                        return ApiResponse.success(compareResponse, "Face matched successfully", servletRequest.getRequestURI());
+                        FaceCompareResponse compareResponse = mapper.toFaceCompareResponse(student, null, faceId,
+                                similarity);
+                        return ApiResponse.success(compareResponse, "Face matched successfully",
+                                servletRequest.getRequestURI());
                     }
                 } catch (NumberFormatException e) {
                     logger.warn("Invalid externalImageId format: {}", externalImageId);
@@ -279,12 +299,15 @@ public class StudentFaceDataService {
         }
     }
 
-
     @Transactional
-    public ApiResponse<FaceCompareResponse> attendance(Long studentId, Long scheduleId, MultipartFile file, HttpServletRequest servletRequest) {
+    public ApiResponse<FaceCompareResponse> attendance(Long studentId, Long scheduleId, MultipartFile file,
+            HttpServletRequest servletRequest) {
+        logger.info("Starting attendance for studentId: {} and scheduleId: {}", studentId, scheduleId);
+
         // Tìm sinh viên
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy sinh viên với ID: " + studentId));
+        logger.info("Found student: {}", student.getId());
 
         // Kiểm tra sinh viên đã đăng ký khuôn mặt chưa
         if (!student.isRegistered()) {
@@ -294,22 +317,33 @@ public class StudentFaceDataService {
         // Tìm lịch học
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
+        logger.info("Found schedule: {} for class: {}", schedule.getId(), schedule.getClassEntity().getId());
 
         // Kiểm tra lịch học có thuộc lớp sinh viên không
         ClassEntity studentClass = classRepository.findByStudentId(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp cho sinh viên: " + studentId));
+        logger.info("Student belongs to class: {}", studentClass.getId());
+
         if (!schedule.getClassEntity().getId().equals(studentClass.getId())) {
-            throw new IllegalArgumentException("Lịch học không thuộc lớp của sinh viên");
+            throw new IllegalArgumentException("Lịch học không thuộc lớp của sinh viên. Schedule class: " +
+                    schedule.getClassEntity().getId() + ", Student class: " + studentClass.getId());
         }
 
         // Lấy StudyDay của hôm nay
         LocalDate today = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
+        logger.info("Looking for schedule on date: {}", today);
+
         StudyDay studyDay = scheduleService.calculateWeeklySchedule(schedule).stream()
                 .flatMap(week -> week.getStudyDays().stream())
                 .filter(sd -> sd.getDate().isEqual(today))
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Hôm nay không có lịch học"));
+                .orElse(null);
+
+        if (studyDay == null) {
+            throw new IllegalStateException("Hôm nay (" + today + ") không có lịch học cho lớp này");
+        }
+        logger.info("Found StudyDay for today: {}", studyDay.getDate());
 
         // Xác định trạng thái điểm danh
         AttendanceStatus status;
@@ -335,10 +369,11 @@ public class StudentFaceDataService {
 
         // Ghi log điểm danh
         String note = "Điểm danh bằng nhận diện khuôn mặt, độ tương đồng: " + faceCompareResponse.getSimilarity();
-        attendanceLogService.recordHistory(studentId, scheduleId, status, note, servletRequest);
+        attendanceLogService.recordHistory(studentId, scheduleId, status, note);
 
         logger.info("Sinh viên ID: {} đã điểm danh cho lịch ID: {} với trạng thái: {}", studentId, scheduleId, status);
-        return ApiResponse.success(faceCompareResponse, "Điểm danh thành công với trạng thái: " + status, servletRequest.getRequestURI());
+        return ApiResponse.success(faceCompareResponse, "Điểm danh thành công với trạng thái: " + status,
+                servletRequest.getRequestURI());
     }
 
 }

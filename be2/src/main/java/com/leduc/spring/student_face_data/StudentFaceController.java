@@ -153,43 +153,38 @@ public class StudentFaceController {
 //        return ResponseEntity.ok(response);
 //    }
 //
-//    @PostMapping(value = "/{studentId}/attendance", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-//    @Operation(summary = "Điểm danh sinh viên", description = "Điểm danh bằng nhận diện khuôn mặt cho một lịch học cụ thể")
-//    public ResponseEntity<ApiResponse<FaceCompareResponse>> attendance(
-//            @PathVariable Long studentId,
-//            @RequestParam("scheduleId") Long scheduleId,
-//            @RequestParam("file") MultipartFile file,
-//            HttpServletRequest servletRequest) {
-//        logger.info("Received request to perform attendance for student ID: {} and schedule ID: {}", studentId, scheduleId);
-//
-//        // Xác thực người dùng
-//        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-//        String account = userDetails.getUsername();
-//        logger.info("Authenticated account: {}", account);
-//
-//        // Kiểm tra JWT token
-//        String authHeader = servletRequest.getHeader("Authorization");
-//        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-//            logger.error("Invalid or missing Authorization header");
-//            throw new IllegalArgumentException("Invalid or missing Authorization header");
-//        }
-//        String jwt = authHeader.substring(7);
-//        String extractedAccount = jwtService.extractUsername(jwt);
-//        if (!extractedAccount.equals(account)) {
-//            logger.error("JWT token username does not match authenticated user: {} vs {}", extractedAccount, account);
-//            throw new IllegalArgumentException("JWT token username does not match authenticated user");
-//        }
-//
-//        // Kiểm tra studentId khớp với người dùng hiện tại
-//        Long authenticatedStudentId = extractStudentIdFromAccount(account);
-//        if (!authenticatedStudentId.equals(studentId)) {
-//            logger.error("Student ID {} does not match authenticated user", studentId);
-//            throw new IllegalArgumentException("Student ID does not match authenticated user");
-//        }
-//
-//        ApiResponse<FaceCompareResponse> response = studentFaceDataService.attendance(studentId, scheduleId, file, servletRequest);
-//        return ResponseEntity.ok(response);
-//    }
+    @PostMapping(value = "/attendance", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Điểm danh sinh viên", description = "Điểm danh bằng nhận diện khuôn mặt cho một lịch học cụ thể")
+    public ResponseEntity<ApiResponse<FaceCompareResponse>> attendance(
+            @RequestParam("scheduleId") Long scheduleId,
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest servletRequest) {
+        logger.info("Received request to perform attendance for schedule ID: {}", scheduleId);
+
+        // Xác thực người dùng
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String account = userDetails.getUsername();
+        logger.info("Authenticated account: {}", account);
+
+        // Kiểm tra JWT token
+        String authHeader = servletRequest.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            logger.error("Invalid or missing Authorization header");
+            throw new IllegalArgumentException("Invalid or missing Authorization header");
+        }
+        String jwt = authHeader.substring(7);
+        String extractedAccount = jwtService.extractUsername(jwt);
+        if (!extractedAccount.equals(account)) {
+            logger.error("JWT token username does not match authenticated user: {} vs {}", extractedAccount, account);
+            throw new IllegalArgumentException("JWT token username does not match authenticated user");
+        }
+
+        // Lấy studentId từ account
+        Long authenticatedStudentId = extractStudentIdFromAccount(account);
+
+        ApiResponse<FaceCompareResponse> response = studentFaceDataService.attendance(authenticatedStudentId, scheduleId, file, servletRequest);
+        return ResponseEntity.ok(response);
+    }
 
     /**
      * Lấy studentId từ account của người dùng

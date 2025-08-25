@@ -15,6 +15,8 @@ import NewPassWordPage from 'pages/student/NewPassWordPage';
 import NotificationPage from 'pages/student/NotificationPage';
 import ProfilePage from 'pages/student/ProfilePage';
 import HistoryPage from 'pages/student/HistoryPage';
+import QuickAttendancePage from './pages/student/QuickAttendancePage';
+import SuccessAttendancePage from './pages/student/SuccessAttendancePage';
 import DashBoardPageLecturer from 'pages/lecturer/DashBoardPageLecturer';
 import TeachingSchedulePageLecturer from './pages/lecturer/TeachingSchedulePageLecturer';
 import AttendancePageLecturer from './pages/lecturer/AttendancePageLecturer';
@@ -36,9 +38,23 @@ export type RootStackParamList = {
   NotificationPage: undefined;
   ProfilePage: undefined;
   HistoryPage: undefined;
+  QuickAttendancePage: {
+    scheduleId?: number;
+    className?: string;
+    subjectName?: string;
+  };
+  SuccessAttendancePage: {
+    scheduleId?: number;
+    className?: string;
+    subjectName?: string;
+    attendanceTime?: string;
+    studentName?: string;
+    studentCode?: string;
+  };
   DashBoardPageLecturer: undefined;
   SchedulePageLecturer: undefined;
   AttendancePageLecturer: undefined;
+  ReportPageLecturer: undefined;
   StudentListPage: { className: string; scheduleId: string; date: string };
 };
 
@@ -66,6 +82,8 @@ export default function App() {
         <Stack.Screen name="NotificationPage" component={NotificationPage} />
         <Stack.Screen name="ProfilePage" component={ProfilePage} />
         <Stack.Screen name="HistoryPage" component={HistoryPage} />
+        <Stack.Screen name="QuickAttendancePage" component={QuickAttendancePage} />
+        <Stack.Screen name="SuccessAttendancePage" component={SuccessAttendancePage} />
         <Stack.Screen name="DashBoardPageLecturer" component={DashBoardPageLecturer} />
         <Stack.Screen name="SchedulePageLecturer" component={TeachingSchedulePageLecturer} />
         <Stack.Screen name="AttendancePageLecturer" component={AttendancePageLecturer} />
