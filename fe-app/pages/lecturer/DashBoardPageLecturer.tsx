@@ -110,8 +110,8 @@ const DashBoardPageLecturer = ({ navigation }: Props) => {
       return {
         id: schedule.id.toString(),
         subject: schedule.subjectName,
-        className: schedule.classroomName || '',
-        location: schedule.classroomName,
+        className: schedule.className || '',
+        location: schedule.roomName || '',
         time: `${schedule.startTime} - ${schedule.endTime}`,
         lecturer: schedule.lecturerName || '',
         topic: schedule.topic || 'Chưa có thông tin chủ đề',
