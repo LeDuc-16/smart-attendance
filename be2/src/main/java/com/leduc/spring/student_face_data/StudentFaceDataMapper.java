@@ -1,5 +1,6 @@
 package com.leduc.spring.student_face_data;
 
+import com.leduc.spring.schedule.StudyDay;
 import com.leduc.spring.student.Student;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,7 @@ public class StudentFaceDataMapper {
                 .build();
     }
 
-    public FaceCompareResponse toFaceCompareResponse(Student student, String faceId, Float similarity) {
+    public FaceCompareResponse toFaceCompareResponse(Student student, StudyDay studyDay, String faceId, Float similarity) {
         return FaceCompareResponse.builder()
                 .studentId(student.getId())
                 .studentName(student.getUser().getName()) // Adjusted to use Student.user.name

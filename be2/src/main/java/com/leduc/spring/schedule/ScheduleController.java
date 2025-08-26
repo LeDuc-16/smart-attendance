@@ -14,8 +14,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/schedules")
@@ -67,8 +65,7 @@ public class ScheduleController {
      * Lấy lịch học theo ID giảng viên
      */
     @GetMapping("/lecturer/{lecturerId}")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('LECTURER') and @scheduleService.isLecturer(#lecturerId, authentication.principal.userId))")
-    @Operation(summary = "Lấy lịch học theo giảng viên", description = "Lấy danh sách lịch học của một giảng viên theo ID")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
     public ResponseEntity<ApiResponse<Object>> getScheduleByLecturerId(
             @PathVariable Long lecturerId,
             HttpServletRequest servletRequest) {
@@ -110,51 +107,32 @@ public class ScheduleController {
      * Mở điểm danh cho lịch học
      */
     @PostMapping("/{scheduleId}/open")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('LECTURER') and @scheduleService.isScheduleOwner(#scheduleId, authentication.principal.userId))")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
     @Operation(summary = "Mở điểm danh", description = "Mở điểm danh cho lịch học, chỉ admin hoặc giảng viên được phép")
-    public ResponseEntity<ApiResponse<Boolean>> openAttendance(
+    public ResponseEntity<ApiResponse<StudyDay>> openAttendance(
             @PathVariable Long scheduleId,
             HttpServletRequest servletRequest) {
-        logger.info("Received request to open attendance for schedule ID: {}", scheduleId);
-        ApiResponse<Boolean> response = scheduleService.openAttendance(scheduleId, servletRequest);
+
+        ApiResponse<StudyDay> response = scheduleService.openAttendance(scheduleId, servletRequest);
         return ResponseEntity.ok(response);
     }
+
 
     /**
      * Đóng điểm danh cho lịch học
      */
+    /**
+     * Đóng điểm danh cho lịch học
+     */
     @PostMapping("/{scheduleId}/close")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('LECTURER') and @scheduleService.isScheduleOwner(#scheduleId, authentication.principal.userId))")
-    @Operation(summary = "Đóng điểm danh", description = "Đóng điểm danh cho lịch học và trả về thời gian đóng")
-    public ResponseEntity<ApiResponse<LocalDateTime>> closeAttendance(
+    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
+    @Operation(summary = "Đóng điểm danh", description = "Đóng điểm danh cho lịch học, chỉ admin hoặc giảng viên được phép")
+    public ResponseEntity<ApiResponse<StudyDay>> closeAttendance(
             @PathVariable Long scheduleId,
             HttpServletRequest servletRequest) {
-        logger.info("Received request to close attendance for schedule ID: {}", scheduleId);
-        ApiResponse<LocalDateTime> response = scheduleService.closeAttendance(scheduleId, servletRequest);
+
+        ApiResponse<StudyDay> response = scheduleService.closeAttendance(scheduleId, servletRequest);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Lấy danh sách lớp có lịch học đang mở điểm danh
-     */
-    @GetMapping("/classes/open")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
-    @Operation(summary = "Lấy danh sách lớp đang mở điểm danh", description = "Lấy danh sách các lớp có lịch học đang mở điểm danh")
-    public ResponseEntity<ApiResponse<List<ClassResponse>>> getClassesWithOpenAttendance(HttpServletRequest servletRequest) {
-        logger.info("Received request to get classes with open attendance");
-        ApiResponse<List<ClassResponse>> response = scheduleService.getClassesWithOpenAttendance(servletRequest);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Lấy danh sách lớp có lịch học đang đóng điểm danh
-     */
-    @GetMapping("/classes/closed")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
-    @Operation(summary = "Lấy danh sách lớp đang đóng điểm danh", description = "Lấy danh sách các lớp có lịch học đang đóng điểm danh")
-    public ResponseEntity<ApiResponse<List<ClassResponse>>> getClassesWithClosedAttendance(HttpServletRequest servletRequest) {
-        logger.info("Received request to get classes with closed attendance");
-        ApiResponse<List<ClassResponse>> response = scheduleService.getClassesWithClosedAttendance(servletRequest);
-        return ResponseEntity.ok(response);
-    }
 }

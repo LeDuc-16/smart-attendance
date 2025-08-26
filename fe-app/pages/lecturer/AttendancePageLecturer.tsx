@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { apiScheduleService, Schedule } from '../../api/apiSchedule';
@@ -16,40 +9,129 @@ import DashBoardLayoutLecturer from './DashBoardLayoutLecturer';
 
 // --- Các thành phần giao diện ---
 
-const DateNavigator = ({ calendarDate, selectedDate, onPrevMonth, onNextMonth, onPress }) => {
-    const monthNames = ["Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"];
-    const year = calendarDate.getFullYear();
-    const month = calendarDate.getMonth();
+const DateNavigator = ({ calendarDate, selectedDate, onPrevMonth, onNextMonth, onPress }: any) => {
+  const monthNames = [
+    'Tháng 1',
+    'Tháng 2',
+    'Tháng 3',
+    'Tháng 4',
+    'Tháng 5',
+    'Tháng 6',
+    'Tháng 7',
+    'Tháng 8',
+    'Tháng 9',
+    'Tháng 10',
+    'Tháng 11',
+    'Tháng 12',
+  ];
+  const year = calendarDate.getFullYear();
+  const month = calendarDate.getMonth();
 
-    return (
-        <View style={styles.dateNavigatorContainer}>
-            <TouchableOpacity onPress={onPrevMonth} style={styles.arrowButton}>
-                <Icon name="chevron-back" size={24} color="#666" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onPress} style={styles.dateDisplayArea}>
-                <Text style={styles.dateNavigatorToday}>{`${monthNames[month]}, ${year}`}</Text>
-                <Text style={styles.dateNavigatorDate}>
-                    {selectedDate.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'numeric', year: 'numeric' })}
-                </Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onNextMonth} style={styles.arrowButton}>
-                <Icon name="chevron-forward" size={24} color="#666" />
-            </TouchableOpacity>
-        </View>
-    );
+  return (
+    <View style={styles.dateNavigatorContainer}>
+      <TouchableOpacity onPress={onPrevMonth} style={styles.arrowButton}>
+        <Icon name="chevron-back" size={24} color="#666" />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onPress} style={styles.dateDisplayArea}>
+        <Text style={styles.dateNavigatorToday}>{`${monthNames[month]}, ${year}`}</Text>
+        <Text style={styles.dateNavigatorDate}>
+          {selectedDate.toLocaleDateString('vi-VN', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'numeric',
+            year: 'numeric',
+          })}
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onNextMonth} style={styles.arrowButton}>
+        <Icon name="chevron-forward" size={24} color="#666" />
+      </TouchableOpacity>
+    </View>
+  );
 };
 
-const ClassCard = ({ item, navigation }) => {
+const ClassCard = ({ item, navigation, setSchedules }: any) => {
   const handleOpenAttendance = () => {
-    if (navigation) {
-      navigation.navigate('StudentListPage', {
-        className: item.className,
-        scheduleId: item.id,
-        date: item.date,
-      });
-    } else {
+    // For lecturers we toggle open/close. If already open, navigate to student list (or ask to close)
+    if (!navigation) {
       console.error('Navigation object is undefined in ClassCard');
       Alert.alert('Error', 'Navigation is not available.');
+      return;
+    }
+
+    // If currently open, ask to close; otherwise ask to open
+    if (item.attendanceStatusText === 'Đang mở') {
+      Alert.alert('Đóng điểm danh', 'Bạn có chắc chắn muốn đóng điểm danh cho lớp này?', [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Đóng điểm danh',
+          onPress: async () => {
+            try {
+              const token = apiAuthService.getAuthToken();
+              if (!token) throw new Error('Token không tồn tại');
+              apiScheduleService.setAuthToken(token);
+              // Use sourceId if schedule was synthesized from weeks.studyDays
+              const scheduleIdToUse = Number((item as any).sourceId ?? item.id);
+              console.log(
+                'AttendancePage closeAttendance: item.sourceId =',
+                (item as any).sourceId,
+                'item.id =',
+                item.id,
+                'using =',
+                scheduleIdToUse
+              );
+              const result = await apiScheduleService.closeAttendance(scheduleIdToUse);
+              Alert.alert('Thành công', result?.message || 'Đã đóng điểm danh');
+
+              // Update local state immediately
+              setSchedules((prev: any[]) =>
+                prev.map((s) =>
+                  (s.sourceId || s.id) === scheduleIdToUse ? { ...s, isOpen: false } : s
+                )
+              );
+            } catch (err: any) {
+              console.error('Close attendance error:', err);
+              Alert.alert('Lỗi', err?.message || 'Đóng điểm danh thất bại');
+            }
+          },
+        },
+      ]);
+    } else {
+      Alert.alert('Mở điểm danh', 'Bạn có chắc chắn muốn mở điểm danh cho lớp này?', [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Mở điểm danh',
+          onPress: async () => {
+            try {
+              const token = apiAuthService.getAuthToken();
+              if (!token) throw new Error('Token không tồn tại');
+              apiScheduleService.setAuthToken(token);
+              // prefer sourceId when available
+              const scheduleIdToUse = Number((item as any).sourceId ?? item.id);
+              console.log(
+                'AttendancePage openAttendance: item.sourceId =',
+                (item as any).sourceId,
+                'item.id =',
+                item.id,
+                'using =',
+                scheduleIdToUse
+              );
+              const result = await apiScheduleService.openAttendance(scheduleIdToUse);
+              Alert.alert('Thành công', result?.message || 'Đã mở điểm danh');
+
+              // Update local state immediately
+              setSchedules((prev: any[]) =>
+                prev.map((s) =>
+                  (s.sourceId || s.id) === scheduleIdToUse ? { ...s, isOpen: true } : s
+                )
+              );
+            } catch (err: any) {
+              console.error('Open attendance error:', err);
+              Alert.alert('Lỗi', err?.message || 'Mở điểm danh thất bại');
+            }
+          },
+        },
+      ]);
     }
   };
 
@@ -64,26 +146,43 @@ const ClassCard = ({ item, navigation }) => {
         </View>
       </View>
       <View style={[styles.cardIconText, { marginBottom: 12 }]}>
-        <Icon name="location-outline" size={16} color={item.attendanceStatusText === 'Đang mở' ? '#007BFF' : '#555'} />
-        <Text style={[styles.cardInfoText, item.attendanceStatusText === 'Đang mở' && { color: '#007BFF', fontWeight: 'bold' }]}>
+        <Icon
+          name="location-outline"
+          size={16}
+          color={item.attendanceStatusText === 'Đang mở' ? '#007BFF' : '#555'}
+        />
+        <Text
+          style={[
+            styles.cardInfoText,
+            item.attendanceStatusText === 'Đang mở' && { color: '#007BFF', fontWeight: 'bold' },
+          ]}>
           {item.location}
         </Text>
       </View>
-      <Text style={styles.cardStatusText}>
-        Trạng thái: {item.attendanceStatusText}
-      </Text>
+      <Text style={styles.cardStatusText}>Trạng thái: {item.attendanceStatusText}</Text>
       <Text style={styles.cardAttendanceText}>{item.attendance}</Text>
-      
-      {item.status === 'present' ? ( 
-        <TouchableOpacity style={styles.cardButtonOpen} onPress={handleOpenAttendance}> 
-          <Text style={styles.cardButtonTextWhite}>Mở điểm danh</Text>
+
+      {item.status === 'present' ? (
+        <TouchableOpacity
+          style={[
+            styles.cardButtonOpen,
+            { backgroundColor: item.attendanceStatusText === 'Đang mở' ? '#DC3545' : '#007BFF' },
+          ]}
+          onPress={handleOpenAttendance}>
+          <Text style={styles.cardButtonTextWhite}>
+            {item.attendanceStatusText === 'Đang mở' ? 'Đóng điểm danh' : 'Mở điểm danh'}
+          </Text>
         </TouchableOpacity>
-      ) : item.status === 'future' ? ( 
-        <TouchableOpacity style={[styles.cardButtonOpen, { backgroundColor: '#ccc' }]} disabled={true}>
+      ) : item.status === 'future' ? (
+        <TouchableOpacity
+          style={[styles.cardButtonOpen, { backgroundColor: '#ccc' }]}
+          disabled={true}>
           <Text style={styles.cardButtonTextWhite}>Chưa đến ngày mở điểm danh</Text>
         </TouchableOpacity>
-      ) : ( 
-        <TouchableOpacity style={[styles.cardButtonOpen, { backgroundColor: '#ccc' }]} disabled={true}>
+      ) : (
+        <TouchableOpacity
+          style={[styles.cardButtonOpen, { backgroundColor: '#ccc' }]}
+          disabled={true}>
           <Text style={styles.cardButtonTextWhite}>Đã đóng</Text>
         </TouchableOpacity>
       )}
@@ -103,41 +202,41 @@ const AttendancePageLecturer = () => {
 
   useEffect(() => {
     const fetchSchedules = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const token = apiAuthService.getAuthToken();
-            if (!token) {
-                setError('Authentication token not found.');
-                setLoading(false);
-                return;
-            }
-            apiScheduleService.setAuthToken(token);
-            const response = await apiScheduleService.getMySchedule();
-            setSchedules(response.schedules);
-        } catch (err) {
-            console.error('Error fetching schedules:', err);
-            setError('Failed to load schedules.');
-        } finally {
-            setLoading(false);
+      setLoading(true);
+      setError(null);
+      try {
+        const token = apiAuthService.getAuthToken();
+        if (!token) {
+          setError('Authentication token not found.');
+          setLoading(false);
+          return;
         }
+        apiScheduleService.setAuthToken(token);
+        const response = await apiScheduleService.getMySchedule();
+        setSchedules(response.schedules);
+      } catch (err) {
+        console.error('Error fetching schedules:', err);
+        setError('Failed to load schedules.');
+      } finally {
+        setLoading(false);
+      }
     };
     fetchSchedules();
   }, []);
 
-  const handleDateChange = (event, date) => {
+  const handleDateChange = (event: any, date: any) => {
     setShowDatePicker(false);
     if (date) {
       setSelectedDate(date);
     }
   };
 
-  const showMode = (currentMode) => {
+  const showMode = (currentMode: any) => {
     setShowDatePicker(true);
   };
 
   const handlePrevDay = () => {
-    setSelectedDate(prev => {
+    setSelectedDate((prev) => {
       const newDate = new Date(prev);
       newDate.setDate(prev.getDate() - 1);
       return newDate;
@@ -145,7 +244,7 @@ const AttendancePageLecturer = () => {
   };
 
   const handleNextDay = () => {
-    setSelectedDate(prev => {
+    setSelectedDate((prev) => {
       const newDate = new Date(prev);
       newDate.setDate(prev.getDate() + 1);
       return newDate;
@@ -153,7 +252,7 @@ const AttendancePageLecturer = () => {
   };
 
   const transformedClassesData = schedules
-    .filter(schedule => {
+    .filter((schedule) => {
       const studyDate = new Date(schedule.date);
       return (
         studyDate.getFullYear() === selectedDate.getFullYear() &&
@@ -161,7 +260,7 @@ const AttendancePageLecturer = () => {
         studyDate.getDate() === selectedDate.getDate()
       );
     })
-    .map(schedule => {
+    .map((schedule) => {
       const classDate = new Date(schedule.date);
       const today = new Date();
 
@@ -183,12 +282,21 @@ const AttendancePageLecturer = () => {
       const now = new Date();
 
       let attendanceStatusText = '';
-      if (now >= scheduleStartTime && now <= scheduleEndTime) {
+      // Prioritize backend isOpen status over time-based logic
+      if (schedule.isOpen === true) {
         attendanceStatusText = 'Đang mở';
-      } else if (now < scheduleStartTime) {
-        attendanceStatusText = 'Sắp diễn ra';
-      } else {
+      } else if (schedule.isOpen === false) {
+        // Explicitly closed by lecturer
         attendanceStatusText = 'Đã đóng';
+      } else {
+        // Fallback to time-based logic when isOpen is undefined
+        if (now >= scheduleStartTime && now <= scheduleEndTime) {
+          attendanceStatusText = 'Sắp diễn ra'; // Default to ready to open during class time
+        } else if (now < scheduleStartTime) {
+          attendanceStatusText = 'Sắp diễn ra';
+        } else {
+          attendanceStatusText = 'Đã đóng';
+        }
       }
 
       return {
@@ -201,6 +309,7 @@ const AttendancePageLecturer = () => {
         attendanceStatusText: attendanceStatusText,
         attendance: 'Chưa có dữ liệu điểm danh',
         date: schedule.date,
+        sourceId: schedule.sourceId, // Include sourceId for proper backend API calls
       };
     });
 
@@ -212,36 +321,40 @@ const AttendancePageLecturer = () => {
 
   return (
     <DashBoardLayoutLecturer>
-        <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollViewContent}
-        >
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
         <DateNavigator
-            selectedDate={selectedDate}
-            calendarDate={selectedDate}
-            onPrevMonth={handlePrevDay}
-            onNextMonth={handleNextDay}
-            onPress={() => showMode('date')}
+          selectedDate={selectedDate}
+          calendarDate={selectedDate}
+          onPrevMonth={handlePrevDay}
+          onNextMonth={handleNextDay}
+          onPress={() => showMode('date')}
         />
         {showDatePicker && (
-            <DateTimePicker
+          <DateTimePicker
             testID="dateTimePicker"
             value={selectedDate}
             mode="date"
             display="default"
             onChange={handleDateChange}
-            />
+          />
         )}
         {loading ? (
-            <Text style={styles.noDataText}>Đang tải lịch học...</Text>
+          <Text style={styles.noDataText}>Đang tải lịch học...</Text>
         ) : error ? (
-            <Text style={[styles.noDataText, { color: 'red' }]}>Lỗi: {error}</Text>
+          <Text style={[styles.noDataText, { color: 'red' }]}>Lỗi: {error}</Text>
         ) : transformedClassesData.length > 0 ? (
-            transformedClassesData.map(item => <ClassCard key={item.id} item={item} navigation={navigation} />)
+          transformedClassesData.map((item) => (
+            <ClassCard
+              key={item.id}
+              item={item}
+              navigation={navigation}
+              setSchedules={setSchedules}
+            />
+          ))
         ) : (
-            <Text style={styles.noDataText}>Không có lớp học nào vào ngày này.</Text>
+          <Text style={styles.noDataText}>Không có lớp học nào vào ngày này.</Text>
         )}
-        </ScrollView>
+      </ScrollView>
     </DashBoardLayoutLecturer>
   );
 };
@@ -269,10 +382,10 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
   },
   arrowButton: {
-    padding: 5, 
+    padding: 5,
   },
   dateDisplayArea: {
-    flex: 1, 
+    flex: 1,
     alignItems: 'center',
   },
   dateNavigatorToday: {

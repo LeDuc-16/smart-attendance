@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,17 +39,20 @@ public class ScheduleService {
     private final ClassRepository classRepository;
     private final RoomRepository roomRepository;
     private final ScheduleMapper scheduleMapper;
+    private final StudyDayRepository studyDayRepository;
 
     /**
      * Tạo lịch học mới
      */
     @Transactional
-    public ApiResponse<CreateScheduleResponse> createSchedule(CreateScheduleRequest request, HttpServletRequest servletRequest) {
+    public ApiResponse<CreateScheduleResponse> createSchedule(CreateScheduleRequest request,
+            HttpServletRequest servletRequest) {
         // Validate and fetch entities
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Course ID không tồn tại: " + request.getCourseId()));
         Lecturer lecturer = lecturerRepository.findById(request.getLecturerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Lecturer ID không tồn tại: " + request.getLecturerId()));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Lecturer ID không tồn tại: " + request.getLecturerId()));
         ClassEntity classEntity = classRepository.findById(request.getClassId())
                 .orElseThrow(() -> new ResourceNotFoundException("Class ID không tồn tại: " + request.getClassId()));
         Room room = roomRepository.findById(request.getRoomId())
@@ -65,7 +69,6 @@ public class ScheduleService {
                 .lecturer(lecturer)
                 .classEntity(classEntity)
                 .room(room)
-                .isOpen(true)
                 .build();
 
         Schedule savedSchedule = scheduleRepository.save(schedule);
@@ -88,20 +91,24 @@ public class ScheduleService {
         // Lấy lịch học dựa trên vai trò
         if ("ROLE_ADMIN".equals(role)) {
             schedules = scheduleRepository.findAll().stream()
-                    .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule, calculateWeeklySchedule(schedule)))
+                    .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule,
+                            calculateWeeklySchedule(schedule)))
                     .collect(Collectors.toList());
         } else if ("ROLE_LECTURER".equals(role)) {
             Lecturer lecturer = lecturerRepository.findByUserId(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên cho userId: " + userId));
+                    .orElseThrow(
+                            () -> new ResourceNotFoundException("Không tìm thấy giảng viên cho userId: " + userId));
             schedules = scheduleRepository.findByLecturerId(lecturer.getId()).stream()
-                    .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule, calculateWeeklySchedule(schedule)))
+                    .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule,
+                            calculateWeeklySchedule(schedule)))
                     .collect(Collectors.toList());
             logger.info("Found {} schedules for lecturerId: {}", schedules.size(), lecturer.getId());
         } else if ("ROLE_STUDENT".equals(role)) {
             ClassEntity studentClass = classRepository.findByStudentId(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp cho sinh viên: " + userId));
             schedules = scheduleRepository.findByClassEntityId(studentClass.getId()).stream()
-                    .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule, calculateWeeklySchedule(schedule)))
+                    .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule,
+                            calculateWeeklySchedule(schedule)))
                     .collect(Collectors.toList());
         } else {
             throw new IllegalArgumentException("Vai trò không hợp lệ: " + role);
@@ -120,17 +127,20 @@ public class ScheduleService {
 
         List<Schedule> schedules = scheduleRepository.findByLecturerId(lecturerId);
         List<CreateScheduleResponse> scheduleResponses = schedules.stream()
-                .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule, calculateWeeklySchedule(schedule)))
+                .map(schedule -> scheduleMapper.mapToCreateScheduleResponse(schedule,
+                        calculateWeeklySchedule(schedule)))
                 .collect(Collectors.toList());
 
-        return ApiResponse.success(scheduleResponses, "Lấy lịch học của giảng viên thành công", servletRequest.getRequestURI());
+        return ApiResponse.success(scheduleResponses, "Lấy lịch học của giảng viên thành công",
+                servletRequest.getRequestURI());
     }
 
     /**
      * Cập nhật lịch học
      */
     @Transactional
-    public ApiResponse<Object> updateSchedule(Long id, UpdateScheduleRequest request, HttpServletRequest servletRequest) {
+    public ApiResponse<Object> updateSchedule(Long id, UpdateScheduleRequest request,
+            HttpServletRequest servletRequest) {
         Schedule schedule = scheduleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + id));
 
@@ -138,7 +148,8 @@ public class ScheduleService {
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Course ID không tồn tại: " + request.getCourseId()));
         Lecturer lecturer = lecturerRepository.findById(request.getLecturerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Lecturer ID không tồn tại: " + request.getLecturerId()));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Lecturer ID không tồn tại: " + request.getLecturerId()));
         ClassEntity classEntity = classRepository.findById(request.getClassId())
                 .orElseThrow(() -> new ResourceNotFoundException("Class ID không tồn tại: " + request.getClassId()));
         Room room = roomRepository.findById(request.getRoomId())
@@ -173,38 +184,6 @@ public class ScheduleService {
     }
 
     /**
-     * Mở điểm danh cho lịch học
-     */
-    @Transactional
-    public ApiResponse<Boolean> openAttendance(Long scheduleId, HttpServletRequest servletRequest) {
-        Schedule schedule = scheduleRepository.findById(scheduleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
-
-        schedule.setOpen(true);
-        scheduleRepository.save(schedule);
-        logger.info("Đã mở điểm danh cho lịch học ID: {}", scheduleId);
-
-        return ApiResponse.success(true, "Đã mở điểm danh thành công", servletRequest.getRequestURI());
-    }
-
-    /**
-     * Đóng điểm danh cho lịch học
-     */
-    @Transactional
-    public ApiResponse<LocalDateTime> closeAttendance(Long scheduleId, HttpServletRequest servletRequest) {
-        Schedule schedule = scheduleRepository.findById(scheduleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
-
-        schedule.setOpen(false);
-        LocalDateTime closeTime = LocalDateTime.now();
-        schedule.setCloseTime(closeTime);
-        scheduleRepository.save(schedule);
-        logger.info("Đã đóng điểm danh cho lịch học ID: {} tại thời điểm: {}", scheduleId, closeTime);
-
-        return ApiResponse.success(closeTime, "Đã đóng điểm danh thành công", servletRequest.getRequestURI());
-    }
-
-    /**
      * Kiểm tra xem userId có phải là giảng viên với lecturerId
      */
     public boolean isLecturer(Long lecturerId, Long userId) {
@@ -213,54 +192,83 @@ public class ScheduleService {
         return lecturer.getId().equals(lecturerId);
     }
 
-    /**
-     * Kiểm tra xem userId có phải là chủ sở hữu lịch học
-     */
-    public boolean isScheduleOwner(Long scheduleId, Long userId) {
+    @Transactional
+    public ApiResponse<StudyDay> openAttendance(Long scheduleId, HttpServletRequest servletRequest) {
+        // Lấy schedule từ DB
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
-        Lecturer lecturer = lecturerRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giảng viên cho userId: " + userId));
-        return schedule.getLecturer().getId().equals(lecturer.getId());
+
+        LocalDate today = LocalDate.now(); // Current day
+
+        // Kiểm tra hôm nay có trong lịch học không
+        if (!schedule.getDayOfWeek().contains(today.getDayOfWeek())) {
+            throw new IllegalStateException("Hôm nay không phải ngày học trong lịch: " + today.getDayOfWeek());
+        }
+
+        // Tìm hoặc tạo StudyDay cho hôm nay
+        StudyDay studyDay = studyDayRepository.findByScheduleIdAndDate(scheduleId, today);
+        if (studyDay == null) {
+            studyDay = StudyDay.builder()
+                    .dayOfWeek(today.getDayOfWeek())
+                    .date(today)
+                    .isOpen(true)
+                    .closeTime(null)
+                    .schedule(schedule)
+                    .build();
+        } else {
+            studyDay.setOpen(true);
+            studyDay.setCloseTime(null);
+        }
+
+        studyDay = studyDayRepository.save(studyDay);
+        return ApiResponse.success(studyDay, "Mở lớp điểm danh thành công", servletRequest.getRequestURI());
     }
 
-    /**
-     * Lấy danh sách lớp có lịch học đang mở điểm danh
-     */
-    @Transactional(readOnly = true)
-    public ApiResponse<List<ClassResponse>> getClassesWithOpenAttendance(HttpServletRequest servletRequest) {
-        List<ClassEntity> classes = scheduleRepository.findClassesWithOpenAttendance();
-        List<ClassResponse> classResponses = classes.stream()
-                .map(cls -> new ClassResponse(
-                        cls.getId(),
-                        cls.getClassName(),
-                        cls.getCapacityStudent(),
-                        cls.getLecturer() != null ? cls.getLecturer().getUser().getName() : null))
-                .collect(Collectors.toList());
-        return ApiResponse.success(classResponses, "Lấy danh sách lớp đang mở điểm danh thành công", servletRequest.getRequestURI());
+    @Transactional
+    public ApiResponse<StudyDay> closeAttendance(Long scheduleId, HttpServletRequest servletRequest) {
+        // Lấy schedule từ DB
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
+
+        LocalDate today = LocalDate.now(); // Current day
+
+        // Kiểm tra hôm nay có trong lịch học không
+        if (!schedule.getDayOfWeek().contains(today.getDayOfWeek())) {
+            throw new IllegalStateException("Hôm nay không phải ngày học trong lịch: " + today.getDayOfWeek());
+        }
+
+        // Tìm hoặc tạo StudyDay cho hôm nay
+        StudyDay studyDay = studyDayRepository.findByScheduleIdAndDate(scheduleId, today);
+        if (studyDay == null) {
+            studyDay = StudyDay.builder()
+                    .dayOfWeek(today.getDayOfWeek())
+                    .date(today)
+                    .isOpen(false)
+                    .closeTime(LocalDateTime.now())
+                    .schedule(schedule)
+                    .build();
+        } else {
+            studyDay.setOpen(false);
+            studyDay.setCloseTime(LocalDateTime.now());
+        }
+
+        studyDay = studyDayRepository.save(studyDay);
+        return ApiResponse.success(studyDay, "Đóng lớp điểm danh thành công", servletRequest.getRequestURI());
     }
 
-    /**
-     * Lấy danh sách lớp có lịch học đang đóng điểm danh
-     */
-    @Transactional(readOnly = true)
-    public ApiResponse<List<ClassResponse>> getClassesWithClosedAttendance(HttpServletRequest servletRequest) {
-        List<ClassEntity> classes = scheduleRepository.findClassesWithClosedAttendance();
-        List<ClassResponse> classResponses = classes.stream()
-                .map(cls -> new ClassResponse(
-                        cls.getId(),
-                        cls.getClassName(),
-                        cls.getCapacityStudent(),
-                        cls.getLecturer() != null ? cls.getLecturer().getUser().getName() : null))
-                .collect(Collectors.toList());
-        return ApiResponse.success(classResponses, "Lấy danh sách lớp đang đóng điểm danh thành công", servletRequest.getRequestURI());
-    }
-
-    private List<WeekSchedule> calculateWeeklySchedule(Schedule schedule) {
+    public List<WeekSchedule> calculateWeeklySchedule(Schedule schedule) {
         List<WeekSchedule> weeks = new ArrayList<>();
         LocalDate startDate = schedule.getStartDate();
         LocalDate endDate = schedule.getEndDate();
         List<DayOfWeek> daysOfWeek = schedule.getDayOfWeek();
+
+        // Get persisted study days, or create them if they don't exist
+        List<StudyDay> persistedStudyDays = studyDayRepository.findByScheduleId(schedule.getId());
+
+        // If no persisted study days exist, create and save them
+        if (persistedStudyDays.isEmpty()) {
+            persistedStudyDays = createAndSaveStudyDays(schedule);
+        }
 
         LocalDate weekStart = startDate;
         if (weekStart.getDayOfWeek() != DayOfWeek.MONDAY) {
@@ -270,19 +278,26 @@ public class ScheduleService {
         int weekNumber = 1;
         while (!weekStart.isAfter(endDate)) {
             LocalDate weekEnd = weekStart.plusDays(6);
-            if (weekEnd.isAfter(endDate)) weekEnd = endDate;
+            if (weekEnd.isAfter(endDate))
+                weekEnd = endDate;
 
-            List<StudyDay> studyDays = new ArrayList<>();
+            List<StudyDay> weekStudyDays = new ArrayList<>();
             LocalDate currentDay = weekStart;
             while (!currentDay.isAfter(weekEnd) && !currentDay.isAfter(endDate)) {
                 if (daysOfWeek.contains(currentDay.getDayOfWeek()) && !currentDay.isBefore(startDate)) {
-                    studyDays.add(new StudyDay(currentDay.getDayOfWeek(), currentDay));
+                    // Find the persisted study day for this date
+                    final LocalDate finalCurrentDay = currentDay;
+                    StudyDay studyDay = persistedStudyDays.stream()
+                            .filter(sd -> sd.getDate().equals(finalCurrentDay))
+                            .findFirst()
+                            .orElse(new StudyDay(currentDay.getDayOfWeek(), currentDay, false, null));
+                    weekStudyDays.add(studyDay);
                 }
                 currentDay = currentDay.plusDays(1);
             }
 
-            if (!studyDays.isEmpty()) {
-                weeks.add(new WeekSchedule(weekNumber++, weekStart, weekEnd, studyDays));
+            if (!weekStudyDays.isEmpty()) {
+                weeks.add(new WeekSchedule(weekNumber++, weekStart, weekEnd, weekStudyDays));
             }
 
             weekStart = weekStart.plusDays(7);
@@ -290,4 +305,30 @@ public class ScheduleService {
 
         return weeks;
     }
+
+    @Transactional
+    private List<StudyDay> createAndSaveStudyDays(Schedule schedule) {
+        List<StudyDay> studyDays = new ArrayList<>();
+        LocalDate startDate = schedule.getStartDate();
+        LocalDate endDate = schedule.getEndDate();
+        List<DayOfWeek> daysOfWeek = schedule.getDayOfWeek();
+
+        LocalDate currentDay = startDate;
+        while (!currentDay.isAfter(endDate)) {
+            if (daysOfWeek.contains(currentDay.getDayOfWeek())) {
+                StudyDay studyDay = StudyDay.builder()
+                        .dayOfWeek(currentDay.getDayOfWeek())
+                        .date(currentDay)
+                        .isOpen(false)
+                        .closeTime(null)
+                        .schedule(schedule)
+                        .build();
+                studyDays.add(studyDay);
+            }
+            currentDay = currentDay.plusDays(1);
+        }
+
+        return studyDayRepository.saveAll(studyDays);
+    }
+
 }

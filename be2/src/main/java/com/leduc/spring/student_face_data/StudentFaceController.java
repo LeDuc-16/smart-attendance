@@ -144,23 +144,22 @@ public class StudentFaceController {
      * Tạo session liveness cho kiểm tra khuôn mặt
      * @param servletRequest Request HTTP để lấy thông tin xác thực
      * @return ApiResponse chứa thông tin session liveness
-     */
-    @PostMapping("/liveness-session")
-    @Operation(summary = "Tạo session liveness", description = "Tạo một session mới để kiểm tra liveness của khuôn mặt")
-    public ResponseEntity<ApiResponse<LivenessSessionResponse>> createLivenessSession(HttpServletRequest servletRequest) {
-        logger.info("Received request to create liveness session");
-        ApiResponse<LivenessSessionResponse> response = studentFaceDataService.createLivenessSession(servletRequest);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping(value = "/{studentId}/attendance", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+//     */
+//    @PostMapping("/liveness-session")
+//    @Operation(summary = "Tạo session liveness", description = "Tạo một session mới để kiểm tra liveness của khuôn mặt")
+//    public ResponseEntity<ApiResponse<LivenessSessionResponse>> createLivenessSession(HttpServletRequest servletRequest) {
+//        logger.info("Received request to create liveness session");
+//        ApiResponse<LivenessSessionResponse> response = studentFaceDataService.createLivenessSession(servletRequest);
+//        return ResponseEntity.ok(response);
+//    }
+//
+    @PostMapping(value = "/attendance", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Điểm danh sinh viên", description = "Điểm danh bằng nhận diện khuôn mặt cho một lịch học cụ thể")
     public ResponseEntity<ApiResponse<FaceCompareResponse>> attendance(
-            @PathVariable Long studentId,
             @RequestParam("scheduleId") Long scheduleId,
             @RequestParam("file") MultipartFile file,
             HttpServletRequest servletRequest) {
-        logger.info("Received request to perform attendance for student ID: {} and schedule ID: {}", studentId, scheduleId);
+        logger.info("Received request to perform attendance for schedule ID: {}", scheduleId);
 
         // Xác thực người dùng
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -180,14 +179,10 @@ public class StudentFaceController {
             throw new IllegalArgumentException("JWT token username does not match authenticated user");
         }
 
-        // Kiểm tra studentId khớp với người dùng hiện tại
+        // Lấy studentId từ account
         Long authenticatedStudentId = extractStudentIdFromAccount(account);
-        if (!authenticatedStudentId.equals(studentId)) {
-            logger.error("Student ID {} does not match authenticated user", studentId);
-            throw new IllegalArgumentException("Student ID does not match authenticated user");
-        }
 
-        ApiResponse<FaceCompareResponse> response = studentFaceDataService.attendance(studentId, scheduleId, file, servletRequest);
+        ApiResponse<FaceCompareResponse> response = studentFaceDataService.attendance(authenticatedStudentId, scheduleId, file, servletRequest);
         return ResponseEntity.ok(response);
     }
 

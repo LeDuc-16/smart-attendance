@@ -1,6 +1,7 @@
 package com.leduc.spring.schedule;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.leduc.spring.classes.ClassEntity;
 import com.leduc.spring.course.Course;
 import com.leduc.spring.lecturer.Lecturer;
@@ -10,7 +11,6 @@ import lombok.*;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -62,9 +62,8 @@ public class Schedule {
     @JoinColumn(name = "room_id")
     private Room room;
 
-    @Column(name = "is_open")
-    private boolean isOpen = false;
+    @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<StudyDay> studyDays;
 
-    @Column(name="close_time")
-    private LocalDateTime closeTime;
 }

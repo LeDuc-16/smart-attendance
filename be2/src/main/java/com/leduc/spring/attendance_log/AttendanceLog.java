@@ -1,84 +1,32 @@
 package com.leduc.spring.attendance_log;
 
-import com.leduc.spring.classes.ClassEntity;
-import com.leduc.spring.course.Course;
-import com.leduc.spring.lecturer.Lecturer;
-import com.leduc.spring.student.Student;
-import com.leduc.spring.schedule.Schedule;
 import jakarta.persistence.*;
-import lombok.*;
-
-import java.time.LocalDate;
+import lombok.Getter;
+import lombok.Setter;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 
 @Entity
 @Table(name = "attendance_logs")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter
+@Setter
 public class AttendanceLog {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Sinh viên điểm danh
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false)
-    private Student student;
+    @Column(name = "student_id", nullable = false)
+    private Long studentId;
 
-    // Lớp học (ví dụ: 64KTPM3)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "class_id", nullable = false)
-    private ClassEntity classEntity;
+    @Column(name = "schedule_id", nullable = false)
+    private Long scheduleId;
 
-    // Môn học (VD: CSDL)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
-    private Course course;
-
-    // Giảng viên
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lecturer_id", nullable = false)
-    private Lecturer lecturer;
-
-    // Lịch học (tham chiếu tới Schedule)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "schedule_id", nullable = false)
-    private Schedule schedule;
-
-    // Ngày học
-    @Column(nullable = false)
-    private LocalDate sessionDate;
-
-    // Giờ học theo lịch
-    @Column(nullable = false)
-    private LocalTime scheduledStartTime;
-
-    @Column(nullable = false)
-    private LocalTime scheduledEndTime;
-
-    // Thời điểm thực tế sinh viên điểm danh
-    @Column(nullable = false)
-    private LocalDateTime attendanceTime;
-
-    // Trạng thái điểm danh (Đúng giờ, Muộn, Có phép, Vắng)
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false)
     private AttendanceStatus status;
 
-    // Ghi chú thêm
-    @Column(length = 500)
+    @Column(name = "note")
     private String note;
 
-    // Ngày giờ log được tạo
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
 }

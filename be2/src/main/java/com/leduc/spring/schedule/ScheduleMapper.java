@@ -17,8 +17,8 @@ public class ScheduleMapper {
                 .className(schedule.getClassEntity().getClassName())
                 .roomName(schedule.getRoom().getRoomCode())
                 .weeks(weeks)
+//                .isOpen(schedule.isOpen())   // <-- thêm mapping cho isOpen
 
-                .isOpen(schedule.isOpen())   // <-- thêm mapping cho isOpen
                 .build();
     }
 }

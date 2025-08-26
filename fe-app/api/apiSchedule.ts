@@ -2,6 +2,8 @@
 
 export interface Schedule {
   id: number;
+  /** Original schedule id from backend (when id is synthesized for per-studyDay entries) */
+  sourceId?: number;
   subjectName: string;
   subjectCode: string;
   classroomName: string;
@@ -56,6 +58,64 @@ class ApiScheduleService {
       } else {
         this.baseURL = baseURL || envBaseURL || LAN_BASE_URL;
       }
+    }
+  }
+
+  /**
+   * Lecturer: open attendance for a schedule.
+   * POST /api/v1/schedules/{id}/open
+   */
+  async openAttendance(scheduleId: number): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/v1/schedules/${scheduleId}/open`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: '',
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+      try {
+        const err = JSON.parse(text);
+        throw new Error(err.message || `Mở điểm danh thất bại (${response.status})`);
+      } catch (_) {
+        throw new Error(text || `Mở điểm danh thất bại (${response.status})`);
+      }
+    }
+
+    try {
+      const result = JSON.parse(text);
+      return result;
+    } catch (_) {
+      return { message: text };
+    }
+  }
+
+  /**
+   * Lecturer: close attendance for a schedule.
+   * POST /api/v1/schedules/{id}/close
+   */
+  async closeAttendance(scheduleId: number): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/v1/schedules/${scheduleId}/close`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: '',
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+      try {
+        const err = JSON.parse(text);
+        throw new Error(err.message || `Đóng điểm danh thất bại (${response.status})`);
+      } catch (_) {
+        throw new Error(text || `Đóng điểm danh thất bại (${response.status})`);
+      }
+    }
+
+    try {
+      const result = JSON.parse(text);
+      return result;
+    } catch (_) {
+      return { message: text };
     }
   }
 
@@ -180,6 +240,7 @@ class ApiScheduleService {
 
       return {
         id: item.id,
+        sourceId: Number(item.id) || undefined,
         subjectName: item.courseName || item.subjectName || '',
         subjectCode: item.subjectCode || '',
         classroomName: item.roomName || item.classroomName || item.className || '',
@@ -209,6 +270,7 @@ class ApiScheduleService {
         (it) =>
           ({
             id: it.id,
+            sourceId: Number(it.id) || undefined,
             subjectName: it.subjectName || it.courseName || '',
             subjectCode: it.subjectCode || '',
             classroomName: it.classroomName || it.roomName || it.className || '',
@@ -240,23 +302,36 @@ class ApiScheduleService {
                 const date = sd?.date ? String(sd.date) : '';
                 const dow = dayOfWeekFromString(sd?.dayOfWeek);
                 const scheduleEntry: Schedule = {
+                  // generate a unique client-side id per studyDay but keep original id in sourceId
                   id: (Number(item.id) || 0) * 1000 + globalCounter++,
+                  sourceId: Number(item.id) || undefined,
                   subjectName: item.courseName || item.subjectName || '',
                   subjectCode: item.subjectCode || '',
-                  className: item.className || '',
-                  roomName: item.roomName || '',
+                  classroomName: item.className || item.classroomName || item.roomName || '',
                   startTime: normalizeTime(item.startTime),
                   endTime: normalizeTime(item.endTime),
                   dayOfWeek: dow,
                   lecturerName: item.lecturerName || item.lecturer || '',
                   topic: item.topic || '',
                   date: date,
+                  // prefer studyDay-level open flag when present
                   isOpen:
+                    sd?.open === true ||
+                    sd?.isOpen === true ||
+                    sd?.opened === true ||
+                    sd?.is_open === true ||
                     item.open === true ||
                     item.isOpen === true ||
                     item.opened === true ||
                     item.is_open === true,
                 };
+                console.log('apiSchedule mapping studyDay:', {
+                  scheduleId: item.id,
+                  date: date,
+                  'sd.open': sd?.open,
+                  'item.open': item.open,
+                  'final isOpen': scheduleEntry.isOpen,
+                });
                 out.push(scheduleEntry);
               }
             }
@@ -298,6 +373,14 @@ class ApiScheduleService {
       });
     } catch (error: any) {
       console.error('Error getting today schedules:', error);
+      // Return empty array for database-related errors to prevent app crash
+      if (
+        error.message?.includes('isAttendance') ||
+        error.message?.includes('Null value was assigned')
+      ) {
+        console.warn('Backend database issue detected, returning empty schedule for today');
+        return [];
+      }
       throw error instanceof Error ? error : new Error(String(error));
     }
   }
@@ -330,6 +413,14 @@ class ApiScheduleService {
         });
     } catch (error: any) {
       console.error('Error getting upcoming schedules:', error);
+      // Return empty array for database-related errors to prevent app crash
+      if (
+        error.message?.includes('isAttendance') ||
+        error.message?.includes('Null value was assigned')
+      ) {
+        console.warn('Backend database issue detected, returning empty schedule for upcoming');
+        return [];
+      }
       throw error instanceof Error ? error : new Error(String(error));
     }
   }
