@@ -95,6 +95,11 @@ export const getSchedulesByLecturer = async (lecturerId: number): Promise<Teachi
     return response.data.data || [];
 };
 
+export const getMySchedules = async (): Promise<TeachingSchedule[]> => {
+    const response = await teachingApiClient.get("/api/v1/schedules/me");
+    return response.data.data || [];
+};
+
 
 export const getSchedulesByDate = async (date: string): Promise<TeachingSchedule[]> => {
     try {

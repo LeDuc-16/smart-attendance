@@ -2,7 +2,7 @@ import HeaderLecturer from "../components/HeaderLecturer";
 import SidebarLecturer from "../components/SidebarLecturer";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { getSchedulesByLecturer } from "../api/apiTeaching";
+import { getSchedulesByLecturer, getMySchedules } from "../api/apiTeaching";
 import { getCourses } from "../api/apiCourse";
 import { getClassRooms } from "../api/apiClassRoom";
 import { getClasses } from "../api/apiClass";
@@ -39,7 +39,7 @@ const LecturerDashboard = () => {
   useEffect(() => {
     (async () => {
       try {
-        const schedules = await getSchedulesByLecturer();
+        const schedules = await getMySchedules();
         const coursesRes = await getCourses();
         const roomsRes = await getClassRooms();
         const classesRes = await getClasses();

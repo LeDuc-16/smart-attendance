@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import SidebarLecturer from "../components/SidebarLecturer";
 import HeaderLecturer from "../components/HeaderLecturer";
 import EditScheduleModal from "../components/EditScheduleModal";
-import { getSchedulesByLecturer } from "../api/apiTeaching";
+import { getSchedulesByLecturer, getMySchedules } from "../api/apiTeaching";
 import type { TeachingSchedule } from "../api/apiTeaching";
 
 import { getClasses } from "../api/apiClass";
@@ -98,7 +98,7 @@ const TeachingSchedulePage = () => {
     (async () => {
       console.log("Fetching schedules for lecturer"); 
       try {
-        const schedules = await getSchedulesByLecturer();
+        const schedules = await getMySchedules();
         console.log("Schedules fetched:", schedules); 
 
         console.log("Fetching classes...");
