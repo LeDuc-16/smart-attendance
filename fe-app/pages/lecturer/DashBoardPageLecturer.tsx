@@ -93,7 +93,7 @@ const DashBoardPageLecturer = ({ navigation }: Props) => {
     .filter((schedule) => {
       const studyDate = new Date(schedule.date);
       return (
-        studyDate.getFullYear() === today.getFullYear() &&
+studyDate.getFullYear() === today.getFullYear() &&
         studyDate.getMonth() === today.getMonth() &&
         studyDate.getDate() === today.getDate()
       );
@@ -110,8 +110,8 @@ const DashBoardPageLecturer = ({ navigation }: Props) => {
       return {
         id: schedule.id.toString(),
         subject: schedule.subjectName,
-        className: schedule.classroomName || '',
-        location: schedule.classroomName,
+        className: schedule.className || '',
+        location: schedule.roomName || '',
         time: `${schedule.startTime} - ${schedule.endTime}`,
         lecturer: schedule.lecturerName || '',
         topic: schedule.topic || 'Chưa có thông tin chủ đề',
@@ -167,7 +167,7 @@ const DashBoardPageLecturer = ({ navigation }: Props) => {
         {loadingSchedules ? (
           <Text className="text-center text-base text-gray-500">Đang tải lịch dạy...</Text>
         ) : scheduleError ? (
-          <Text className="text-center text-base text-red-500">Lỗi: {scheduleError}</Text>
+<Text className="text-center text-base text-red-500">Lỗi: {scheduleError}</Text>
         ) : todaySchedules.length > 0 ? (
           todaySchedules.map((item) => (
             <View key={item.id} className="mb-3 rounded-lg bg-gray-50 p-3">
@@ -220,7 +220,7 @@ const DashBoardPageLecturer = ({ navigation }: Props) => {
                                 ? { ...s, isOpen: !item.isOpen }
                                 : s
                             )
-                          );
+);
 
                           // Then refresh from server to get authoritative state
                           setLoadingSchedules(true);

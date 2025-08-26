@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import LoginBackGround from './LoginBackGround';
 import { apiFaceService } from '../../api/apiFace';
+import ErrorMessage from '../../components/ErrorMessage';
 
 type RouteParams = {
   schedule?: any;
@@ -118,11 +119,29 @@ const QuickAttendancePage = () => {
         studentName: result.studentName,
       });
     } catch (err: any) {
-      // console.error('Attendance error:', err); // Removed console.error as per user request
+      console.error('Attendance error:', err);
       let errorMessage = err?.message || 'Điểm danh thất bại. Vui lòng thử lại.';
 
-      // Handle specific error cases
-      if (errorMessage.includes('Face not found') || errorMessage.includes('không tìm thấy')) {
+      // Try to extract backend error message from structured response
+      try {
+        if (typeof errorMessage === 'string' && errorMessage.includes('{"statusCode"')) {
+          const errorObj = JSON.parse(errorMessage);
+          if (errorObj.message) {
+            errorMessage = errorObj.message;
+          }
+        }
+      } catch (parseError) {
+        // If parsing fails, use the original error message
+      }
+
+      // Handle specific error cases with more user-friendly messages
+      if (errorMessage.includes('Face detection failed: must have exactly 1 face')) {
+        errorMessage =
+          'Không nhận diện được khuôn mặt chính xác. Vui lòng đảm bảo chỉ có 1 khuôn mặt trong khung hình và chụp lại.';
+      } else if (
+        errorMessage.includes('Face not found') ||
+        errorMessage.includes('không tìm thấy')
+      ) {
         errorMessage = 'Không nhận diện được khuôn mặt. Vui lòng chụp lại ảnh rõ hơn.';
       } else if (errorMessage.includes('not registered') || errorMessage.includes('chưa đăng ký')) {
         errorMessage = 'Bạn chưa đăng ký khuôn mặt. Vui lòng đăng ký trước khi điểm danh.';
@@ -138,7 +157,6 @@ const QuickAttendancePage = () => {
         errorMessage = 'Lớp học chưa được mở để điểm danh. Vui lòng đợi giảng viên mở lớp.';
       }
 
-      Alert.alert('Điểm danh thất bại', '');
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -211,8 +229,8 @@ const QuickAttendancePage = () => {
 
         {/* Error Message */}
         {error ? (
-          <View className="mb-4 rounded-lg bg-red-500/90 p-4">
-            <Text className="text-center text-white">{error}</Text>
+          <View className="mb-4">
+            <ErrorMessage text={error} />
           </View>
         ) : null}
 

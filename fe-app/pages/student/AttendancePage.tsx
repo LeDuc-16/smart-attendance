@@ -67,7 +67,7 @@ const AttendancePage = ({ navigation }: Props) => {
   };
 
   const content = (
-    <ScrollView className="flex-1 p-4">
+    <ScrollView className="flex-1 px-4 pt-4 bg-gray-100">
       {error ? (
         <TouchableOpacity onPress={() => setError('')} className="mb-4">
           <ErrorMessage text={error} />
@@ -75,32 +75,84 @@ const AttendancePage = ({ navigation }: Props) => {
       ) : null}
 
       {loading ? (
-        <View className="rounded-lg bg-gray-50 p-4">
-          <Text className="text-center text-gray-500">Đang tải lịch học...</Text>
+        <View className="bg-white rounded-2xl shadow-md p-6 items-center">
+          <Text className="text-lg text-gray-600 font-medium">Đang tải lịch học...</Text>
         </View>
       ) : schedules.length === 0 ? (
-        <View className="items-center rounded-lg bg-gray-50 p-4">
-          <Text className="mb-3 text-center text-gray-500">Không có lịch học sắp tới</Text>
+        <View className="bg-white rounded-2xl shadow-md p-6 items-center">
+          <Text className="text-lg text-gray-600 font-medium mb-4">Không có lịch học sắp tới</Text>
           <TouchableOpacity
-            className="rounded-lg bg-blue-500 px-4 py-2"
+            className="bg-blue-600 rounded-lg px-6 py-3"
             onPress={() => navigation.goBack()}>
-            <Text className="text-white">Quay lại</Text>
+            <Text className="text-white font-semibold text-base">Quay lại</Text>
           </TouchableOpacity>
         </View>
       ) : (
         schedules.map((s) => (
-          <View key={s.id} className="mb-3 rounded-lg bg-gray-50 p-3">
-            <View className="mb-2 flex-row items-center">
-              <MaterialIcons name="book" size={16} color="#6b7280" />
-              <Text className="ml-2 font-medium text-gray-800">{s.subjectName}</Text>
+          <View
+            key={s.id}
+            className="bg-white rounded-2xl shadow-md p-5 mb-4 border-l-4 border-blue-500">
+            <View className="flex-row items-center mb-3">
+              <MaterialIcons name="book" size={20} color="#3b82f6" />
+              <Text className="ml-3 text-lg font-bold text-gray-800">{s.subjectName}</Text>
             </View>
-            <Text className="mb-1 text-sm text-gray-600">
-              {s.startTime} - {s.endTime} | {s.classroomName} |{' '}
-              {s.date ? new Date(s.date).toLocaleDateString('vi-VN', { weekday: 'long' }) : ''}
-            </Text>
+            <View className="flex-row items-center mb-2">
+              <MaterialIcons name="schedule" size={16} color="#6b7280" />
+              <Text className="ml-2 text-sm text-gray-600">
+                {s.startTime} - {s.endTime}
+              </Text>
+            </View>
+            <View className="flex-row items-center mb-2">
+              <MaterialIcons name="room" size={16} color="#6b7280" />
+              <Text className="ml-2 text-sm text-gray-600">{s.classroomName || s.className}</Text>
+            </View>
+            <View className="flex-row items-center mb-2">
+              <MaterialIcons name="event" size={16} color="#6b7280" />
+              <Text className="ml-2 text-sm text-gray-600">
+                {s.date
+                  ? new Date(s.date).toLocaleDateString('vi-VN', { weekday: 'long' })
+                  : ''}
+              </Text>
+            </View>
             {s.lecturerName && (
-              <Text className="mb-1 text-sm text-gray-600">Giảng viên: {s.lecturerName}</Text>
+              <View className="flex-row items-center mb-4">
+                <MaterialIcons name="person" size={16} color="#6b7280" />
+                <Text className="ml-2 text-sm text-gray-600">Giảng viên: {s.lecturerName}</Text>
+              </View>
             )}
+            
+            {/* Attendance Buttons */}
+            <View className="mt-4 pt-4 border-t border-gray-200">
+              {!s.isOpen ? (
+                <View className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <View className="flex-row items-center">
+                    <MaterialIcons name="schedule" size={16} color="#d97706" />
+                    <Text className="ml-2 text-sm text-yellow-700 font-medium">
+                      Chưa mở điểm danh
+                    </Text>
+                  </View>
+                  <Text className="mt-1 text-xs text-yellow-600">
+                    Giảng viên chưa mở điểm danh cho lớp này
+                  </Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  className="w-full bg-green-600 rounded-lg py-3 px-4"
+                  onPress={() =>
+                    navigation.navigate('QuickAttendancePage', {
+                      schedule: s,
+                      scheduleId: s.sourceId || s.id,
+                      className: s.className,
+                      subjectName: s.subjectName,
+                    })
+                  }>
+                  <View className="flex-row items-center justify-center">
+                    <MaterialIcons name="camera-alt" size={18} color="white" />
+                    <Text className="ml-2 text-white font-semibold">Điểm danh</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         ))
       )}
