@@ -12,4 +12,5 @@ public class FaceCompareResponse {
     private String studentName;  // Tên sinh viên
     private String studentCode;  // Mã sinh viên
     private String studentClass; // Lớp sinh viên
+    private boolean isAttendance;
 }

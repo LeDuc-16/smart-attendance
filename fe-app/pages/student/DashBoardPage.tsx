@@ -12,41 +12,42 @@ import { StudentScheduleCard } from './SchedulePage'; // Import StudentScheduleC
 type Props = NativeStackScreenProps<any, 'DashBoardPage'>;
 
 interface DashboardScheduleItemProps {
-    schedule: Schedule;
-    navigation: any; // Assuming navigation prop is passed down
-    setError: (error: string) => void;
+  schedule: Schedule;
+  navigation: any; // Assuming navigation prop is passed down
+  setError: (error: string) => void;
 }
 
-const DashboardScheduleItem: React.FC<DashboardScheduleItemProps> = ({ schedule, navigation, setError }) => {
-    const handleAttendance = () => {
-        try {
-            setError('');
-            if (schedule.isOpen === false) {
-                Alert.alert(
-                    'Chưa mở điểm danh',
-                    'Giảng viên chưa mở điểm danh cho lớp này.'
-                );
-                return;
-            }
-            navigation.navigate('AttendancePage'); // Navigate to the attendance page
-        } catch (error: any) {
-            setError('Không thể mở trang điểm danh. Vui lòng thử lại.');
-        }
-    };
+const DashboardScheduleItem: React.FC<DashboardScheduleItemProps> = ({
+  schedule,
+  navigation,
+  setError,
+}) => {
+  const handleAttendance = () => {
+    try {
+      setError('');
+      if (schedule.isOpen === false) {
+        Alert.alert('Chưa mở điểm danh', 'Giảng viên chưa mở điểm danh cho lớp này.');
+        return;
+      }
+      navigation.navigate('QuickAttendancePage', { schedule }); // Navigate to the quick attendance page
+    } catch (error: any) {
+      setError('Không thể mở trang điểm danh. Vui lòng thử lại.');
+    }
+  };
 
-    return (
-        <View className="mb-3">
-            <StudentScheduleCard schedule={schedule} />
-            <TouchableOpacity
-                className="rounded-lg bg-black py-3 mt-2" // Added mt-2 for spacing
-                onPress={handleAttendance}>
-                <View className="flex-row items-center justify-center">
-                    <MaterialIcons name="camera" size={18} color="white" />
-                    <Text className="ml-2 font-medium text-white">Điểm danh</Text>
-                </View>
-            </TouchableOpacity>
+  return (
+    <View className="mb-3">
+      <StudentScheduleCard schedule={schedule} />
+      <TouchableOpacity
+        className="mt-2 rounded-lg bg-black py-3" // Added mt-2 for spacing
+        onPress={handleAttendance}>
+        <View className="flex-row items-center justify-center">
+          <MaterialIcons name="camera" size={18} color="white" />
+          <Text className="ml-2 font-medium text-white">Điểm danh</Text>
         </View>
-    );
+      </TouchableOpacity>
+    </View>
+  );
 };
 
 const DashBoardPage = ({ navigation }: Props) => {
@@ -297,16 +298,14 @@ const DashBoardPage = ({ navigation }: Props) => {
           </View>
         ) : todaySchedules.length > 0 ? (
           <>
-            {todaySchedules
-              .slice(0, 1)
-              .map((schedule) => (
-                <DashboardScheduleItem
-                  key={schedule.id}
-                  schedule={schedule}
-                  navigation={navigation}
-                  setError={setError}
-                />
-              ))}
+            {todaySchedules.slice(0, 1).map((schedule) => (
+              <DashboardScheduleItem
+                key={schedule.id}
+                schedule={schedule}
+                navigation={navigation}
+                setError={setError}
+              />
+            ))}
           </>
         ) : (
           <View className="rounded-lg bg-gray-50 p-4">

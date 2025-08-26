@@ -79,8 +79,7 @@ class ApiAuthService {
 
   constructor(baseURL?: string) {
     const envBaseURL =
-      process.env.REACT_NATIVE_APP_API_BASE_URL ||
-      process.env.REACT_APP_API_BASE_URL;
+      process.env.REACT_NATIVE_APP_API_BASE_URL || process.env.REACT_APP_API_BASE_URL;
 
     if (process.env.NODE_ENV === 'production') {
       this.baseURL = baseURL || envBaseURL || 'http://14.225.210.41:8080';
@@ -90,12 +89,10 @@ class ApiAuthService {
 
       const LOCALHOST_BASE_URL = 'http://localhost:8080'; // Dùng cho emulator
       this.baseURL = baseURL || envBaseURL || LAN_BASE_URL || LOCALHOST_BASE_URL;
-    }
 
-    console.log('ApiAuthService baseURL =', this.baseURL);
+    }
   }
 
-  // ================== Token & User Info ==================
   setAuthToken(token: string) {
     this.authToken = token;
   }

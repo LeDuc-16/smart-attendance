@@ -31,7 +31,6 @@ public class AwsConfig {
         }
         return S3Client.builder()
                 .region(Region.of(awsRegion))
-                .endpointOverride(URI.create("https://s3.ap-southeast-2.amazonaws.com"))
                 .credentialsProvider(DefaultCredentialsProvider.create())
                 .build();
     }
@@ -40,15 +39,13 @@ public class AwsConfig {
     @Bean
     public RekognitionClient rekognitionClient() {
         RekognitionClient client = RekognitionClient.builder()
-                .region(Region.of(awsRegion))// region hỗ trợ Face Liveness
+                .region(Region.of(awsRegion))
                 .credentialsProvider(DefaultCredentialsProvider.create())
                 .build();
 
         createCollectionIfNotExists(client);
         return client;
     }
-
-
 
     private void createCollectionIfNotExists(RekognitionClient client) {
         try {

@@ -52,12 +52,28 @@ public class S3Service {
 
     public void headObject(String bucketName, String key) {
         try {
-            s3.headObject(HeadObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(key)
-                    .build());
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to get S3 object metadata", e);
+            int maxRetries = 3;
+            int retryCount = 0;
+            boolean success = false;
+            while (!success && retryCount < maxRetries) {
+                try {
+                    s3.headObject(HeadObjectRequest.builder()
+                            .bucket(bucketName)
+                            .key(key)
+                            .build());
+                    success = true;
+                } catch (S3Exception e) {
+                    if (e.statusCode() == 404 && retryCount < maxRetries - 1) {
+                        Thread.sleep(1000); // Chờ 1 giây trước khi thử lại
+                        retryCount++;
+                    } else {
+                        throw new RuntimeException("Failed to get S3 object metadata: " + e.getMessage(), e);
+                    }
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while retrying headObject", e);
         }
     }
 }

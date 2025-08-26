@@ -1,22 +1,25 @@
 package com.leduc.spring.student_face_data;
 
-import com.leduc.spring.attendance_log.AttendanceLog;
 import com.leduc.spring.attendance_log.AttendanceLogService;
 import com.leduc.spring.attendance_log.AttendanceStatus;
 import com.leduc.spring.aws.S3Buckets;
 import com.leduc.spring.aws.S3Service;
 import com.leduc.spring.classes.ClassEntity;
 import com.leduc.spring.classes.ClassRepository;
+import com.leduc.spring.email.EmailService;
 import com.leduc.spring.exception.ApiResponse;
 import com.leduc.spring.exception.ResourceNotFoundException;
 import com.leduc.spring.schedule.Schedule;
 import com.leduc.spring.schedule.ScheduleRepository;
+import com.leduc.spring.schedule.ScheduleService;
+import com.leduc.spring.schedule.StudyDay;
 import com.leduc.spring.student.Student;
 import com.leduc.spring.student.StudentRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.mail.MailException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,6 +29,7 @@ import software.amazon.awssdk.services.rekognition.model.*;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -40,6 +44,7 @@ public class StudentFaceDataService {
     private final StudentRepository studentRepository;
     private final S3Service s3Service;
     private final S3Buckets s3Buckets;
+    private final EmailService emailService;
     private final ScheduleRepository scheduleRepository;
     private final ClassRepository classRepository;
     private final RekognitionClient rekognitionClient;
@@ -48,6 +53,8 @@ public class StudentFaceDataService {
     private static final String FACE_COLLECTION_ID = "student_faces";
     private static final float SIMILARITY_THRESHOLD = 90.0f;
     private static final long LATE_THRESHOLD_MINUTES = 5; // 5 phút sau khi đóng vẫn cho phép điểm danh (LATE)
+    private final ScheduleService scheduleService;
+
     private boolean detectFace(MultipartFile file) throws IOException {
         try {
             Image awsImage = Image.builder()
@@ -84,7 +91,8 @@ public class StudentFaceDataService {
         try {
             IndexFacesResponse response = rekognitionClient.indexFaces(indexFacesRequest);
             if (response.faceRecords().isEmpty() || response.faceRecords().size() > 1) {
-                logger.warn("Invalid face detection: {} faces found for studentId {}", response.faceRecords().size(), studentId);
+                logger.warn("Invalid face detection: {} faces found for studentId {}", response.faceRecords().size(),
+                        studentId);
                 return null;
             }
             String faceId = response.faceRecords().get(0).face().faceId();
@@ -109,7 +117,8 @@ public class StudentFaceDataService {
     }
 
     @Transactional
-    public ApiResponse<FaceRegisterResponse> registerStudentFace(FaceRegisterRequest request, Long studentId, HttpServletRequest servletRequest) {
+    public ApiResponse<FaceRegisterResponse> registerStudentFace(FaceRegisterRequest request, Long studentId,
+            HttpServletRequest servletRequest) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Student with id [%s] not found".formatted(studentId)));
@@ -134,23 +143,20 @@ public class StudentFaceDataService {
                         s3Buckets.getStudent(),
                         s3Key,
                         file.getBytes(),
-                        file.getContentType()
-                );
+                        file.getContentType());
                 logger.info("Uploaded image {} to S3 with key: {}", i + 1, s3Key);
-
-                // Verify S3 object
-                s3Service.headObject(s3Buckets.getStudent(), s3Key);
-                logger.info("Verified S3 object exists for image {}: {}", i + 1, s3Key);
 
                 // Detect face
                 if (!detectFace(file)) {
-                    throw new ResourceNotFoundException("Face detection failed for image %d: must have exactly 1 face".formatted(i + 1));
+                    throw new ResourceNotFoundException(
+                            "Face detection failed for image %d: must have exactly 1 face".formatted(i + 1));
                 }
 
                 // Index face
                 String faceId = indexFace(file, studentId);
                 if (faceId == null) {
-                    throw new ResourceNotFoundException("Failed to extract face features for image %d".formatted(i + 1));
+                    throw new ResourceNotFoundException(
+                            "Failed to extract face features for image %d".formatted(i + 1));
                 }
 
                 profileImageIds.add(profileImageId);
@@ -166,21 +172,27 @@ public class StudentFaceDataService {
 
             // Set isRegistered = true for the student
             student.setRegistered(true);
-            studentRepository.save(student); // Save the updated student entity
+            studentRepository.save(student);
 
-            FaceRegisterResponse response = mapper.toFaceRegisterResponse(student, faceIds, profileImageIds, LocalDateTime.now());
-            return ApiResponse.success(response, "Student faces registered successfully", servletRequest.getRequestURI());
+            // Send email notification
+            String subject = "Successful Face Registration Confirmation";
+            String htmlContent = emailService.buildProfessionalEmailContent(student.getUser().getName());
+            emailService.sendComplexNotificationEmail(student.getUser(), subject, htmlContent);
+            logger.info("Sent face registration confirmation email to student: {}", student.getUser().getEmail());
+
+            FaceRegisterResponse response = mapper.toFaceRegisterResponse(student, faceIds, profileImageIds,
+                    LocalDateTime.now());
+            return ApiResponse.success(response, "Student faces registered successfully",
+                    servletRequest.getRequestURI());
 
         } catch (ResourceNotFoundException e) {
-            // Clean up S3 objects on face detection or indexing failure
             for (String s3Key : s3Keys) {
                 s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
                 logger.info("Cleaned up S3 object: {}", s3Key);
             }
             logger.error("Face processing failed for studentId {}: {}", studentId, e.getMessage(), e);
-            throw e; // Re-throw to trigger transaction rollback
+            throw e;
         } catch (IOException e) {
-            // Clean up S3 objects on IO failure
             for (String s3Key : s3Keys) {
                 s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
                 logger.info("Cleaned up S3 object: {}", s3Key);
@@ -188,13 +200,20 @@ public class StudentFaceDataService {
             logger.error("Failed to process images for studentId {}: {}", studentId, e.getMessage(), e);
             throw new RuntimeException("Failed to process images", e);
         } catch (S3Exception e) {
-            // Clean up S3 objects on S3 failure
             for (String s3Key : s3Keys) {
                 s3Service.deleteObject(s3Buckets.getStudent(), s3Key);
                 logger.info("Cleaned up S3 object: {}", s3Key);
             }
             logger.error("Failed to verify S3 object for studentId {}: {}", studentId, e.getMessage(), e);
             throw new RuntimeException("Failed to verify S3 object: " + e.getMessage(), e);
+        } catch (MailException e) {
+            // Log email failure but don't rollback transaction
+            logger.error("Failed to send email to studentId {}: {}", studentId, e.getMessage(), e);
+            // Continue with success response since face registration was successful
+            FaceRegisterResponse response = mapper.toFaceRegisterResponse(student, faceIds, profileImageIds,
+                    LocalDateTime.now());
+            return ApiResponse.success(response, "Student faces registered successfully, but email notification failed",
+                    servletRequest.getRequestURI());
         }
     }
 
@@ -215,8 +234,7 @@ public class StudentFaceDataService {
             return ApiResponse.success(
                     "FaceId deleted: " + response.deletedFaces(),
                     "Deleted successfully",
-                    servletRequest.getRequestURI()
-            );
+                    servletRequest.getRequestURI());
         } catch (RekognitionException e) {
             logger.error("Failed to delete faceId {}: {}", faceId, e.getMessage(), e);
             throw new RuntimeException("Failed to delete faceId: " + e.getMessage(), e);
@@ -224,7 +242,8 @@ public class StudentFaceDataService {
     }
 
     @Transactional(readOnly = true)
-    public ApiResponse<FaceCompareResponse> compareFace(Long studentId, MultipartFile file, HttpServletRequest servletRequest) {
+    public ApiResponse<FaceCompareResponse> compareFace(Long studentId, MultipartFile file,
+            HttpServletRequest servletRequest) {
         try {
             if (!detectFace(file)) {
                 throw new ResourceNotFoundException("Face detection failed: must have exactly 1 face");
@@ -248,7 +267,8 @@ public class StudentFaceDataService {
             SearchFacesByImageResponse response = rekognitionClient.searchFacesByImage(request);
 
             if (response.faceMatches().isEmpty()) {
-                throw new ResourceNotFoundException("No matching faces found in collection for studentId [%s]".formatted(studentId));
+                throw new ResourceNotFoundException(
+                        "No matching faces found in collection for studentId [%s]".formatted(studentId));
             }
 
             for (FaceMatch faceMatch : response.faceMatches()) {
@@ -259,8 +279,10 @@ public class StudentFaceDataService {
                 try {
                     Long matchedStudentId = Long.parseLong(externalImageId);
                     if (matchedStudentId.equals(studentId)) {
-                        FaceCompareResponse compareResponse = mapper.toFaceCompareResponse(student, faceId, similarity);
-                        return ApiResponse.success(compareResponse, "Face matched successfully", servletRequest.getRequestURI());
+                        FaceCompareResponse compareResponse = mapper.toFaceCompareResponse(student, null, faceId,
+                                similarity);
+                        return ApiResponse.success(compareResponse, "Face matched successfully",
+                                servletRequest.getRequestURI());
                     }
                 } catch (NumberFormatException e) {
                     logger.warn("Invalid externalImageId format: {}", externalImageId);
@@ -278,47 +300,14 @@ public class StudentFaceDataService {
     }
 
     @Transactional
-    public ApiResponse<LivenessSessionResponse> createLivenessSession(HttpServletRequest servletRequest) {
-        try {
-            // Tạo clientRequestToken duy nhất
-            String clientRequestToken = String.valueOf(System.currentTimeMillis());
+    public ApiResponse<FaceCompareResponse> attendance(Long studentId, Long scheduleId, MultipartFile file,
+            HttpServletRequest servletRequest) {
+        logger.info("Starting attendance for studentId: {} and scheduleId: {}", studentId, scheduleId);
 
-            // Tạo request với AWS
-            CreateFaceLivenessSessionRequest awsRequest = CreateFaceLivenessSessionRequest.builder()
-                    .clientRequestToken(clientRequestToken)
-                    .settings(CreateFaceLivenessSessionRequestSettings.builder()
-                            .auditImagesLimit(0) // Disable audit images
-                            .build())
-                    .build();
-
-            // Gọi API AWS để tạo session
-            CreateFaceLivenessSessionResponse awsResponse = rekognitionClient.createFaceLivenessSession(awsRequest);
-
-            logger.info("Created liveness session with sessionId: {} and clientRequestToken: {}",
-                    awsResponse.sessionId(), clientRequestToken);
-
-            // Chuyển đổi sang DTO
-            LivenessSessionResponse dto = new LivenessSessionResponse(
-                    awsResponse.sessionId(),
-                    clientRequestToken
-            );
-
-            return ApiResponse.success(dto, "Liveness session created successfully", servletRequest.getRequestURI());
-
-        } catch (RekognitionException e) {
-            logger.error("Failed to create liveness session: {}", e.getMessage(), e);
-            throw new ResourceNotFoundException("Failed to create liveness session: " + e.getMessage());
-        } catch (Exception e) {
-            logger.error("Unexpected error during liveness session creation: {}", e.getMessage(), e);
-            throw new ResourceNotFoundException("Unexpected error: " + e.getMessage());
-        }
-    }
-
-    @Transactional
-    public ApiResponse<FaceCompareResponse> attendance(Long studentId, Long scheduleId, MultipartFile file, HttpServletRequest servletRequest) {
         // Tìm sinh viên
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy sinh viên với ID: " + studentId));
+        logger.info("Found student: {}", student.getId());
 
         // Kiểm tra sinh viên đã đăng ký khuôn mặt chưa
         if (!student.isRegistered()) {
@@ -328,31 +317,47 @@ public class StudentFaceDataService {
         // Tìm lịch học
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học với ID: " + scheduleId));
+        logger.info("Found schedule: {} for class: {}", schedule.getId(), schedule.getClassEntity().getId());
 
-        // Kiểm tra xem lịch học có thuộc về lớp của sinh viên
+        // Kiểm tra lịch học có thuộc lớp sinh viên không
         ClassEntity studentClass = classRepository.findByStudentId(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp cho sinh viên: " + studentId));
+        logger.info("Student belongs to class: {}", studentClass.getId());
+
         if (!schedule.getClassEntity().getId().equals(studentClass.getId())) {
-            throw new IllegalArgumentException("Lịch học không thuộc lớp của sinh viên");
+            throw new IllegalArgumentException("Lịch học không thuộc lớp của sinh viên. Schedule class: " +
+                    schedule.getClassEntity().getId() + ", Student class: " + studentClass.getId());
         }
 
-        // Kiểm tra trạng thái isOpen và thời gian đóng
-        AttendanceStatus status;
+        // Lấy StudyDay của hôm nay
+        LocalDate today = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
-        if (schedule.isOpen()) {
-            // Lịch đang mở: Điểm danh bình thường
-            status = AttendanceStatus.PRESENT;
+        logger.info("Looking for schedule on date: {}", today);
+
+        StudyDay studyDay = scheduleService.calculateWeeklySchedule(schedule).stream()
+                .flatMap(week -> week.getStudyDays().stream())
+                .filter(sd -> sd.getDate().isEqual(today))
+                .findFirst()
+                .orElse(null);
+
+        if (studyDay == null) {
+            throw new IllegalStateException("Hôm nay (" + today + ") không có lịch học cho lớp này");
+        }
+        logger.info("Found StudyDay for today: {}", studyDay.getDate());
+
+        // Xác định trạng thái điểm danh
+        AttendanceStatus status;
+        if (studyDay.isOpen()) {
+            status = AttendanceStatus.PRESENT; // Lịch đang mở
         } else {
-            // Lịch đã đóng: Kiểm tra thời gian đóng
-            LocalDateTime closeTime = schedule.getCloseTime();
+            LocalDateTime closeTime = studyDay.getCloseTime();
             if (closeTime == null) {
                 throw new IllegalStateException("Lịch học đã đóng nhưng không có thời gian đóng");
             }
 
             long minutesSinceClose = ChronoUnit.MINUTES.between(closeTime, now);
             if (minutesSinceClose <= LATE_THRESHOLD_MINUTES) {
-                // Trong vòng 5 phút sau khi đóng: Điểm danh muộn
-                status = AttendanceStatus.LATE;
+                status = AttendanceStatus.LATE; // Điểm danh muộn
             } else {
                 throw new IllegalStateException("Không thể điểm danh: Đã quá 5 phút sau khi lịch đóng");
             }
@@ -364,9 +369,11 @@ public class StudentFaceDataService {
 
         // Ghi log điểm danh
         String note = "Điểm danh bằng nhận diện khuôn mặt, độ tương đồng: " + faceCompareResponse.getSimilarity();
-        ApiResponse<AttendanceLog> logResponse = attendanceLogService.recordHistory(studentId, scheduleId, status, note, servletRequest);
+        attendanceLogService.recordHistory(studentId, scheduleId, status, note);
 
         logger.info("Sinh viên ID: {} đã điểm danh cho lịch ID: {} với trạng thái: {}", studentId, scheduleId, status);
-        return ApiResponse.success(faceCompareResponse, "Điểm danh thành công với trạng thái: " + status, servletRequest.getRequestURI());
+        return ApiResponse.success(faceCompareResponse, "Điểm danh thành công với trạng thái: " + status,
+                servletRequest.getRequestURI());
     }
+
 }

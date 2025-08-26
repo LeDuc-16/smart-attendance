@@ -171,6 +171,53 @@ class ApiFaceService {
     const result: BackendApiResponse<FaceCompareResponse> = JSON.parse(text);
     return result.data;
   }
+
+  async markAttendance(scheduleId: number, image: {
+    uri: string;
+    type?: string;
+    name?: string;
+  }): Promise<FaceCompareResponse> {
+    const formData = new FormData();
+    formData.append('file', {
+      uri: image.uri,
+      name: image.name || 'attendance.jpg',
+      type: image.type || 'image/jpeg',
+    } as any);
+    formData.append('scheduleId', scheduleId.toString());
+
+    const response = await fetch(`${this.baseURL}/api/v1/student-faces/attendance`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: formData,
+    });
+    const text = await response.text();
+    if (!response.ok) {
+      try {
+        const error = JSON.parse(text);
+        throw new Error(error.message || `Điểm danh thất bại (${response.status})`);
+      } catch (_) {
+        throw new Error(text || `Điểm danh thất bại (${response.status})`);
+      }
+    }
+
+    const result: BackendApiResponse<FaceCompareResponse> = JSON.parse(text);
+    return result.data;
+  }
+
+  async checkAttendanceStatus(scheduleId: number): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/v1/schedules/${scheduleId}/status`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    });
+    
+    if (!response.ok) {
+      // If endpoint doesn't exist, continue with attendance attempt
+      return { isOpen: true }; // Assume open for compatibility
+    }
+
+    const result = await response.json();
+    return result.data || result;
+  }
 }
 
 export const apiFaceService = new ApiFaceService();
