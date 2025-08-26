@@ -118,7 +118,7 @@ const QuickAttendancePage = () => {
         studentName: result.studentName,
       });
     } catch (err: any) {
-      console.error('Attendance error:', err);
+      // console.error('Attendance error:', err); // Removed console.error as per user request
       let errorMessage = err?.message || 'Điểm danh thất bại. Vui lòng thử lại.';
 
       // Handle specific error cases
@@ -138,6 +138,7 @@ const QuickAttendancePage = () => {
         errorMessage = 'Lớp học chưa được mở để điểm danh. Vui lòng đợi giảng viên mở lớp.';
       }
 
+      Alert.alert('Điểm danh thất bại', '');
       setError(errorMessage);
     } finally {
       setLoading(false);
