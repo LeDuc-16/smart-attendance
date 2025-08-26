@@ -2,7 +2,7 @@ import SidebarLecturer from "../components/SidebarLecturer";
 import HeaderLecturer from "../components/HeaderLecturer";
 import { useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { getSchedulesByLecturer } from "../api/apiTeaching";
+import { getSchedulesByLecturer, getMySchedules } from "../api/apiTeaching";
 
 
 import { getClasses } from "../api/apiClass";
@@ -38,7 +38,7 @@ const LecturerTakesAttendance = () => {
   useEffect(() => {
     (async () => {
       try {
-        const schedules = await getSchedulesByLecturer();
+        const schedules = await getMySchedules();
         
         const classesRes = await getClasses();
 
@@ -56,14 +56,33 @@ const LecturerTakesAttendance = () => {
 
           return item.weeks.flatMap((week: any) => {
             return week.studyDays.filter((day: any) => day.date === date).map((day: any) => {
+              // Xác định trạng thái
+              const now = new Date();
+              const [startHour, startMinute] = (item.startTime).split(':').map(Number);
+              const [endHour, endMinute] = (item.endTime).split(':').map(Number);
+
+              const classDate = new Date(day.date);
+              const start = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), startHour, startMinute);
+              const end = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), endHour, endMinute);
+
+              let status = "Sắp tới";
+              let statusType = "upcoming";
+              if (now >= start && now <= end) {
+                status = "Đang diễn ra";
+                statusType = "active";
+              } else if (now > end) {
+                status = "Đã kết thúc";
+                statusType = "ended";
+              }
+
               return {
                 subject: item.courseName || "",
                 className: item.className || "",
                 time: `${formatTime(item.startTime)} - ${formatTime(item.endTime)}`,
                 room: item.roomName || "",
                 students: classInfo?.capacityStudent ?? "-",
-                status: "Sắp tới",
-                statusType: "upcoming",
+                status,
+                statusType,
               };
             });
           });

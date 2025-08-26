@@ -4,7 +4,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { apiScheduleService, Schedule } from '../../api/apiSchedule';
 import { apiAuthService } from '../../api/apiAuth';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
 import DashBoardLayoutLecturer from './DashBoardLayoutLecturer';
 
 // --- Các thành phần giao diện ---
