@@ -43,6 +43,11 @@ const DAYS_OF_WEEK = [
     { value: "SUNDAY", label: "Chủ nhật" }
 ];
 
+const getDayOfWeekLabel = (dayOfWeek: string): string => {
+    const day = DAYS_OF_WEEK.find(d => d.value === dayOfWeek);
+    return day ? day.label : dayOfWeek;
+};
+
 const validateScheduleData = (formData: TeachingSchedulePayload): string[] => {
     const errors: string[] = [];
 
@@ -963,6 +968,7 @@ const TeachingPage = () => {
                                     <thead className="bg-gray-50">
                                         <tr>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thứ</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày học</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian bắt đầu</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian kết thúc</th>
@@ -980,7 +986,9 @@ const TeachingPage = () => {
                                                         {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                        {/* ✅ Format ngày hiển thị đẹp hơn */}
+                                                        {getDayOfWeekLabel(item.dayOfWeek)}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                                         {new Date(item.date).toLocaleDateString('vi-VN', {
                                                             day: '2-digit',
                                                             month: '2-digit',
@@ -1027,7 +1035,7 @@ const TeachingPage = () => {
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan={8} className="text-center py-6 text-gray-500">
+                                                <td colSpan={9} className="text-center py-6 text-gray-500">
                                                     Giảng viên này chưa có lịch giảng dạy nào.
                                                 </td>
                                             </tr>
@@ -1035,6 +1043,7 @@ const TeachingPage = () => {
                                     </tbody>
                                 </table>
                             </div>
+
 
                             {renderPagination()}
                         </>

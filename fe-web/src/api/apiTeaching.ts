@@ -90,8 +90,8 @@ export const getTeachingSchedules = async (): Promise<TeachingSchedule[]> => {
 };
 
 
-export const getSchedulesByLecturer = async (): Promise<TeachingSchedule[]> => {
-    const response = await teachingApiClient.get(`/api/v1/schedules/me`);
+export const getSchedulesByLecturer = async (lecturerId: number): Promise<TeachingSchedule[]> => {
+    const response = await teachingApiClient.get(`/api/v1/schedules/lecturer/${lecturerId}`);
     return response.data.data || [];
 };
 
